@@ -141,9 +141,9 @@ The short description should be in the imperative form (e.g., fix, add, remove).
 Example:
 
 ```
-fix: correct wrong file name
-fix: add missing semicolon
-doc: update user manual
+code: correct wrong file name
+code: add missing semicolon
+doc:  update user manual
 repo: remove build artifacts
 ```
 
