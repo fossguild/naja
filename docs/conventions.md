@@ -90,11 +90,11 @@ The repository contains two GitFlow permanent branches:
 
 When creating a temporary branch, use the following keywords to indicate which branch your PR targets:
 
-- `feat`: new feature or bug fix for the feature branch
-- `hot`: hot fix for the main branch
-- `wip`: work-in-progress branch (rename when ready)
-- `rel`: release preparation (GitFlow `release`)
-- `aux`: miscellaneous, not related to any issue
+- `feat`: advance nornal development  (merge into dev)
+- `hot` : hot fix for the main branch (merge into main)
+- `wip` : work-in-progress branch (will be feat or hot)
+- `rel` : release preparation (GitFlow `release`)
+- `aux` : miscellaneous, not related to any issue
 
 For `feat`, `hot`, and `wip` branches, use this scheme:
 
