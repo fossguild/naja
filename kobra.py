@@ -162,7 +162,6 @@ class Snake:
 
             # Reset speed
             self.speed = CLOCK_TICKS
-            # print(f"[RESET] Speed reset to: {self.speed:.2f}")
             
             # Drop an apple
             apple = Apple()
