@@ -40,7 +40,7 @@ MESSAGE_COLOR   = "#808080"  # Color of the game-over message.
 
 WINDOW_TITLE    = "KobraPy"  # Window title.
 
-CLOCK_TICKS     = 7         # How fast the snake moves.
+CLOCK_TICKS     = 4         # How fast the snake moves.
 
 ##
 ## Game implementation.
@@ -119,6 +119,9 @@ class Snake:
 
         # No collected apples.
         self.got_apple = False
+        
+        # Initial speed
+        self.speed = CLOCK_TICKS
 
         
     # This function is called at each loop interation.
@@ -157,6 +160,10 @@ class Snake:
             self.alive = True
             self.got_apple = False
 
+            # Reset speed
+            self.speed = CLOCK_TICKS
+            # print(f"[RESET] Speed reset to: {self.speed:.2f}")
+            
             # Drop an apple
             apple = Apple()
 
@@ -281,9 +288,11 @@ while True:
     if snake.head.x == apple.x and snake.head.y == apple.y:
         #snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         snake.got_apple = True;
+        snake.speed = min(snake.speed * 1.1, 20) # Increase speed, max 20
+        # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
         apple = Apple()
 
 
     # Update display and move clock.
     pygame.display.update()
-    clock.tick(CLOCK_TICKS)
+    clock.tick(int(snake.speed))
