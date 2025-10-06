@@ -65,6 +65,13 @@ pygame.display.set_caption(WINDOW_TITLE)
 
 game_on = 1
 
+# Load high score
+try:
+    with open('highscore.txt', 'r') as f:
+        high_score = int(f.read().strip())
+except (FileNotFoundError, ValueError):
+    high_score = 0
+
 ## This function is called when the snake dies.
 
 def center_prompt(title, subtitle):
@@ -142,6 +149,14 @@ class Snake:
 
         # In the event of death, reset the game arena.
         if not self.alive:
+
+            # Capture current score before resetting
+            global high_score
+            current_score = len(self.tail)
+            if current_score > high_score:
+                high_score = current_score
+                with open('highscore.txt', 'w') as f:
+                    f.write(str(high_score))
 
             # Tell the bad news
             pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
@@ -281,6 +296,11 @@ while True:
     # Show score (snake length = head + tail)
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
     arena.blit(score, score_rect)
+
+    # Show high score
+    high_score_text = SMALL_FONT.render(f"High: {high_score}", True, SCORE_COLOR)
+    high_score_rect = high_score_text.get_rect(center=(WIDTH - 100, HEIGHT/20 + HEIGHT/30))
+    arena.blit(high_score_text, high_score_rect)
 
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
