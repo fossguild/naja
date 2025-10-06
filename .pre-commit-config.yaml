@@ -20,16 +20,10 @@ repos:
       - id: black
         language_version: python3
 
-  # Import sorting with isort
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+  # Python linting and import sorting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
     hooks:
-      - id: isort
-        args: [--profile=black]
-
-  # Python linting with flake8
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.0
-    hooks:
-      - id: flake8
-        args: []
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
