@@ -25,22 +25,22 @@ import sys
 ## Game customization.
 ##
 
-WIDTH, HEIGHT = 800, 800     # Game screen dimensions.
+WIDTH, HEIGHT = 800, 800  # Game screen dimensions.
 
-GRID_SIZE = 50               # Square grid size.
+GRID_SIZE = 50  # Square grid size.
 
-HEAD_COLOR      = "#00aa00"  # Color of the snake's head.
+HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
-TAIL_COLOR      = "#00ff00"  # Color of the snake's tail.
-APPLE_COLOR     = "#aa0000"  # Color of the apple.
-ARENA_COLOR     = "#202020"  # Color of the ground.
-GRID_COLOR      = "#3c3c3b"  # Color of the grid lines.
-SCORE_COLOR     = "#ffffff"  # Color of the scoreboard.
-MESSAGE_COLOR   = "#808080"  # Color of the game-over message.
+TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
+APPLE_COLOR = "#aa0000"  # Color of the apple.
+ARENA_COLOR = "#202020"  # Color of the ground.
+GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
+SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
+MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
-WINDOW_TITLE    = "KobraPy"  # Window title.
+WINDOW_TITLE = "KobraPy"  # Window title.
 
-CLOCK_TICKS     = 7         # How fast the snake moves.
+CLOCK_TICKS = 7  # How fast the snake moves.
 
 ##
 ## Game implementation.
@@ -58,8 +58,8 @@ arena = pygame.display.set_mode((WIDTH, HEIGHT))
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
 
-BIG_FONT   = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH/8))
-SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH/20))
+BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
+SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20))
 
 pygame.display.set_caption(WINDOW_TITLE)
 
@@ -67,29 +67,30 @@ game_on = 1
 
 ## This function is called when the snake dies.
 
+
 def center_prompt(title, subtitle):
 
     # Show title and subtitle.
 
     center_title = BIG_FONT.render(title, True, MESSAGE_COLOR)
-    center_title_rect = center_title.get_rect(center=(WIDTH/2, HEIGHT/2))
+    center_title_rect = center_title.get_rect(center=(WIDTH / 2, HEIGHT / 2))
     arena.blit(center_title, center_title_rect)
 
     center_subtitle = SMALL_FONT.render(subtitle, True, MESSAGE_COLOR)
-    center_subtitle_rect = center_subtitle.get_rect(center=(WIDTH/2, HEIGHT*2/3))
+    center_subtitle_rect = center_subtitle.get_rect(center=(WIDTH / 2, HEIGHT * 2 / 3))
     arena.blit(center_subtitle, center_subtitle_rect)
 
     pygame.display.update()
 
-   # Wait for a keypres or a game quit event.
+    # Wait for a keypres or a game quit event.
 
-    while ( event := pygame.event.wait() ):
+    while event := pygame.event.wait():
         if event.type == pygame.KEYDOWN:
             break
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-    if event.key == pygame.K_q:          # 'Q' quits game
+    if event.key == pygame.K_q:  # 'Q' quits game
         pygame.quit()
         sys.exit()
 
@@ -97,6 +98,7 @@ def center_prompt(title, subtitle):
 ##
 ## Snake class
 ##
+
 
 class Snake:
     def __init__(self):
@@ -123,7 +125,6 @@ class Snake:
         # No collected apples.
         self.got_apple = False
 
-        
     # This function is called at each loop interation.
 
     def update(self):
@@ -155,8 +156,8 @@ class Snake:
             self.tail = []
 
             # Initial direction
-            self.xmov = 1 # Right
-            self.ymov = 0 # Still
+            self.xmov = 1  # Right
+            self.ymov = 0  # Still
 
             # Resurrection
             self.alive = True
@@ -165,35 +166,37 @@ class Snake:
             # Drop an apple
             apple = Apple()
 
-
         # Move the snake.
 
         # If head hasn't moved, tail shouldn't either (otherwise, self-byte).
-        if (self.xmov or self.ymov):
+        if self.xmov or self.ymov:
 
             # Prepend a new segment to tail.
-            self.tail.insert(0,pygame.Rect(self.head.x, self.head.y, GRID_SIZE, GRID_SIZE))
+            self.tail.insert(
+                0, pygame.Rect(self.head.x, self.head.y, GRID_SIZE, GRID_SIZE)
+            )
 
             if self.got_apple:
-                self.got_apple = False 
+                self.got_apple = False
             else:
                 self.tail.pop()
-
 
             # Move the head along current direction.
             self.head.x += self.xmov * GRID_SIZE
             self.head.y += self.ymov * GRID_SIZE
 
+
 ##
 ## The apple class.
 ##
+
 
 class Apple:
     def __init__(self):
 
         # Pick a random position within the game arena
-        self.x = int(random.randint(0, WIDTH)/GRID_SIZE) * GRID_SIZE
-        self.y = int(random.randint(0, HEIGHT)/GRID_SIZE) * GRID_SIZE
+        self.x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
+        self.y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
 
         # Create an apple at that location
         self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
@@ -210,20 +213,22 @@ class Apple:
 ## Draw the arena
 ##
 
+
 def draw_grid():
     for x in range(0, WIDTH, GRID_SIZE):
         for y in range(0, HEIGHT, GRID_SIZE):
             rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
             pygame.draw.rect(arena, GRID_COLOR, rect, 1)
 
+
 score = BIG_FONT.render("1", True, MESSAGE_COLOR)
-score_rect = score.get_rect(center=(WIDTH/2, HEIGHT/20+HEIGHT/30))
+score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 20 + HEIGHT / 30))
 
 draw_grid()
 
-snake = Snake()    # The snake
+snake = Snake()  # The snake
 
-apple = Apple()    # An apple
+apple = Apple()  # An apple
 
 center_prompt(WINDOW_TITLE, "Press to start")
 
@@ -233,31 +238,31 @@ center_prompt(WINDOW_TITLE, "Press to start")
 
 while True:
 
-    for event in pygame.event.get():           # Wait for events
+    for event in pygame.event.get():  # Wait for events
 
-       # App terminated
+        # App terminated
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-          # Key pressed
+        # Key pressed
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_DOWN:    # Down arrow:  move down
+            if event.key == pygame.K_DOWN:  # Down arrow:  move down
                 snake.ymov = 1
                 snake.xmov = 0
-            elif event.key == pygame.K_UP:    # Up arrow:    move up
+            elif event.key == pygame.K_UP:  # Up arrow:    move up
                 snake.ymov = -1
                 snake.xmov = 0
-            elif event.key == pygame.K_RIGHT: # Right arrow: move right
+            elif event.key == pygame.K_RIGHT:  # Right arrow: move right
                 snake.ymov = 0
                 snake.xmov = 1
             elif event.key == pygame.K_LEFT:  # Left arrow:  move left
                 snake.ymov = 0
                 snake.xmov = -1
-            elif event.key == pygame.K_q:     # Q         : quit game
+            elif event.key == pygame.K_q:  # Q         : quit game
                 pygame.quit()
                 sys.exit()
-            elif event.key == pygame.K_p:     # S         : pause game
+            elif event.key == pygame.K_p:  # S         : pause game
                 game_on = not game_on
 
     ## Update the game
@@ -284,10 +289,9 @@ while True:
 
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
-        #snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        snake.got_apple = True;
+        # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
+        snake.got_apple = True
         apple = Apple()
-
 
     # Update display and move clock.
     pygame.display.update()
