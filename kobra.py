@@ -70,7 +70,6 @@ game_on = 1
 
 
 def center_prompt(title, subtitle):
-
     # Show title and subtitle.
 
     center_title = BIG_FONT.render(title, True, MESSAGE_COLOR)
@@ -103,7 +102,6 @@ def center_prompt(title, subtitle):
 
 class Snake:
     def __init__(self):
-
         # Dimension of each snake segment.
 
         self.x, self.y = GRID_SIZE, GRID_SIZE
@@ -144,7 +142,6 @@ class Snake:
 
         # In the event of death, reset the game arena.
         if not self.alive:
-
             # Tell the bad news
             pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
             center_prompt("Game Over", "Press to restart")
@@ -171,7 +168,6 @@ class Snake:
 
         # If head hasn't moved, tail shouldn't either (otherwise, self-byte).
         if self.xmov or self.ymov:
-
             # Prepend a new segment to tail.
             self.tail.insert(
                 0, pygame.Rect(self.head.x, self.head.y, GRID_SIZE, GRID_SIZE)
@@ -194,7 +190,6 @@ class Snake:
 
 class Apple:
     def __init__(self):
-
         # Pick a random position within the game arena
         self.x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
         self.y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
@@ -205,7 +200,6 @@ class Apple:
     # This function is called each interation of the game loop
 
     def update(self):
-
         # Drop the apple
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
 
@@ -238,9 +232,7 @@ center_prompt(WINDOW_TITLE, "Press to start")
 ##
 
 while True:
-
     for event in pygame.event.get():  # Wait for events
-
         # App terminated
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -278,7 +270,6 @@ while True:
     ## Update the game
 
     if game_on:
-
         snake.update()
 
         arena.fill(ARENA_COLOR)
