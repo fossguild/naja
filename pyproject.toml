@@ -1,7 +1,7 @@
 [project]
 name = "naja"
 version = "0.1.0"
-description = "Add your description here"
+description = "Naja is a Python game built with pygame."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
