@@ -129,14 +129,25 @@ class Snake:
     def update(self):
         global apple
 
-        # Check for border crash.
-        if self.head.x not in range(0, WIDTH) or self.head.y not in range(0, HEIGHT):
+        # Compute the head's next position (where it will be after movement)
+        next_x = self.head.x + self.xmov * GRID_SIZE
+        next_y = self.head.y + self.ymov * GRID_SIZE
+
+        # Check for border crash at the next position.
+        if next_x not in range(0, WIDTH) or next_y not in range(0, HEIGHT):
             self.alive = False
             gameover_sound.play()
 
-        # Check for self-bite.
-        for square in self.tail:
-            if self.head.x == square.x and self.head.y == square.y:
+        # Check for self-bite against the tail as it will be after movement.
+        # Build the "future" tail: current head becomes first segment, and
+        # if the snake does not eat an apple the last segment will be removed.
+        future_tail = [pygame.Rect(s.x, s.y, s.width, s.height) for s in self.tail]
+        future_tail.insert(0, pygame.Rect(self.head.x, self.head.y, GRID_SIZE, GRID_SIZE))
+        if not self.got_apple and future_tail:
+            future_tail.pop()
+
+        for square in future_tail:
+            if next_x == square.x and next_y == square.y:
                 self.alive = False
                 gameover_sound.play()
 
