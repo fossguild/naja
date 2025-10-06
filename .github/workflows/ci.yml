@@ -1,0 +1,16 @@
+name: Linting and Formatting Checks
+on: [push, pull_request]
+
+jobs:
+  black:
+    name: runner / black formatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: psf/black@stable
+  ruff:
+    name: runner / ruff linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
