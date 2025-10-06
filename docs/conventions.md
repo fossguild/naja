@@ -63,6 +63,24 @@ community.
 * Follow the project style for casing, indentation, and block alignment.
 * Comments are text—use proper capitalization and punctuation.
 
+Development Setup
+------------------------------
+
+To contribute to this project, you'll need to set up the development environment:
+
+1. Install development dependencies:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. Install pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+
+This will ensure your code is automatically formatted and linted before each commit.
+All pull requests must pass the linting checks to be merged.
+
 Attribution and Licensing
 ------------------------------
 
