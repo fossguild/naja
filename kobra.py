@@ -56,10 +56,6 @@ WINDOW_TITLE    = "KobraPy"  # Window title.
 
 CLOCK_TICKS     = 7         # How fast the snake moves.
 
-##
-## Game implementation.
-##
-
 pygame.init()
 
 clock = pygame.time.Clock()
