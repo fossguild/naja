@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
 #
@@ -29,9 +29,16 @@ WIDTH, HEIGHT = 800, 800     # Game screen dimensions.
 
 GRID_SIZE = 50               # Square grid size.
 
-HEAD_COLOR      = "#00aa00"  # Color of the snake's head.
+HEAD_COLOR      = "#2E8B57"  # Color of the snake's head (Sea Green).
+HEAD_LIGHT      = "#32CD32"  # Light color for head gradient.
+HEAD_DARK       = "#006400"  # Dark color for head gradient.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
-TAIL_COLOR      = "#00ff00"  # Color of the snake's tail.
+TAIL_COLOR      = "#228B22"  # Color of the snake's tail (Forest Green).
+TAIL_LIGHT      = "#32CD32"  # Light color for tail segments.
+TAIL_DARK       = "#1C5A1C"  # Dark color for tail segments.
+SHADOW_COLOR    = "#1a1a1a"  # Color for shadow effect.
+EYE_COLOR       = "#000000"  # Color of the snake's eyes.
+EYE_SHINE       = "#ffffff"  # Color for eye shine effect.
 APPLE_COLOR     = "#aa0000"  # Color of the apple.
 ARENA_COLOR     = "#202020"  # Color of the ground.
 GRID_COLOR      = "#3c3c3b"  # Color of the grid lines.
@@ -43,23 +50,106 @@ WINDOW_TITLE    = "KobraPy"  # Window title.
 CLOCK_TICKS     = 7         # How fast the snake moves.
 
 ##
-## Drawing functions.
+## Drawing functions for enhanced snake appearance.
 ##
 
-def draw_apple(surface, rect):
-    """Draws a simple apple with red body and green stem."""
-    # Apple body (slightly flattened circle)
-    apple_rect = pygame.Rect(rect.x + 5, rect.y + 8, rect.width - 10, rect.height - 15)
-    pygame.draw.ellipse(surface, APPLE_COLOR, apple_rect)
+def hex_to_rgb(hex_color):
+    """Convert hex color to RGB tuple."""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def draw_snake_head(surface, rect, direction=(1, 0), is_dead=False):
+    """Draw an enhanced snake head with gradient, eyes, and direction awareness."""
+    # Draw shadow first
+    shadow_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width, rect.height)
+    pygame.draw.ellipse(surface, hex_to_rgb(SHADOW_COLOR), shadow_rect)
     
-    # Apple stem (small green rectangle at the top)
-    stem_color = "#228B22"  # Forest green
-    stem_rect = pygame.Rect(rect.x + rect.width//2 - 3, rect.y + 2, 6, 10)
-    pygame.draw.rect(surface, stem_color, stem_rect)
+    # Choose colors based on state
+    if is_dead:
+        main_color = hex_to_rgb(DEAD_HEAD_COLOR)
+        light_color = main_color
+        dark_color = (int(main_color[0] * 0.6), int(main_color[1] * 0.6), int(main_color[2] * 0.6))
+    else:
+        main_color = hex_to_rgb(HEAD_COLOR)
+        light_color = hex_to_rgb(HEAD_LIGHT)
+        dark_color = hex_to_rgb(HEAD_DARK)
     
-    # Small leaf (small green ellipse)
-    leaf_rect = pygame.Rect(rect.x + rect.width//2 + 2, rect.y + 3, 8, 4)
-    pygame.draw.ellipse(surface, stem_color, leaf_rect)
+    # Draw the main head shape
+    pygame.draw.ellipse(surface, main_color, rect)
+    
+    # Add simple gradient effect by drawing smaller ellipses
+    for i in range(3):
+        fade_factor = 0.7 + (i * 0.1)
+        gradient_color = (
+            int(light_color[0] * fade_factor + dark_color[0] * (1 - fade_factor)),
+            int(light_color[1] * fade_factor + dark_color[1] * (1 - fade_factor)),
+            int(light_color[2] * fade_factor + dark_color[2] * (1 - fade_factor))
+        )
+        gradient_rect = pygame.Rect(
+            rect.x + i * 2, 
+            rect.y + i * 2, 
+            rect.width - i * 4, 
+            rect.height - i * 4
+        )
+        if gradient_rect.width > 0 and gradient_rect.height > 0:
+            pygame.draw.ellipse(surface, gradient_color, gradient_rect)
+    
+    # Draw eyes if not dead
+    if not is_dead:
+        eye_size = rect.width // 5
+        if direction[0] == 1:  # Moving right
+            eye1_pos = (int(rect.x + rect.width * 0.65), int(rect.y + rect.height * 0.35))
+            eye2_pos = (int(rect.x + rect.width * 0.65), int(rect.y + rect.height * 0.65))
+        elif direction[0] == -1:  # Moving left
+            eye1_pos = (int(rect.x + rect.width * 0.25), int(rect.y + rect.height * 0.35))
+            eye2_pos = (int(rect.x + rect.width * 0.25), int(rect.y + rect.height * 0.65))
+        elif direction[1] == -1:  # Moving up
+            eye1_pos = (int(rect.x + rect.width * 0.35), int(rect.y + rect.height * 0.25))
+            eye2_pos = (int(rect.x + rect.width * 0.65), int(rect.y + rect.height * 0.25))
+        else:  # Moving down
+            eye1_pos = (int(rect.x + rect.width * 0.35), int(rect.y + rect.height * 0.65))
+            eye2_pos = (int(rect.x + rect.width * 0.65), int(rect.y + rect.height * 0.65))
+        
+        # Draw eyes
+        pygame.draw.circle(surface, hex_to_rgb(EYE_COLOR), eye1_pos, eye_size)
+        pygame.draw.circle(surface, hex_to_rgb(EYE_COLOR), eye2_pos, eye_size)
+        
+        # Draw eye shine
+        shine_size = max(1, eye_size // 2)
+        shine1_pos = (eye1_pos[0] - eye_size//3, eye1_pos[1] - eye_size//3)
+        shine2_pos = (eye2_pos[0] - eye_size//3, eye2_pos[1] - eye_size//3)
+        pygame.draw.circle(surface, hex_to_rgb(EYE_SHINE), shine1_pos, shine_size)
+        pygame.draw.circle(surface, hex_to_rgb(EYE_SHINE), shine2_pos, shine_size)
+
+def draw_snake_segment(surface, rect, is_head=False):
+    """Draw an enhanced snake body segment with rounded corners and gradient."""
+    # Draw shadow
+    shadow_rect = pygame.Rect(rect.x + 1, rect.y + 1, rect.width, rect.height)
+    pygame.draw.rect(surface, hex_to_rgb(SHADOW_COLOR), shadow_rect, border_radius=rect.width//6)
+    
+    # Draw main segment with rounded corners
+    main_color = hex_to_rgb(TAIL_COLOR)
+    pygame.draw.rect(surface, main_color, rect, border_radius=rect.width//6)
+    
+    # Add simple gradient effect by drawing smaller rectangles
+    light_color = hex_to_rgb(TAIL_LIGHT)
+    dark_color = hex_to_rgb(TAIL_DARK)
+    
+    for i in range(2):
+        fade_factor = 0.8 + (i * 0.2)
+        gradient_color = (
+            int(light_color[0] * fade_factor + dark_color[0] * (1 - fade_factor)),
+            int(light_color[1] * fade_factor + dark_color[1] * (1 - fade_factor)),
+            int(light_color[2] * fade_factor + dark_color[2] * (1 - fade_factor))
+        )
+        gradient_rect = pygame.Rect(
+            rect.x + i * 2, 
+            rect.y + i * 2, 
+            rect.width - i * 4, 
+            rect.height - i * 4
+        )
+        if gradient_rect.width > 0 and gradient_rect.height > 0:
+            pygame.draw.rect(surface, gradient_color, gradient_rect, border_radius=gradient_rect.width//6)
 
 ##
 ## Game implementation.
@@ -126,6 +216,9 @@ class Snake:
         # ymov :  -1 up       0 still,   1 dows
         self.xmov = 1
         self.ymov = 0
+        
+        # Store current direction for head drawing
+        self.direction = (1, 0)
 
         # The snake has a head segement,
         self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
@@ -158,7 +251,7 @@ class Snake:
         if not self.alive:
 
             # Tell the bad news
-            pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
+            draw_snake_head(arena, snake.head, snake.direction, is_dead=True)
             center_prompt("Game Over", "Press to restart")
 
             # Respan the head
@@ -171,6 +264,7 @@ class Snake:
             # Initial direction
             self.xmov = 1 # Right
             self.ymov = 0 # Still
+            self.direction = (1, 0)  # Reset direction
 
             # Resurrection
             self.alive = True
@@ -197,6 +291,9 @@ class Snake:
             # Move the head along current direction.
             self.head.x += self.xmov * GRID_SIZE
             self.head.y += self.ymov * GRID_SIZE
+            
+            # Update direction for head drawing
+            self.direction = (self.xmov, self.ymov)
 
 ##
 ## The apple class.
@@ -215,8 +312,9 @@ class Apple:
     # This function is called each interation of the game loop
 
     def update(self):
-        # Draw the apple using our custom function
-        draw_apple(arena, self.rect)
+
+        # Drop the apple
+        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
 
 
 ##
@@ -286,10 +384,10 @@ while True:
 
     # Draw the tail
     for square in snake.tail:
-        pygame.draw.rect(arena, TAIL_COLOR, square)
+        draw_snake_segment(arena, square)
 
     # Draw head
-    pygame.draw.rect(arena, HEAD_COLOR, snake.head)
+    draw_snake_head(arena, snake.head, snake.direction, not snake.alive)
 
     # Show score (snake length = head + tail)
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
