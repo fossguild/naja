@@ -1,0 +1,16 @@
+[project]
+name = "naja"
+version = "0.1.0"
+description = "Naja is a Python game built with pygame."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pygame>=2.6.1",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=3.0.0",
+    "black>=24.0.0",
+    "ruff>=0.6.0",
+]
