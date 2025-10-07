@@ -17,9 +17,8 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import random
 import sys
-
+import random
 import pygame
 
 ##
@@ -41,7 +40,7 @@ MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
 WINDOW_TITLE = "KobraPy"  # Window title.
 
-CLOCK_TICKS     = 4         # How fast the snake moves.
+CLOCK_TICKS = 4  # How fast the snake moves.
 
 ##
 ## Game implementation.
@@ -83,7 +82,6 @@ def center_prompt(title, subtitle):
     pygame.display.update()
 
     # Wait for a keypres or a game quit event.
-
     while event := pygame.event.wait():
         if event.type == pygame.KEYDOWN:
             break
@@ -123,7 +121,7 @@ class Snake:
 
         # No collected apples.
         self.got_apple = False
-        
+
         # Initial speed
         self.speed = CLOCK_TICKS
 
@@ -166,7 +164,7 @@ class Snake:
 
             # Reset speed
             self.speed = CLOCK_TICKS
-            
+
             # Drop an apple
             apple = Apple()
 
@@ -246,19 +244,13 @@ while True:
 
         # Key pressed
         if event.type == pygame.KEYDOWN:
-            if event.key in (
-                pygame.K_DOWN,
-                pygame.K_s,
-            ):  # Down arrow (or S):  move down
+            if event.key == pygame.K_DOWN:  # Down arrow:  move down
                 snake.ymov = 1
                 snake.xmov = 0
-            elif event.key in (pygame.K_UP, pygame.K_w):  # Up arrow (or W):    move up
+            elif event.key == pygame.K_UP:  # Up arrow:    move up
                 snake.ymov = -1
                 snake.xmov = 0
-            elif event.key in (
-                pygame.K_RIGHT,
-                pygame.K_d,
-            ):  # Right arrow (or D): move right
+            elif event.key == pygame.K_RIGHT:  # Right arrow: move right
                 snake.ymov = 0
                 snake.xmov = 1
             elif event.key in (
@@ -296,9 +288,9 @@ while True:
 
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
-        #snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        snake.got_apple = True;
-        snake.speed = min(snake.speed * 1.1, 20) # Increase speed, max 20
+        # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
+        snake.got_apple = True
+        snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
         apple = Apple()
 
