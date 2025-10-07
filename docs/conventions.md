@@ -25,6 +25,9 @@ to address.
 * fork the project on GitHub * create a branch for the issue * make your changes
 in that branch * create a pull request for <Name>
 
+* Make sure your changes follow the project's standard linting and formatting, as it will
+be required for merging (specified in manual.md)
+
 Do not submit a PR/MR unrelated to an open issue. Ensure your contribution
 complies with the project’s conventions (see below).
 
