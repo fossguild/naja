@@ -25,6 +25,9 @@ to address.
 * fork the project on GitHub * create a branch for the issue * make your changes
 in that branch * create a pull request for <Name>
 
+* Make sure your changes follow the project's standard linting and formatting, as it will
+be required for merging (specified in manual.md)
+
 Do not submit a PR/MR unrelated to an open issue. Ensure your contribution
 complies with the project’s conventions (see below).
 
@@ -62,6 +65,24 @@ community.
 * Symbol names, comments, file names, etc. should always be in English.
 * Follow the project style for casing, indentation, and block alignment.
 * Comments are text—use proper capitalization and punctuation.
+
+Development Setup
+------------------------------
+
+To contribute to this project, you'll need to set up the development environment:
+
+1. Install development dependencies:
+   ```bash
+   uv sync --group dev
+   ```
+
+2. Install pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+
+This will ensure your code is automatically formatted and linted before each commit.
+All pull requests must pass the linting checks to be merged.
 
 Attribution and Licensing
 ------------------------------
