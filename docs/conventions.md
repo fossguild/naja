@@ -70,7 +70,7 @@ To contribute to this project, you'll need to set up the development environment
 
 1. Install development dependencies:
    ```bash
-   pip install -r requirements-dev.txt
+   uv sync --group dev
    ```
 
 2. Install pre-commit hooks:
