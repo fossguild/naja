@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
 #
@@ -17,9 +17,10 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pygame
 import random
 import sys
+
+import pygame
 
 ##
 ## Game customization.
@@ -68,6 +69,9 @@ def draw_apple(surface, rect):
 pygame.init()
 
 clock = pygame.time.Clock()
+
+# Load gameover sound
+gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -148,11 +152,13 @@ class Snake:
         # Check for border crash.
         if self.head.x not in range(0, WIDTH) or self.head.y not in range(0, HEIGHT):
             self.alive = False
+            gameover_sound.play()
 
         # Check for self-bite.
         for square in self.tail:
             if self.head.x == square.x and self.head.y == square.y:
                 self.alive = False
+                gameover_sound.play()
 
         # In the event of death, reset the game arena.
         if not self.alive:
@@ -255,22 +261,31 @@ while True:
 
           # Key pressed
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_DOWN:    # Down arrow:  move down
+            if event.key in (
+                pygame.K_DOWN,
+                pygame.K_s,
+            ):  # Down arrow (or S):  move down
                 snake.ymov = 1
                 snake.xmov = 0
-            elif event.key == pygame.K_UP:    # Up arrow:    move up
+            elif event.key in (pygame.K_UP, pygame.K_w):  # Up arrow (or W):    move up
                 snake.ymov = -1
                 snake.xmov = 0
-            elif event.key == pygame.K_RIGHT: # Right arrow: move right
+            elif event.key in (
+                pygame.K_RIGHT,
+                pygame.K_d,
+            ):  # Right arrow (or D): move right
                 snake.ymov = 0
                 snake.xmov = 1
-            elif event.key == pygame.K_LEFT:  # Left arrow:  move left
+            elif event.key in (
+                pygame.K_LEFT,
+                pygame.K_a,
+            ):  # Left arrow (or A):  move left
                 snake.ymov = 0
                 snake.xmov = -1
-            elif event.key == pygame.K_q:     # Q         : quit game
+            elif event.key == pygame.K_q:  # Q         : quit game
                 pygame.quit()
                 sys.exit()
-            elif event.key == pygame.K_p:     # S         : pause game
+            elif event.key == pygame.K_p:  # S         : pause game
                 game_on = not game_on
 
     ## Update the game
@@ -297,8 +312,8 @@ while True:
 
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
-        #snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        snake.got_apple = True;
+        # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
+        snake.got_apple = True
         apple = Apple()
 
 
