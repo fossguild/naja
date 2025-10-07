@@ -290,7 +290,7 @@ while True:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         eat_sound.play()  # Play the sound
         snake.got_apple = True
-
+        apple = Apple()
 
     # Update display and move clock.
     pygame.display.update()
