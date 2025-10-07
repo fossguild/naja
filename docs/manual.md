@@ -19,6 +19,15 @@ Requirements
 * Python 3
 * Pygame engine (https://www.pygame.org)
 
+## Development Requirements
+
+* (optional) uv (https://docs.astral.sh/uv/)
+* ruff
+* black
+
+Ruff and black are, respectively, the standard linter and formatter,
+and compliance is required before merging pull requests.
+
 The Game
 ------------------------------
 
