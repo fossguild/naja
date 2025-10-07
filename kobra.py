@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
 #
@@ -43,15 +43,31 @@ WINDOW_TITLE    = "KobraPy"  # Window title.
 CLOCK_TICKS     = 7         # How fast the snake moves.
 
 ##
+## Drawing functions.
+##
+
+def draw_apple(surface, rect):
+    """Draws a simple apple with red body and green stem."""
+    # Apple body (slightly flattened circle)
+    apple_rect = pygame.Rect(rect.x + 5, rect.y + 8, rect.width - 10, rect.height - 15)
+    pygame.draw.ellipse(surface, APPLE_COLOR, apple_rect)
+    
+    # Apple stem (small green rectangle at the top)
+    stem_color = "#228B22"  # Forest green
+    stem_rect = pygame.Rect(rect.x + rect.width//2 - 3, rect.y + 2, 6, 10)
+    pygame.draw.rect(surface, stem_color, stem_rect)
+    
+    # Small leaf (small green ellipse)
+    leaf_rect = pygame.Rect(rect.x + rect.width//2 + 2, rect.y + 3, 8, 4)
+    pygame.draw.ellipse(surface, stem_color, leaf_rect)
+
+##
 ## Game implementation.
 ##
 
 pygame.init()
 
 clock = pygame.time.Clock()
-
-# Load gameover sound
-gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -132,13 +148,11 @@ class Snake:
         # Check for border crash.
         if self.head.x not in range(0, WIDTH) or self.head.y not in range(0, HEIGHT):
             self.alive = False
-            gameover_sound.play()
 
         # Check for self-bite.
         for square in self.tail:
             if self.head.x == square.x and self.head.y == square.y:
                 self.alive = False
-                gameover_sound.play()
 
         # In the event of death, reset the game arena.
         if not self.alive:
@@ -201,9 +215,8 @@ class Apple:
     # This function is called each interation of the game loop
 
     def update(self):
-
-        # Drop the apple
-        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
+        # Draw the apple using our custom function
+        draw_apple(arena, self.rect)
 
 
 ##
@@ -242,16 +255,16 @@ while True:
 
           # Key pressed
         if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_DOWN, pygame.K_s):    # Down arrow (or S):  move down
+            if event.key == pygame.K_DOWN:    # Down arrow:  move down
                 snake.ymov = 1
                 snake.xmov = 0
-            elif event.key in (pygame.K_UP, pygame.K_w):    # Up arrow (or W):    move up
+            elif event.key == pygame.K_UP:    # Up arrow:    move up
                 snake.ymov = -1
                 snake.xmov = 0
-            elif event.key in (pygame.K_RIGHT, pygame.K_d): # Right arrow (or D): move right
+            elif event.key == pygame.K_RIGHT: # Right arrow: move right
                 snake.ymov = 0
                 snake.xmov = 1
-            elif event.key in (pygame.K_LEFT, pygame.K_a):  # Left arrow (or A):  move left
+            elif event.key == pygame.K_LEFT:  # Left arrow:  move left
                 snake.ymov = 0
                 snake.xmov = -1
             elif event.key == pygame.K_q:     # Q         : quit game
