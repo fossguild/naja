@@ -216,9 +216,6 @@ def draw_grid():
             pygame.draw.rect(arena, GRID_COLOR, rect, 1)
 
 
-score = BIG_FONT.render("1", True, MESSAGE_COLOR)
-score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 20 + HEIGHT / 30))
-
 draw_grid()
 
 snake = Snake()  # The snake
@@ -286,6 +283,7 @@ while True:
 
     # Show score (snake length = head + tail)
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
+    score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
     arena.blit(score, score_rect)
 
     # If the head pass over an apple, lengthen the snake and drop another apple
