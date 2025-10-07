@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
 #
@@ -45,11 +45,40 @@ pygame.init()
 
 # Initialize the audio mixer
 pygame.mixer.init()
+WIDTH, HEIGHT = 800, 800     # Game screen dimensions.
 
+GRID_SIZE = 50               # Square grid size.
+
+HEAD_COLOR      = "#00aa00"  # Color of the snake's head.
+DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
+TAIL_COLOR      = "#00ff00"  # Color of the snake's tail.
+APPLE_COLOR     = "#aa0000"  # Color of the apple.
+ARENA_COLOR     = "#202020"  # Color of the ground.
+GRID_COLOR      = "#3c3c3b"  # Color of the grid lines.
+SCORE_COLOR     = "#ffffff"  # Color of the scoreboard.
+MESSAGE_COLOR   = "#808080"  # Color of the game-over message.
+
+WINDOW_TITLE    = "KobraPy"  # Window title.
+
+CLOCK_TICKS     = 7         # How fast the snake moves.
 
 ##
 ## Settings Menu Functions
 ##
+def draw_apple(surface, rect):
+    """Draws a simple apple with red body and green stem."""
+    # Apple body (slightly flattened circle)
+    apple_rect = pygame.Rect(rect.x + 5, rect.y + 8, rect.width - 10, rect.height - 15)
+    pygame.draw.ellipse(surface, APPLE_COLOR, apple_rect)
+    
+    # Apple stem (small green rectangle at the top)
+    stem_color = "#228B22"  # Forest green
+    stem_rect = pygame.Rect(rect.x + rect.width//2 - 3, rect.y + 2, 6, 10)
+    pygame.draw.rect(surface, stem_color, stem_rect)
+    
+    # Small leaf (small green ellipse)
+    leaf_rect = pygame.Rect(rect.x + rect.width//2 + 2, rect.y + 3, 8, 4)
+    pygame.draw.ellipse(surface, stem_color, leaf_rect)
 
 
 def _draw_settings_menu(
@@ -778,7 +807,9 @@ def main():
 
         # Draw all apples
         for apple in state.apples:
-            apple.update(state.arena)
+            apple_rect = pygame.Rect(apple.x, apple.y, state.grid_size, state.grid_size)
+            draw_apple(state.arena, apple_rect)
+
 
         electric_walls = settings.get("electric_walls")
 
