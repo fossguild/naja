@@ -32,15 +32,15 @@ Before diving into the code, please observe the following notes:
   copied from KobraPy or copy/paste code from KobraPy into a file you created.
 
   Since it is a derivative work, you must edit the copyright notice in that file
-  to identify yourself as a co-author, while still crediting KobraPy. Do not	
+  to identify yourself as a co-author, while still crediting KobraPy. Do not
   remove existing names—just add yours. Also include a visible comment stating
   that this is a derivative work from KobraPy.
 
 * You should also edit the documentation in your repository:
 
   ```
-  - README.md			
-  - AUTHORS			
+  - README.md
+  - AUTHORS
   - docs/manual.md
   - docs/CONTRIBUTING.md
   ```
@@ -66,9 +66,9 @@ your repository’s GitHub issue tracker.
 * Set up a few milestones for your project in GitHub, and assign issues
   to them:
 
-  - Milestone for release 1.0.0-alpha (feedback)  
-  - Milestone for release 1.0.0-beta (feature freeze)  
-  - Milestone for release 1.0.0 (stable, hopefully working)  
+  - Milestone for release 1.0.0-alpha (feedback)
+  - Milestone for release 1.0.0-beta (feature freeze)
+  - Milestone for release 1.0.0 (stable, hopefully working)
 
 * The goal of this exercise is to explore established open-source development
   tools and methodologies, and to get familiar with good practices for long-term
@@ -86,4 +86,3 @@ References
 [1] SPDX - Software Package Data Exchange, https://spdx.dev
 [2] REUSE Software, https://reuse.software
 [3] Semantic Versioning, https://semver.org
-
