@@ -135,8 +135,8 @@ class Snake:
 
         # Only check collisions if the snake is currently moving
         if self.xmov or self.ymov:
-            
-            # Check for border crash. 
+
+            # Check for border crash.
             if next_x not in range(0, WIDTH) or next_y not in range(0, HEIGHT):
                 self.alive = False
                 gameover_sound.play()
