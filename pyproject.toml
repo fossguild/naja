@@ -1,9 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "naja"
 version = "0.1.0"
-description = "Naja is a Python game built with pygame."
+description = "Naja is a classic snake-inspired game implemented in Python using Pygame."
 readme = "README.md"
-requires-python = ">=3.12"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.8, <3.13"
+
 dependencies = [
-    "pygame>=2.6.1",
+    "pygame>=2.6.0, <3.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/fossguild/naja"
+Repository = "https://github.com/fossguild/naja"
