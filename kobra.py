@@ -138,16 +138,23 @@ class Snake:
     def update(self):
         global apple
 
-        # Check for border crash.
-        if self.head.x not in range(0, WIDTH) or self.head.y not in range(0, HEIGHT):
-            self.alive = False
-            gameover_sound.play()
+        # Calculate the head's next position based on current movement
+        next_x = self.head.x + self.xmov * GRID_SIZE
+        next_y = self.head.y + self.ymov * GRID_SIZE
 
-        # Check for self-bite.
-        for square in self.tail:
-            if self.head.x == square.x and self.head.y == square.y:
+        # Only check collisions if the snake is currently moving
+        if self.xmov or self.ymov:
+
+            # Check for border crash.
+            if next_x not in range(0, WIDTH) or next_y not in range(0, HEIGHT):
                 self.alive = False
                 gameover_sound.play()
+
+            # Check for self-bite.
+            for square in self.tail:
+                if next_x == square.x and next_y == square.y:
+                    self.alive = False
+                    gameover_sound.play()
 
         # In the event of death, reset the game arena.
         if not self.alive:
