@@ -61,7 +61,7 @@ clock = pygame.time.Clock()
 # Load gameover sound
 gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
-arena = pygame.display.set_mode((WIDTH, HEIGHT))
+arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
@@ -314,4 +314,4 @@ while True:
 
     # Update display and move clock.
     pygame.display.update()
-    clock.tick(int(snake.speed))
+    clock.tick_busy_loop(int(snake.speed))
