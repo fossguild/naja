@@ -263,6 +263,9 @@ while True:
                 sys.exit()
             elif event.key == pygame.K_p:  # S         : pause game
                 game_on = not game_on
+                if not game_on:
+                    center_prompt("Pause", "Press to continue")
+                    game_on = 1
 
     ## Update the game
 
