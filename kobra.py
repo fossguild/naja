@@ -701,7 +701,7 @@ while True:
     if snake.head.x == current_fruit.x and snake.head.y == current_fruit.y:
         # Add segments to grow
         snake.segments_to_grow += current_fruit.growth
-        
+
         # Apply speed modifier (grape slows down, others increase speed)
         if current_fruit.speed_modifier < 1.0:
             # Grape: decrease speed (divide to slow down)
@@ -709,10 +709,10 @@ while True:
         else:
             # Apple/Orange: increase speed as before
             snake.speed = min(snake.speed * 1.1, MAX_SPEED)
-        
+
         # Add points
         player_score += current_fruit.points
-        
+
         # Spawn a new random fruit
         current_fruit = spawn_random_fruit()
 
