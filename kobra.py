@@ -25,9 +25,23 @@ import pygame
 ## Game customization.
 ##
 
-WIDTH, HEIGHT = 800, 800  # Game screen dimensions.
+# Initialize Pygame to access display info.
+# Allows to detect the screen size before creating the main window.
+pygame.init()
 
-GRID_SIZE = 50  # Square grid size.
+# Get the current display's resolution from the system.
+display_info = pygame.display.Info()
+user_screen_width = display_info.current_w
+user_screen_height = display_info.current_h
+
+# Determine the largest possible square size that fits safely on the screen.
+safe_max_dimension = int(min(user_screen_width, user_screen_height) * 0.9)
+
+# Define the size of each cell in the game's grid.
+GRID_SIZE = 50
+
+# Calculate the final window dimension.
+WIDTH = HEIGHT = (safe_max_dimension // GRID_SIZE) * GRID_SIZE
 
 HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
@@ -41,12 +55,6 @@ MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 WINDOW_TITLE = "KobraPy"  # Window title.
 
 CLOCK_TICKS = 4  # How fast the snake moves.
-
-##
-## Game implementation.
-##
-
-pygame.init()
 
 clock = pygame.time.Clock()
 
