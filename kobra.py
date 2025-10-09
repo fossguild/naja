@@ -257,7 +257,14 @@ while True:
         # Key pressed
         if event.type == pygame.KEYDOWN:
             # Down arrow (or S): move down
-            if event.key in (pygame.K_DOWN, pygame.K_s,) and snake.ymov != -1:
+            if (
+                event.key
+                in (
+                    pygame.K_DOWN,
+                    pygame.K_s,
+                )
+                and snake.ymov != -1
+            ):
                 snake.ymov = 1
                 snake.xmov = 0
             # Up arrow (or W): move up
