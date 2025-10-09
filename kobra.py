@@ -63,7 +63,6 @@ gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
-pygame.time.set_timer(pygame.USEREVENT, int(1000 / CLOCK_TICKS))
 
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
@@ -123,8 +122,10 @@ class Snake:
         # The snake has a head segement,
         self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
 
-        # and a tail (array of segments).
-        self.tail = []
+        # and a tail/history of positions (head first).
+        # Store integer grid coordinates (x, y) in `positions`, head at index 0.
+        self.positions = [(self.x, self.y)]
+        self.tail = self.positions[1:]
 
         # The snake is born.
         self.alive = True
@@ -134,6 +135,13 @@ class Snake:
 
         # Initial speed
         self.speed = float(CLOCK_TICKS)
+
+        # For smooth movement
+        self.move_progress = 0.0
+        self.target_x = self.x
+        self.target_y = self.y
+        self.draw_x = self.x
+        self.draw_y = self.y
 
     # This function is called at each loop interation.
 
@@ -152,17 +160,25 @@ class Snake:
                 self.alive = False
                 gameover_sound.play()
 
-            # Check for self-bite.
+            # Check for self-bite (tail stores grid tuples (x,y)).
             for square in self.tail:
-                if next_x == square.x and next_y == square.y:
+                if next_x == square[0] and next_y == square[1]:
                     self.alive = False
                     gameover_sound.play()
 
+            if self.alive:
+                self.target_x = next_x
+                self.target_y = next_y
+                self.move_progress = 0.0
+
         # In the event of death, reset the game arena.
         if not self.alive:
-            pygame.time.set_timer(pygame.USEREVENT, 0)
             # Tell the bad news
-            pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
+            pygame.draw.rect(
+                arena,
+                DEAD_HEAD_COLOR,
+                pygame.Rect(self.draw_x, self.draw_y, GRID_SIZE, GRID_SIZE),
+            )
             center_prompt("Game Over", "Press to restart (Q to exit)")
 
             # Respan the head
@@ -182,28 +198,16 @@ class Snake:
 
             # Reset speed
             self.speed = float(CLOCK_TICKS)
-            pygame.time.set_timer(pygame.USEREVENT, int(1000 / self.speed))
+
+            # For smooth movement
+            self.move_progress = 0.0
+            self.target_x = self.x
+            self.target_y = self.y
+            self.draw_x = self.x
+            self.draw_y = self.y
 
             # Drop an apple
             apple = Apple()
-
-        # Move the snake.
-
-        # If head hasn't moved, tail shouldn't either (otherwise, self-byte).
-        if self.xmov or self.ymov:
-            # Prepend a new segment to tail.
-            self.tail.insert(
-                0, pygame.Rect(self.head.x, self.head.y, GRID_SIZE, GRID_SIZE)
-            )
-
-            if self.got_apple:
-                self.got_apple = False
-            else:
-                self.tail.pop()
-
-            # Move the head along current direction.
-            self.head.x += self.xmov * GRID_SIZE
-            self.head.y += self.ymov * GRID_SIZE
 
 
 ##
@@ -252,6 +256,7 @@ center_prompt(WINDOW_TITLE, "Press to start")
 ##
 
 while True:
+    dt = clock.tick_busy_loop(0)
     for event in pygame.event.get():  # Wait for events
         # App terminated
         if event.type == pygame.QUIT:
@@ -284,27 +289,75 @@ while True:
             elif event.key == pygame.K_q:  # Q         : quit game
                 pygame.quit()
                 sys.exit()
-            elif event.key == pygame.K_p:  # S         : pause game
+            elif event.key == pygame.K_p:  # P : pause game
                 game_on = not game_on
-                if game_on:
-                    pygame.time.set_timer(pygame.USEREVENT, int(1000 / snake.speed))
-                else:
-                    pygame.time.set_timer(pygame.USEREVENT, 0)
-        if event.type == pygame.USEREVENT and game_on:
-            snake.update()
+
+        # Movement scheduling is handled from the main loop (no timers)
 
     if game_on:
+        # If we're not currently interpolating between grid cells and a movement
+        # direction is set, schedule the next grid move by calling snake.update().
+        if snake.target_x == snake.head.x and snake.target_y == snake.head.y:
+            if snake.xmov or snake.ymov:
+                snake.update()
+
+        # Advance interpolation toward the current target grid cell (if any)
+        if snake.target_x != snake.head.x or snake.target_y != snake.head.y:
+            move_interval_ms = 1000.0 / snake.speed
+            snake.move_progress += dt / move_interval_ms
+            if snake.move_progress > 1.0:
+                snake.move_progress = 1.0
+            snake.draw_x = (
+                snake.head.x + (snake.target_x - snake.head.x) * snake.move_progress
+            )
+            snake.draw_y = (
+                snake.head.y + (snake.target_y - snake.head.y) * snake.move_progress
+            )
+            if snake.move_progress >= 1.0:
+                # Move completed: remember previous head position
+                prev_x = snake.head.x
+                prev_y = snake.head.y
+
+                # Snap head to target grid cell
+                snake.head.x = snake.target_x
+                snake.head.y = snake.target_y
+                snake.x = snake.head.x
+                snake.y = snake.head.y
+
+                # Insert previous head position into tail (store as (x,y) tuple)
+                snake.tail.insert(0, (prev_x, prev_y))
+                if snake.got_apple:
+                    snake.got_apple = False
+                else:
+                    # Only pop when we didn't just eat an apple
+                    if snake.tail:
+                        snake.tail.pop()
+
+                # Reset progress and ensure draw coords are exact integers
+                snake.move_progress = 0.0
+                snake.draw_x = float(snake.head.x)
+                snake.draw_y = float(snake.head.y)
+        else:
+            # No pending move: keep draw coordinates synced to head
+            snake.move_progress = 0.0
+            snake.draw_x = float(snake.head.x)
+            snake.draw_y = float(snake.head.y)
+
         arena.fill(ARENA_COLOR)
         draw_grid()
 
         apple.update()
 
-    # Draw the tail
-    for square in snake.tail:
-        pygame.draw.rect(arena, TAIL_COLOR, square)
+    # Draw the tail (tail stores (x,y) tuples)
+    for tx, ty in snake.tail:
+        pygame.draw.rect(arena, TAIL_COLOR, pygame.Rect(tx, ty, GRID_SIZE, GRID_SIZE))
 
-    # Draw head
-    pygame.draw.rect(arena, HEAD_COLOR, snake.head)
+    # Draw head (use int coords for Rect)
+    pygame.draw.rect(
+        arena,
+        HEAD_COLOR,
+        pygame.Rect(round(snake.draw_x), round(snake.draw_y), GRID_SIZE, GRID_SIZE),
+    )
 
     # Show score (snake length = head + tail)
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
@@ -316,7 +369,6 @@ while True:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, 20.0)  # Increase speed, max 20
-        pygame.time.set_timer(pygame.USEREVENT, int(1000 / snake.speed))
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
         apple = Apple()
 
