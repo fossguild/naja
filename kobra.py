@@ -63,6 +63,8 @@ gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
+pygame.time.set_timer(pygame.USEREVENT, int(1000 / CLOCK_TICKS))
+
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
 
@@ -131,7 +133,7 @@ class Snake:
         self.got_apple = False
 
         # Initial speed
-        self.speed = CLOCK_TICKS
+        self.speed = float(CLOCK_TICKS)
 
     # This function is called at each loop interation.
 
@@ -158,6 +160,7 @@ class Snake:
 
         # In the event of death, reset the game arena.
         if not self.alive:
+            pygame.time.set_timer(pygame.USEREVENT, 0)
             # Tell the bad news
             pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
             center_prompt("Game Over", "Press to restart (Q to exit)")
@@ -178,7 +181,8 @@ class Snake:
             self.got_apple = False
 
             # Reset speed
-            self.speed = CLOCK_TICKS
+            self.speed = float(CLOCK_TICKS)
+            pygame.time.set_timer(pygame.USEREVENT, int(1000 / self.speed))
 
             # Drop an apple
             apple = Apple()
@@ -282,11 +286,14 @@ while True:
                 sys.exit()
             elif event.key == pygame.K_p:  # S         : pause game
                 game_on = not game_on
-    ## Update the game
+                if game_on:
+                    pygame.time.set_timer(pygame.USEREVENT, int(1000 / snake.speed))
+                else:
+                    pygame.time.set_timer(pygame.USEREVENT, 0)
+        if event.type == pygame.USEREVENT and game_on:
+            snake.update()
 
     if game_on:
-        snake.update()
-
         arena.fill(ARENA_COLOR)
         draw_grid()
 
@@ -308,10 +315,10 @@ while True:
     if snake.head.x == apple.x and snake.head.y == apple.y:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         snake.got_apple = True
-        snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
+        snake.speed = min(snake.speed * 1.1, 20.0)  # Increase speed, max 20
+        pygame.time.set_timer(pygame.USEREVENT, int(1000 / snake.speed))
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
         apple = Apple()
 
     # Update display and move clock.
     pygame.display.update()
-    clock.tick_busy_loop(int(snake.speed))
