@@ -181,7 +181,7 @@ class Snake:
             self.speed = CLOCK_TICKS
 
             # Drop an apple
-            apple = Apple()
+            apple = Apple(snake)
 
         # Move the snake.
 
@@ -208,13 +208,22 @@ class Snake:
 
 
 class Apple:
-    def __init__(self):
-        # Pick a random position within the game arena
-        self.x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
-        self.y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
+    def __init__(self, snake):
+        while True:
+            # Pick a random position within the game arena
+            x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
+            y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
 
-        # Create an apple at that location
-        self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
+            # Verify colision with snake (head and tail)
+            collision = (x == snake.head.x and y == snake.head.y) or any(
+                x == square.x and y == square.y for square in snake.tail
+            )
+
+            if not collision:  # if no collision, create an apple at that location
+                self.x = x
+                self.y = y
+                self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
+                break
 
     # This function is called each interation of the game loop
 
@@ -239,7 +248,7 @@ draw_grid()
 
 snake = Snake()  # The snake
 
-apple = Apple()  # An apple
+apple = Apple(snake)  # An apple
 
 center_prompt(WINDOW_TITLE, "Press to start")
 
@@ -314,7 +323,7 @@ while True:
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple()
+        apple = Apple(snake)
 
     # Update display and move clock.
     pygame.display.update()
