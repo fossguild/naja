@@ -29,6 +29,14 @@ import pygame
 # Allows to detect the screen size before creating the main window.
 pygame.init()
 
+# Inicializa o mixer de áudio
+pygame.mixer.init()
+
+# Carrega e toca a música de fundo (loop infinito)
+pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+pygame.mixer.music.set_volume(0.2)  # volume de 0.0 a 1.0
+pygame.mixer.music.play(-1)         # -1 significa repetir para sempre
+
 # Get the current display's resolution from the system.
 display_info = pygame.display.Info()
 user_screen_width = display_info.current_w
