@@ -9,7 +9,6 @@ description = "Naja is a classic snake-inspired game implemented in Python using
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.12"
-
 dependencies = [
     "pygame>=2.6.1",
 ]
@@ -17,3 +16,10 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/fossguild/naja"
 Repository = "https://github.com/fossguild/naja"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=3.0.0",
+    "black>=24.0.0",
+    "ruff>=0.6.0",
+]
