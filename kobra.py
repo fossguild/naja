@@ -256,31 +256,35 @@ while True:
 
         # Key pressed
         if event.type == pygame.KEYDOWN:
-            if event.key in (
-                pygame.K_DOWN,
-                pygame.K_s,
-            ):  # Down arrow (or S):  move down
+            # Down arrow (or S): move down
+            if (
+                event.key
+                in (
+                    pygame.K_DOWN,
+                    pygame.K_s,
+                )
+                and snake.ymov != -1
+            ):
                 snake.ymov = 1
                 snake.xmov = 0
-            elif event.key in (pygame.K_UP, pygame.K_w):  # Up arrow (or W):    move up
+            # Up arrow (or W): move up
+            elif event.key in (pygame.K_UP, pygame.K_w) and snake.ymov != 1:
                 snake.ymov = -1
                 snake.xmov = 0
-            elif event.key in (
-                pygame.K_RIGHT,
-                pygame.K_d,
-            ):  # Right arrow (or D): move right
+            # Right arrow (or D): move right
+            elif event.key in (pygame.K_RIGHT, pygame.K_d) and snake.xmov != -1:
                 snake.ymov = 0
                 snake.xmov = 1
-            elif event.key in (
-                pygame.K_LEFT,
-                pygame.K_a,
-            ):  # Left arrow (or A):  move left
+            # Left arrow (or A): move left
+            elif event.key in (pygame.K_LEFT, pygame.K_a) and snake.xmov != 1:
                 snake.ymov = 0
                 snake.xmov = -1
-            elif event.key == pygame.K_q:  # Q         : quit game
+            # Q : quit game
+            elif event.key == pygame.K_q:
                 pygame.quit()
                 sys.exit()
-            elif event.key == pygame.K_p:  # S         : pause game
+            # P : pause game
+            elif event.key == pygame.K_p:
                 game_on = not game_on
     ## Update the game
 
