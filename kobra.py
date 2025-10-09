@@ -308,7 +308,7 @@ while True:
     if snake.head.x == apple.x and snake.head.y == apple.y:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         snake.got_apple = True
-        snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
+        snake.speed = min(snake.speed * 1.1, 10)  # Increase speed, max 20
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
         apple = Apple()
 
