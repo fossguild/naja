@@ -112,7 +112,7 @@ The repository contains two GitFlow permanent branches:
 
 When creating a temporary branch, use the following keywords to indicate which branch your PR targets:
 
-- `feat`: advance nornal development  (merge into dev)
+- `feat`: advance normal development  (merge into dev)
 - `hot` : hot fix for the main branch (merge into main)
 - `wip` : work-in-progress branch (will be feat or hot)
 - `rel` : release preparation (GitFlow `release`)
