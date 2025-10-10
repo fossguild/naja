@@ -143,6 +143,9 @@ class Snake:
         self.draw_x = self.x
         self.draw_y = self.y
 
+        self.prev_head_x = self.x
+        self.prev_head_y = self.y
+
     # This function is called at each loop interation.
 
     def update(self):
@@ -204,6 +207,8 @@ class Snake:
             self.target_y = self.y
             self.draw_x = self.x
             self.draw_y = self.y
+            self.prev_head_x = self.x
+            self.prev_head_y = self.y
 
             # Drop an apple
             apple = Apple(snake)
@@ -223,7 +228,7 @@ class Apple:
 
             # Verify colision with snake (head and tail)
             collision = (x == snake.head.x and y == snake.head.y) or any(
-                x == square.x and y == square.y for square in snake.tail
+                x == square[0] and y == square[1] for square in snake.tail
             )
 
             if not collision:  # if no collision, create an apple at that location
@@ -349,6 +354,8 @@ while True:
                 snake.move_progress = 0.0
                 snake.draw_x = float(snake.head.x)
                 snake.draw_y = float(snake.head.y)
+                snake.prev_head_x = snake.head.x
+                snake.prev_head_y = snake.head.y
         else:
             # No pending move: keep draw coordinates synced to head
             snake.move_progress = 0.0
@@ -360,9 +367,24 @@ while True:
 
         apple.update()
 
-    # Draw the tail (tail stores (x,y) tuples)
-    for tx, ty in snake.tail:
-        pygame.draw.rect(arena, TAIL_COLOR, pygame.Rect(tx, ty, GRID_SIZE, GRID_SIZE))
+    # Draw the tail with smooth interpolation
+    for i, (tx, ty) in enumerate(snake.tail):
+        draw_tx = tx
+        draw_ty = ty
+
+        if i == 0 and snake.move_progress > 0.0:
+            draw_tx = snake.head.x + (tx - snake.head.x) * (1.0 - snake.move_progress)
+            draw_ty = snake.head.y + (ty - snake.head.y) * (1.0 - snake.move_progress)
+        elif i > 0 and snake.move_progress > 0.0:
+            prev_tx, prev_ty = snake.tail[i - 1]
+            draw_tx = prev_tx + (tx - prev_tx) * (1.0 - snake.move_progress)
+            draw_ty = prev_ty + (ty - prev_ty) * (1.0 - snake.move_progress)
+
+        pygame.draw.rect(
+            arena,
+            TAIL_COLOR,
+            pygame.Rect(round(draw_tx), round(draw_ty), GRID_SIZE, GRID_SIZE),
+        )
 
     # Draw head (use int coords for Rect)
     pygame.draw.rect(
