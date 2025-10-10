@@ -62,7 +62,7 @@ clock = pygame.time.Clock()
 gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 # Load eat sound
-eat_sound = pygame.mixer.Sound("assets/sound/eat.wav")
+eat_sound = pygame.mixer.Sound("assets/sound/eat.flac")
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
