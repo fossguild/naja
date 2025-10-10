@@ -57,12 +57,12 @@ WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
 
 ##
-## Settings (existing features only) and menu helpers
+## Settings and menu helpers
 ##
 
-# Central settings used by the menu; only existing features here.
+# Central settings used by the menu;
 SETTINGS = {
-    "grid_size": 50,  # current GRID_SIZE
+    "cells_per_side": WIDTH // GRID_SIZE,
     "initial_speed": 4.0,  # current CLOCK_TICKS
     "max_speed": 20.0,  # current speed clamp at apple pickup
     "death_sound": True,  # toggle death sound playback
@@ -70,13 +70,12 @@ SETTINGS = {
 
 # Declarative menu fields.
 MENU_FIELDS = [
-    {
-        "key": "grid_size",
-        "label": "Grid size",
-        "type": "int",
-        "min": 10,
-        "max": 100,
-        "step": 5,
+    {"key": "cells_per_side", 
+     "label": "Cells per side", 
+     "type": "int", 
+     "min": 10, 
+     "max": 60, 
+     "step": 1
     },
     {
         "key": "initial_speed",
@@ -94,7 +93,11 @@ MENU_FIELDS = [
         "max": 60.0,
         "step": 1.0,
     },
-    {"key": "death_sound", "label": "Death Sound", "type": "bool"},
+    {
+        "key": "death_sound", 
+        "label": "Death Sound", 
+        "type": "bool"
+    },
 ]
 
 # Effective runtime values (hydrated by apply_settings).
@@ -108,6 +111,10 @@ def _clamp(v, lo, hi):
 
 ## Format a setting value for display.
 def _fmt_setting_value(field, value):
+    if field["key"] == "cells_per_side":
+        requested = int(value)
+        actual = WIDTH // GRID_SIZE
+        return f"{requested} × {requested}" if requested == actual else f"{requested} × {requested} (cur: {actual})"
     if isinstance(value, bool):
         return "On" if value else "Off"
     if isinstance(value, float):
@@ -119,13 +126,15 @@ def _fmt_setting_value(field, value):
 def _draw_settings_menu(selected_index: int) -> None:
     arena.fill(ARENA_COLOR)
 
-    title = BIG_FONT.render("Settings", True, MESSAGE_COLOR)
-    arena.blit(title, title.get_rect(center=(WIDTH / 2, HEIGHT / 8)))
+    title_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 10))
+    title = title_font.render("Settings", True, MESSAGE_COLOR)
+    title_rect = title.get_rect(center=(WIDTH / 2, HEIGHT / 10))
+    arena.blit(title, title_rect)
 
     # spacing and scroll parameters
     visible_rows = int(HEIGHT * 0.75 // (HEIGHT * 0.07))
     top_index = max(0, selected_index - visible_rows + 3)
-    padding_y = int(HEIGHT * 0.18)
+    padding_y = int(HEIGHT * 0.20)
     row_h = int(HEIGHT * 0.07)
 
     # draw visible rows
@@ -219,7 +228,13 @@ def apply_settings(reset_objects: bool = False) -> None:
 
     old_grid = GRID_SIZE
 
-    GRID_SIZE = int(SETTINGS["grid_size"])
+    #GRID_SIZE = int(SETTINGS["grid_size"])
+    
+    # Derive cell size from desired cells per side
+    desired_cells = max(10, int(SETTINGS["cells_per_side"]))
+    # Size each cell so that desired_cells fit within the safe dimension.
+    GRID_SIZE = max(8, safe_max_dimension // desired_cells)
+    
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
@@ -239,7 +254,7 @@ def apply_settings(reset_objects: bool = False) -> None:
     if reset_objects:
         try:
             globals()["snake"] = Snake()
-            globals()["apple"] = Apple()
+            globals()["apple"] = Apple(snake)
             snake.speed = CLOCK_TICKS
         except NameError:
             # If called before classes/instances exist, ignore.
@@ -478,7 +493,7 @@ class Snake:
             self.speed = CLOCK_TICKS
 
             # Drop an apple
-            apple = Apple()
+            apple = Apple(self)
 
         # Move the snake.
 
@@ -505,19 +520,23 @@ class Snake:
 
 
 class Apple:
-    def __init__(self):
-        # Pick a random position within the game arena
-        self.x = random.randrange(0, WIDTH, GRID_SIZE)
-        self.y = random.randrange(0, HEIGHT, GRID_SIZE)
+    def __init__(self, snake):
+        # Keep trying until we find a free grid cell (not on the snake).
+        while True:
+            self.x = random.randrange(0, WIDTH, GRID_SIZE)
+            self.y = random.randrange(0, HEIGHT, GRID_SIZE)
+            self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
 
-        # Create an apple at that location
-        self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
+            head_free = not (self.x == snake.head.x and self.y == snake.head.y)
+            tail_free = all((self.x != seg.x or self.y != seg.y) for seg in snake.tail)
+            if head_free and tail_free:
+                break
 
-    # This function is called each interation of the game loop
-
+    # This function is called each iteration of the game loop
     def update(self):
-        # Drop the apple
+        # Draw the apple
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
+
 
 
 ##
@@ -537,7 +556,7 @@ def draw_grid():
 ##
 start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
-apple = Apple()
+apple = Apple(snake)
 
 ##
 ## Main loop
@@ -612,7 +631,7 @@ while True:
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple()
+        apple = Apple(snake)
 
     # Update display and move clock.
     pygame.display.update()
