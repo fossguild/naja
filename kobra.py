@@ -17,18 +17,31 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import random
 import sys
-
+import random
 import pygame
 
 ##
 ## Game customization.
 ##
 
-WIDTH, HEIGHT = 800, 800  # Game screen dimensions.
+# Initialize Pygame to access display info.
+# Allows to detect the screen size before creating the main window.
+pygame.init()
 
-GRID_SIZE = 50  # Square grid size.
+# Get the current display's resolution from the system.
+display_info = pygame.display.Info()
+user_screen_width = display_info.current_w
+user_screen_height = display_info.current_h
+
+# Determine the largest possible square size that fits safely on the screen.
+safe_max_dimension = int(min(user_screen_width, user_screen_height) * 0.9)
+
+# Define the size of each cell in the game's grid.
+GRID_SIZE = 50
+
+# Calculate the final window dimension.
+WIDTH = HEIGHT = (safe_max_dimension // GRID_SIZE) * GRID_SIZE
 
 HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
@@ -41,13 +54,7 @@ MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
 WINDOW_TITLE = "KobraPy"  # Window title.
 
-CLOCK_TICKS = 7  # How fast the snake moves.
-
-##
-## Game implementation.
-##
-
-pygame.init()
+CLOCK_TICKS = 4  # How fast the snake moves.
 
 clock = pygame.time.Clock()
 
@@ -57,7 +64,7 @@ gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 # Load eat sound
 eat_sound = pygame.mixer.Sound("assets/sound/eat.wav")
 
-arena = pygame.display.set_mode((WIDTH, HEIGHT))
+arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
@@ -86,7 +93,6 @@ def center_prompt(title, subtitle):
     pygame.display.update()
 
     # Wait for a keypres or a game quit event.
-
     while event := pygame.event.wait():
         if event.type == pygame.KEYDOWN:
             break
@@ -127,27 +133,37 @@ class Snake:
         # No collected apples.
         self.got_apple = False
 
+        # Initial speed
+        self.speed = CLOCK_TICKS
+
     # This function is called at each loop interation.
 
     def update(self):
         global apple
 
-        # Check for border crash.
-        if self.head.x not in range(0, WIDTH) or self.head.y not in range(0, HEIGHT):
-            self.alive = False
-            gameover_sound.play()
+        # Calculate the head's next position based on current movement
+        next_x = self.head.x + self.xmov * GRID_SIZE
+        next_y = self.head.y + self.ymov * GRID_SIZE
 
-        # Check for self-bite.
-        for square in self.tail:
-            if self.head.x == square.x and self.head.y == square.y:
+        # Only check collisions if the snake is currently moving
+        if self.xmov or self.ymov:
+
+            # Check for border crash.
+            if next_x not in range(0, WIDTH) or next_y not in range(0, HEIGHT):
                 self.alive = False
                 gameover_sound.play()
+
+            # Check for self-bite.
+            for square in self.tail:
+                if next_x == square.x and next_y == square.y:
+                    self.alive = False
+                    gameover_sound.play()
 
         # In the event of death, reset the game arena.
         if not self.alive:
             # Tell the bad news
             pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
-            center_prompt("Game Over", "Press to restart")
+            center_prompt("Game Over", "Press to restart (Q to exit)")
 
             # Respan the head
             self.x, self.y = GRID_SIZE, GRID_SIZE
@@ -163,6 +179,9 @@ class Snake:
             # Resurrection
             self.alive = True
             self.got_apple = False
+
+            # Reset speed
+            self.speed = CLOCK_TICKS
 
             # Drop an apple
             apple = Apple()
@@ -219,9 +238,6 @@ def draw_grid():
             pygame.draw.rect(arena, GRID_COLOR, rect, 1)
 
 
-score = BIG_FONT.render("1", True, MESSAGE_COLOR)
-score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 20 + HEIGHT / 30))
-
 draw_grid()
 
 snake = Snake()  # The snake
@@ -269,7 +285,6 @@ while True:
                 sys.exit()
             elif event.key == pygame.K_p:  # S         : pause game
                 game_on = not game_on
-
     ## Update the game
 
     if game_on:
@@ -289,6 +304,7 @@ while True:
 
     # Show score (snake length = head + tail)
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
+    score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
     arena.blit(score, score_rect)
 
     # If the head pass over an apple, lengthen the snake and drop another apple
@@ -296,8 +312,10 @@ while True:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         eat_sound.play()  # Play the sound
         snake.got_apple = True
+        snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
+        # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
         apple = Apple()
 
     # Update display and move clock.
     pygame.display.update()
-    clock.tick(CLOCK_TICKS)
+    clock.tick_busy_loop(int(snake.speed))
