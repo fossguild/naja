@@ -70,12 +70,13 @@ SETTINGS = {
 
 # Declarative menu fields.
 MENU_FIELDS = [
-    {"key": "cells_per_side", 
-     "label": "Cells per side", 
-     "type": "int", 
-     "min": 10, 
-     "max": 60, 
-     "step": 1
+    {
+        "key": "cells_per_side",
+        "label": "Cells per side",
+        "type": "int",
+        "min": 10,
+        "max": 60,
+        "step": 1,
     },
     {
         "key": "initial_speed",
@@ -93,11 +94,7 @@ MENU_FIELDS = [
         "max": 60.0,
         "step": 1.0,
     },
-    {
-        "key": "death_sound", 
-        "label": "Death Sound", 
-        "type": "bool"
-    },
+    {"key": "death_sound", "label": "Death Sound", "type": "bool"},
 ]
 
 # Effective runtime values (hydrated by apply_settings).
@@ -114,7 +111,11 @@ def _fmt_setting_value(field, value):
     if field["key"] == "cells_per_side":
         requested = int(value)
         actual = WIDTH // GRID_SIZE
-        return f"{requested} × {requested}" if requested == actual else f"{requested} × {requested} (cur: {actual})"
+        return (
+            f"{requested} × {requested}"
+            if requested == actual
+            else f"{requested} × {requested} (cur: {actual})"
+        )
     if isinstance(value, bool):
         return "On" if value else "Off"
     if isinstance(value, float):
@@ -228,13 +229,13 @@ def apply_settings(reset_objects: bool = False) -> None:
 
     old_grid = GRID_SIZE
 
-    #GRID_SIZE = int(SETTINGS["grid_size"])
-    
+    # GRID_SIZE = int(SETTINGS["grid_size"])
+
     # Derive cell size from desired cells per side
     desired_cells = max(10, int(SETTINGS["cells_per_side"]))
     # Size each cell so that desired_cells fit within the safe dimension.
     GRID_SIZE = max(8, safe_max_dimension // desired_cells)
-    
+
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
@@ -536,7 +537,6 @@ class Apple:
     def update(self):
         # Draw the apple
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
-
 
 
 ##
