@@ -51,13 +51,13 @@ Before diving into the code, please observe the following notes:
   that you must fix. There is also a list of requested features to inspire
   you. (These are optional—you may design your own enhancements.)
 
-  The list of bugs and feature requests is in `docs/issues.md`.
+  The list of bugs and feature requests is in `docs/assignment/issues.md`.
 
   For each fix or feature you plan to work on, create a corresponding entry in
 your repository’s GitHub issue tracker.
 
 * Unless your instructor advises otherwise, make your project compatible
-  with the rules and conventions in `docs/conventions.md`.
+  with the rules and conventions in `docs/assignment/conventions.md`.
 
   Use this file as a template for your project’s `docs/CONTRIBUTING.md`.
 

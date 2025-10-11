@@ -72,17 +72,31 @@ Development Setup
 
 To contribute to this project, you'll need to set up the development environment:
 
-1. Install development dependencies:
-   ```bash
-   uv sync --group dev
-   ```
+### Quick Setup
 
-2. Install pre-commit hooks:
-   ```bash
-   pre-commit install
-   ```
+Use the provided Makefile for the fastest setup:
 
-This will ensure your code is automatically formatted and linted before each commit.
+```bash
+make dev
+```
+
+This command will:
+- Install all development dependencies (`uv sync --dev`)
+- Set up pre-commit hooks (`uv run pre-commit install`)
+
+### Development Commands
+
+Use these Makefile commands during development:
+
+```bash
+make run      # Play the game
+make          # Run all quality checks (default)
+make format   # Format code with Black and Ruff
+make lint     # Check code quality without fixing
+make clean    # Remove temporary files and caches
+```
+
+This setup ensures your code is automatically formatted and linted before each commit.
 All pull requests must pass the linting checks to be merged.
 
 Attribution and Licensing
@@ -183,6 +197,84 @@ fix: remove command-line option '--test'
 This option is redundant, as the same behavior is already implemented by
 the '--dry-run' option. In addition, '--test' was ambiguous.
 ```
+
+Git Workflow Best Practices
+------------------------------
+
+To maintain a clean commit history and smooth collaboration:
+
+### Keeping Your Branch Updated
+
+**Always use rebase instead of merge** when updating your branch with the latest changes from `dev`:
+
+```bash
+# Good: Rebase to keep linear history
+git pull origin dev --rebase
+
+# Avoid: Merge creates unnecessary merge commits
+git pull origin dev  # or git merge dev
+```
+
+### Resolving Conflicts
+
+When conflicts occur during rebase:
+
+1. Fix conflicts in the affected files
+2. Stage the resolved files: `git add <files>`
+3. Continue the rebase: `git rebase --continue`
+4. Repeat until rebase is complete
+
+### Before Submitting a Pull Request
+
+1. **Rebase your branch** on the latest `dev`:
+   ```bash
+   git checkout your-feature-branch
+   git pull origin dev --rebase
+   ```
+
+2. **Run quality checks**:
+   ```bash
+   make  # Runs linting, formatting, and all checks
+   ```
+
+3. **Push your changes**:
+   ```bash
+   git push origin your-feature-branch
+   ```
+
+### Why Rebase Over Merge?
+
+- **Linear History**: Easier to understand project evolution
+- **Cleaner Logs**: No unnecessary "merge dev into feature" commits
+- **Bisect Friendly**: Makes debugging with `git bisect` more effective
+- **Professional Standard**: Common practice in most open source projects
+
+Documentation Guidelines
+------------------------------
+
+### Keep Documentation Updated
+
+When adding new features or making changes that affect users:
+
+1. **Update the user manual** (`docs/manual.md`):
+   - Add new controls or gameplay mechanics
+   - Document new command-line options or configuration
+   - Update system requirements if needed
+
+2. **Update README.md** for significant changes:
+   - New major features that affect the quick start experience
+   - Changes to installation or setup process
+
+3. **Update this CONTRIBUTING.md** for development changes:
+   - New development tools or processes
+   - Changes to coding standards or workflow
+
+### Documentation Best Practices
+
+- **Write for beginners**: Assume users are new to the project
+- **Include examples**: Show command usage with concrete examples
+- **Test instructions**: Verify that documented steps actually work
+- **Keep it concise**: Use clear, direct language without unnecessary detail
 
 Other Conventions
 ------------------------------
