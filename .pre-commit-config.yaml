@@ -1,4 +1,4 @@
-# Pre-commit configuration for KobraPy
+# Pre-commit configuration for Naja
 # See https://pre-commit.com for more information
 repos:
   # Basic file checks
