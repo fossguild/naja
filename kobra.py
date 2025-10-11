@@ -47,7 +47,6 @@ HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
 APPLE_COLOR = "#aa0000"  # Color of the apple.
-ARENA_COLOR = "#202020"  # Color of the ground.
 GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
@@ -65,6 +64,10 @@ gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
+# Load background texture
+# A seamless, tileable image works best for a good visual effect.
+background_texture = pygame.image.load("assets/texture/terrain.png").convert()
+
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
 
@@ -79,6 +82,8 @@ game_on = 1
 
 
 def center_prompt(title, subtitle):
+    # Draw the background
+    draw_background()
     # Show title and subtitle.
 
     center_title = BIG_FONT.render(title, True, MESSAGE_COLOR)
@@ -238,6 +243,14 @@ class Apple:
 ##
 
 
+# Function to draw the textured background
+def draw_background():
+    tex_w, tex_h = background_texture.get_size()
+    for x in range(0, WIDTH, tex_w):
+        for y in range(0, HEIGHT, tex_h):
+            arena.blit(background_texture, (x, y))
+
+
 # Function to draw the border
 def draw_border():
     pygame.draw.rect(arena, BORDER_COLOR, (0, 0, WIDTH, HEIGHT), BORDER_WIDTH)
@@ -306,7 +319,9 @@ while True:
     if game_on:
         snake.update()
 
-        arena.fill(ARENA_COLOR)
+        # Draw the background
+        draw_background()
+
         # Draw the border
         draw_border()
 
