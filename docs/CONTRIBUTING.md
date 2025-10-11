@@ -1,15 +1,14 @@
-
-Contributing to KobraPy
+Contributing to Naja
 ==============================
 
-KobraPy is open source, and you are welcome and encouraged to contribute.
+Naja is open source, and you are welcome and encouraged to contribute.
 
 The following guidelines outline how to get started.
 
 Contribution Workflow
 ------------------------------
 
-The official KobraPy repository is at https://github.com/monacofj/kobrapy.
+The official Naja repository is at https://github.com/fossguild/naja.
 
 Before contributing, make sure you have read the essential documentation:
 
@@ -25,7 +24,7 @@ to address.
    contribution procedure:
 
 * fork the project on GitHub * create a branch for the issue * make your changes
-in that branch * create a pull request for KobraPy
+in that branch * create a pull request for Naja
 
 * Make sure your changes follow the project's standard linting and formatting, as it will
 be required for merging (specified in manual.md)
@@ -38,16 +37,11 @@ complies with the project’s conventions (see below).
 Project Standards
 ------------------------------
 
-To keep things consistent, we adopt conventions commonly used in
-open source projects:
-
-* Semantic Versioning 2.0.0 [3]
-
-The programming exercise includes conforming the project to
+To keep things consistent, we adopt conventions commonly used in open source projects:
 
 - REUSE specification v3 [1]
 - GitFlow branching strategy [2]
-
+- Semantic Versioning 2.0.0 [3]
 
 Code of Conduct
 ------------------------------
@@ -55,11 +49,13 @@ Code of Conduct
 The success of an open collaborative project relies not only on technical
 contributions, but also on a healthy and respectful community. Ethics and mutual
 respect are values worth upholding in their own right, as the foundation for
-harmonious coexistence. As a general principle, we invite everyone to maintain
-a considerate attitude toward the diversity of opinions, identities, backgrounds,
-and cultures.
+harmonious coexistence.
 
-The programming exercise includes writing a `CODE_OF_CONDUCT.md` file.
+As a general principle, we invite everyone to maintain a considerate attitude
+toward the diversity of opinions, identities, backgrounds, and cultures.
+
+To embody these values in practice, we have outlined conduct rules in
+`docs/CODE_OF_CONDUCT.md`.
 
 Coding Conventions
 ------------------------------
@@ -71,6 +67,24 @@ community.
 * Follow the project style for casing, indentation, and block alignment.
 * Comments are text—use proper capitalization and punctuation.
 
+Development Setup
+------------------------------
+
+To contribute to this project, you'll need to set up the development environment:
+
+1. Install development dependencies:
+   ```bash
+   uv sync --group dev
+   ```
+
+2. Install pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+
+This will ensure your code is automatically formatted and linted before each commit.
+All pull requests must pass the linting checks to be merged.
+
 Attribution and Licensing
 ------------------------------
 
@@ -80,13 +94,12 @@ your name added to the copyright notice [1] and to the `AUTHORS` file, if you
 wish.
 
 By submitting your contribution, you agree it will be available under the same
-license as KobraPy (GNU GPL v3 or later).
+license as Naja (GNU GPL v3 or later).
 
 Branch Naming
 ------------------------------
 
-When applicable, use the following conventions for commit messages
-and branch names:
+When applicable, use the following conventions for commit messages and branch names:
 
 **Permanent Branches**
 
@@ -97,14 +110,13 @@ The repository contains two GitFlow permanent branches:
 
 **Support Branch Names (for PRs)**
 
-When creating a temporary branch, use the following keywords to indicate
-which branch your PR targets:
+When creating a temporary branch, use the following keywords to indicate which branch your PR targets:
 
-- `feat`: new feature or bug fix for the feature branch
-- `hot`: hot fix for the main branch
-- `wip`: work-in-progress branch (rename when ready)
-- `rel`: release preparation (GitFlow `release`)
-- `aux`: miscellaneous, not related to any issue
+- `feat`: advance normal development  (merge into dev)
+- `hot` : hot fix for the main branch (merge into main)
+- `wip` : work-in-progress branch (will be feat or hot)
+- `rel` : release preparation (GitFlow `release`)
+- `aux` : miscellaneous, not related to any issue
 
 For `feat`, `hot`, and `wip` branches, use this scheme:
 
@@ -151,9 +163,9 @@ The short description should be in the imperative form (e.g., fix, add, remove).
 Example:
 
 ```
-fix: correct wrong file name
-fix: add missing semicolon
-doc: update user manual
+code: correct wrong file name
+code: add missing semicolon
+doc:  update user manual
 repo: remove build artifacts
 ```
 
@@ -180,7 +192,8 @@ Compliance with Keep a Changelog [5] is under consideration.
 References
 ------------------------------
 
-[1] REUSE Software, https://reuse.software
-[3] Semantic Versioning, https://semver.org/
-[4] Conventional Commits, https://www.conventionalcommits.org/en/v1.0.0/
-[5] Keep a Changelog, https://keepachangelog.com/en/1.0.0/
+[1] REUSE Software, https://reuse.software [2] GitFlow,
+https://nvie.com/posts/a-successful-git-branching-model/ [3] Semantic
+Versioning, https://semver.org/ [4] Conventional Commits,
+https://www.conventionalcommits.org/en/v1.0.0/ [5] Keep a Changelog,
+https://keepachangelog.com/en/1.0.0/
