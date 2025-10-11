@@ -61,7 +61,7 @@ To get started with the project:
 
 a) Try the game yourself
 
-   * Linux/MacOS: `./kobra.py`
-   * Windows: `python kobra.py`
+   * Linux/MacOS: `./naja.py`
+   * Windows: `python naja.py`
 
 b) Read the directions for the exercise in `docs/exercise.md`
