@@ -625,6 +625,7 @@ while True:
 
     # Show score (snake length = head + tail)
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
+    score.set_alpha(75)  # opacity
     score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
     arena.blit(score, score_rect)
 
