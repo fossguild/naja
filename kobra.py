@@ -449,7 +449,7 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(self):
-        global current_fruit, player_score
+        global current_fruit
 
         # Calculate the head's next position based on current movement
         next_x = self.head.x + self.xmov * GRID_SIZE
@@ -495,9 +495,8 @@ class Snake:
             # Reset speed
             self.speed = CLOCK_TICKS
 
-            # Reset fruit and score
-            current_fruit = spawn_random_fruit()
-            player_score = 0
+            # Reset fruit
+            current_fruit = spawn_random_fruit(self)
 
         # Move the snake.
 
@@ -524,8 +523,10 @@ class Snake:
 ##
 
 
-class Apple:
-    def __init__(self, snake):
+class Fruit:
+    """Base class for all fruits with common behavior."""
+
+    def __init__(self, snake, color, growth, speed_modifier):
         # Keep trying until we find a free grid cell (not on the snake).
         while True:
             self.x = random.randrange(0, WIDTH, GRID_SIZE)
@@ -537,53 +538,45 @@ class Apple:
             if head_free and tail_free:
                 break
 
-        # Set apple properties
-        self.points = 1  # Apple gives 1 point
-        self.growth = 1  # Apple grows snake by 1 segment
-        self.speed_modifier = 1.0  # No speed change
+        # Set fruit properties
+        self.color = color
+        self.growth = growth
+        self.speed_modifier = speed_modifier
 
     # This function is called each iteration of the game loop
     def update(self):
-        # Draw the apple
-        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
+        # Draw the fruit
+        pygame.draw.rect(arena, self.color, self.rect)
 
 
-class Orange:
-    def __init__(self):
-        # Pick a random position within the game arena
-        self.x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
-        self.y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
-
-        # Create an orange at that location
-        self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
-        self.points = 2  # Orange gives 2 points
-        self.growth = 2  # Orange grows snake by 2 segments
-        self.speed_modifier = 1.0  # No speed change
-
-    # This function is called each interation of the game loop
-
-    def update(self):
-        # Drop the orange
-        pygame.draw.rect(arena, ORANGE_COLOR, self.rect)
+class Apple(Fruit):
+    def __init__(self, snake):
+        super().__init__(
+            snake=snake,
+            color=APPLE_COLOR,
+            growth=1,  # Apple grows snake by 1 segment
+            speed_modifier=1.0,  # No speed change
+        )
 
 
-class Grape:
-    def __init__(self):
-        # Pick a random position within the game arena
-        self.x = int(random.randint(0, WIDTH) / GRID_SIZE) * GRID_SIZE
-        self.y = int(random.randint(0, HEIGHT) / GRID_SIZE) * GRID_SIZE
+class Orange(Fruit):
+    def __init__(self, snake):
+        super().__init__(
+            snake=snake,
+            color=ORANGE_COLOR,
+            growth=2,  # Orange grows snake by 2 segments
+            speed_modifier=1.0,  # No speed change
+        )
 
-        # Create a grape at that location
-        self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
-        self.points = 3  # Grape gives 3 points
-        self.growth = 1  # Grape grows snake by 1 segment (normal)
-        self.speed_modifier = 0.8  # Grape slows down the snake (20% slower)
 
-    # This function is called each interation of the game loop
-
-    def update(self):
-        # Drop the grape
-        pygame.draw.rect(arena, GRAPE_COLOR, self.rect)
+class Grape(Fruit):
+    def __init__(self, snake):
+        super().__init__(
+            snake=snake,
+            color=GRAPE_COLOR,
+            growth=1,  # Grape grows snake by 1 segment (normal)
+            speed_modifier=0.8,  # Grape slows down the snake (20% slower)
+        )
 
 
 ##
@@ -591,15 +584,15 @@ class Grape:
 ##
 
 
-def spawn_random_fruit():
-    # Spawn a random fruit based on weighted probabilities.
+def spawn_random_fruit(snake):
+    """Spawn a random fruit based on weighted probabilities."""
     rand = random.random()
     if rand < 0.65:  # 65% chance for apple
-        return Apple()
-    elif rand < 0.85:  # 20% chance for orange
-        return Orange()
-    else:  # 15% for grape
-        return Grape()
+        return Apple(snake)
+    elif rand < 0.90:  # 25% chance for grape
+        return Grape(snake)
+    else:  # 10% chance for orange
+        return Orange(snake)
 
 
 ##
@@ -621,10 +614,7 @@ start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
 
 # Initialize fruit (only one fruit at a time)
-current_fruit = spawn_random_fruit()
-
-# Score tracking
-player_score = 0
+current_fruit = spawn_random_fruit(snake)
 
 ##
 ## Main loop
@@ -710,11 +700,8 @@ while True:
             # Apple/Orange: increase speed as before
             snake.speed = min(snake.speed * 1.1, MAX_SPEED)
 
-        # Add points
-        player_score += current_fruit.points
-
         # Spawn a new random fruit
-        current_fruit = spawn_random_fruit()
+        current_fruit = spawn_random_fruit(snake)
 
     # Update display and move clock.
     pygame.display.update()
