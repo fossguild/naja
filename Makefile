@@ -13,7 +13,7 @@ dev:
 
 # Run the game
 run:
-	uv run python kobra.py
+	uv run python naja.py
 
 # Format code
 format:

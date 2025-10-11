@@ -2,9 +2,9 @@
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
 #
-#   This file is part of KobraPy.
+#   This file is part of Naja.
 #
-#   KobraPy is free software: you can redistribute it and/or modify
+#   Naja is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
@@ -52,7 +52,7 @@ GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
-WINDOW_TITLE = "KobraPy"  # Window title.
+WINDOW_TITLE = "NAJA"  # Window title.
 
 CLOCK_TICKS = 4  # How fast the snake moves.
 
