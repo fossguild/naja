@@ -51,6 +51,8 @@ ARENA_COLOR = "#202020"  # Color of the ground.
 GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
+BORDER_COLOR = "#cccccc"  # Color for the game arena border.
+BORDER_WIDTH = 2  # Width of the border in pixels.
 
 WINDOW_TITLE = "KobraPy"  # Window title.
 
@@ -544,6 +546,11 @@ class Apple:
 ##
 
 
+# Function to draw the border
+def draw_border():
+    pygame.draw.rect(arena, BORDER_COLOR, (0, 0, WIDTH, HEIGHT), BORDER_WIDTH)
+
+
 def draw_grid():
     for x in range(0, WIDTH, GRID_SIZE):
         for y in range(0, HEIGHT, GRID_SIZE):
@@ -612,6 +619,9 @@ while True:
         snake.update()
 
         arena.fill(ARENA_COLOR)
+        # Draw the border
+        draw_border()
+
         draw_grid()
 
         apple.update()
