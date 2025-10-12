@@ -144,6 +144,7 @@ MUSIC_ON = SETTINGS["background_music"]
 BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
 SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20))
 
+
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
@@ -401,21 +402,23 @@ def game_over_handler(state: GameState) -> None:
         pygame.quit()
         sys.exit()
 
+
 ## This function is called when the game is paused.
 def display_pause_screen():
     # Create a semi-transparent overlay
     overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-    overlay.fill((32, 32, 32, 180)) # Dark transparent gray
-    arena.blit(overlay, (0, 0))
+    overlay.fill((32, 32, 32, 180))  # Dark transparent gray
+    #arena.blit(overlay, (0, 0))
 
     # Show "Paused" text
     paused_title = BIG_FONT.render("Paused", True, MESSAGE_COLOR)
     paused_title_rect = paused_title.get_rect(center=(WIDTH / 2, HEIGHT / 2))
-    arena.blit(paused_title, paused_title_rect)
+    #arena.blit(paused_title, paused_title_rect)
 
     paused_subtitle = SMALL_FONT.render("Press P to continue", True, MESSAGE_COLOR)
     paused_subtitle_rect = paused_subtitle.get_rect(center=(WIDTH / 2, HEIGHT * 2 / 3))
-    arena.blit(paused_subtitle, paused_subtitle_rect)
+    #arena.blit(paused_subtitle, paused_subtitle_rect)
+
 
 ##
 ## Start menu (Start / Settings)
@@ -519,6 +522,7 @@ def draw_music_indicator(state: GameState):
 
     state.arena.blit(hint_surf, hint_rect)
 
+
 def draw_pause_screen(state: GameState):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
@@ -532,10 +536,9 @@ def draw_pause_screen(state: GameState):
     state.arena.blit(paused_title, paused_title_rect)
 
     paused_subtitle = SMALL_FONT.render("Press P to continue", True, MESSAGE_COLOR)
-    paused_subtitle_rect = paused_subtitle.get_rect(
-        center=(WIDTH / 2, HEIGHT * 2 / 3)
-    )
+    paused_subtitle_rect = paused_subtitle.get_rect(center=(WIDTH / 2, HEIGHT * 2 / 3))
     state.arena.blit(paused_subtitle, paused_subtitle_rect)
+
 
 ##
 ## Main game function
@@ -653,7 +656,6 @@ def main():
                     # Play death sound if snake died
             if died and DEATH_SOUND_ON:
                 gameover_sound.play()
-
 
             # Advance interpolation toward the current target grid cell (if any)
             if (
