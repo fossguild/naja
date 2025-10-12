@@ -72,9 +72,10 @@ SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 2
 pygame.display.set_caption(WINDOW_TITLE)
 
 game_on = 1
+game_paused = 1
+show_pause_hint_timer = 0
 
 ## This function is called when the snake dies.
-
 
 def center_prompt(title, subtitle):
     # Show title and subtitle.
@@ -100,6 +101,21 @@ def center_prompt(title, subtitle):
         pygame.quit()
         sys.exit()
 
+## This function is called when the game is paused.
+def display_pause_screen():
+    # Create a semi-transparent overlay
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((32, 32, 32, 180)) # Dark transparent gray
+    arena.blit(overlay, (0, 0))
+
+    # Show "Paused" text
+    paused_title = BIG_FONT.render("Paused", True, MESSAGE_COLOR)
+    paused_title_rect = paused_title.get_rect(center=(WIDTH / 2, HEIGHT / 2))
+    arena.blit(paused_title, paused_title_rect)
+
+    paused_subtitle = SMALL_FONT.render("Press P to continue", True, MESSAGE_COLOR)
+    paused_subtitle_rect = paused_subtitle.get_rect(center=(WIDTH / 2, HEIGHT * 2 / 3))
+    arena.blit(paused_subtitle, paused_subtitle_rect)
 
 ##
 ## Snake class
