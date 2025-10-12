@@ -160,7 +160,7 @@ class Snake:
             self.prev_head_y = self.y
 
             # Reposition the apple
-            apple.ensure_valid_position(self)
+            apple.ensure_valid_position(self, obstacles)
 
         return died
 

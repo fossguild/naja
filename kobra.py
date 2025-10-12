@@ -17,8 +17,10 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# pylint: disable=no-member
+# Pygame uses dynamic imports that pylint doesn't understand
+
 import sys
-import random
 import pygame
 from entities import Snake, Apple, Obstacle
 from constants import (
@@ -49,6 +51,15 @@ pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
 pygame.mixer.music.set_volume(0.2)  # volume de 0.0 a 1.0
 pygame.mixer.music.play(-1)  # -1 significa repetir para sempre
 
+
+# Load speaker sprites
+try:
+    speaker_on_sprite = pygame.image.load("assets/sprites/speaker-on.png")
+    speaker_muted_sprite = pygame.image.load("assets/sprites/speaker-muted.png")
+except pygame.error as e:
+    print(f"Warning: Could not load speaker sprites: {e}")
+    speaker_on_sprite = None
+    speaker_muted_sprite = None
 
 # Load gameover sound
 gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
@@ -264,7 +275,7 @@ def run_settings_menu(state) -> None:
 
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(state:GameState, reset_objects: bool = False) -> None:
-    global GRID_SIZE, WIDTH, HEIGHT, arena, BIG_FONT, SMALL_FONT
+    global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT
     global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
 
     old_grid = GRID_SIZE
@@ -295,6 +306,9 @@ def apply_settings(state:GameState, reset_objects: bool = False) -> None:
         state.arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
         pygame.display.set_caption(WINDOW_TITLE)
 
+        # Update state's dimensions to match new grid size
+        state.update_dimensions(WIDTH, HEIGHT, GRID_SIZE)
+
         # Reload fonts globally with new width
         global BIG_FONT, SMALL_FONT
         BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
@@ -307,13 +321,10 @@ def apply_settings(state:GameState, reset_objects: bool = False) -> None:
     if reset_objects:
         # Objects will be recreated in the game state
         state.snake = Snake(WIDTH, HEIGHT, GRID_SIZE)
-        globals()["obstacles"] = create_obstacles_constructively(
-                NUM_OBSTACLES, snake.x, snake.y
-        )
-        state.apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
-        state.apple.ensure_not_on_snake(state.snake)
+        state.create_obstacles_constructively(NUM_OBSTACLES)
+        state.apple = Apple(WIDTH, HEIGHT, GRID_SIZE)        
         state.snake.speed = CLOCK_TICKS
-        state.apple.ensure_valid_position(snake)  # ensure apple is not on snake
+        state.apple.ensure_valid_position(state.snake)  # ensure apple is not on snake
 
 
 ##
@@ -354,7 +365,6 @@ def _draw_center_message(state: GameState, title: str, subtitle: str) -> None:
     state.arena.blit(sub_surf, sub_surf.get_rect(center=(WIDTH / 2, HEIGHT / 1.8)))
 
     pygame.display.update()
-
 
 def _wait_for_keys(allowed_keys: set[int]) -> int:
     """Block until a KEYDOWN for one of allowed_keys (or quit). Return the key."""
@@ -468,7 +478,7 @@ def draw_grid(state:GameState):
 ##
 
 
-def draw_music_indicator(state):
+def draw_music_indicator(state:GameState):
     """Draw a subtle music status indicator in the bottom-right corner.
 
     Args:
@@ -481,7 +491,7 @@ def draw_music_indicator(state):
     icon_y = HEIGHT - padding - icon_size
 
     # Choose the appropriate sprite based on music state
-    sprite = SPEAKER_ON_SPRITE if MUSIC_ON else SPEAKER_MUTED_SPRITE
+    sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
 
     # Scale and draw the sprite
     if sprite is not None:
@@ -499,132 +509,6 @@ def draw_music_indicator(state):
 
     state.arena.blit(hint_surf, hint_rect)
 
-
-
-
-def is_grid_connected(obstacles, snake_start_x, snake_start_y):
-    """Checks if all free cells on the grid are connected using BFS."""
-    obstacles_positions = {(obs.x, obs.y) for obs in obstacles}
-    if (snake_start_x, snake_start_y) in obstacles_positions:
-        return False
-
-    # Calculate the expected number of reachable cells
-    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
-    total_free_cells = total_cells - len(obstacles)
-
-    # Use a standard list as a queue
-    queue = [(snake_start_x, snake_start_y)]
-    visited = set([(snake_start_x, snake_start_y)])
-
-    while queue:
-        # Pop the first element to behave like a queue (FIFO)
-        x, y = queue.pop(0)
-
-        # Check all four neighbors
-        for dx, dy in [
-            (0, GRID_SIZE),
-            (0, -GRID_SIZE),
-            (GRID_SIZE, 0),
-            (-GRID_SIZE, 0),
-        ]:
-            neighbor = (x + dx, y + dy)
-
-            # If neighbor is valid and unvisited, add it to the queue
-            if (
-                0 <= neighbor[0] < WIDTH
-                and 0 <= neighbor[1] < HEIGHT
-                and neighbor not in obstacles_positions
-                and neighbor not in visited
-            ):
-                visited.add(neighbor)
-                queue.append(neighbor)
-
-    # The grid is connected if all free cells were visited
-    return len(visited) == total_free_cells
-
-
-def would_create_trap(new_obstacle_pos, obstacles_positions):
-    """
-    Checks if placing a new obstacle creates a trap for any adjacent cell.
-    A trap is a free cell with 3 or more blocked sides.
-    """
-    new_x, new_y = new_obstacle_pos
-
-    # We only need to check the four direct neighbors of the new obstacle.
-    # Only these cells could possibly become trapped by this new addition.
-    for dx, dy in [(0, GRID_SIZE), (0, -GRID_SIZE), (GRID_SIZE, 0), (-GRID_SIZE, 0)]:
-        neighbor_x, neighbor_y = new_x + dx, new_y + dy
-
-        # If the neighbor is not a free cell, we don't need to check it.
-        if Obstacle.is_blocked(
-            neighbor_x, neighbor_y, (0, 0), obstacles_positions, WIDTH, HEIGHT
-        ):  # Note: passing dummy new_pos
-            continue
-
-        # This neighbor is a free cell. Let's count how many of its sides are blocked.
-        blocked_sides_count = 0
-
-        # Check the 4 sides of this neighbor cell
-        sides_to_check = [
-            (neighbor_x + GRID_SIZE, neighbor_y),  # Right
-            (neighbor_x - GRID_SIZE, neighbor_y),  # Left
-            (neighbor_x, neighbor_y + GRID_SIZE),  # Down
-            (neighbor_x, neighbor_y - GRID_SIZE),  # Up
-        ]
-
-        for side_x, side_y in sides_to_check:
-            if Obstacle.is_blocked(
-                side_x, side_y, new_obstacle_pos, obstacles_positions, WIDTH, HEIGHT
-            ):
-                blocked_sides_count += 1
-
-        # If 3 or more sides are blocked, it's a trap.
-        if blocked_sides_count >= 3:
-            return True
-
-    # If we check all neighbors and none of them become traps, the placement is safe.
-    return False
-
-
-def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y):
-    """Builds a valid map by adding obstacles one by one safely."""
-    while True:
-        obstacles = []
-        obstacles_positions = set()
-
-        # Get all possible spawn points for obstacles, avoiding the snake's start area
-        available_positions = []
-        for x in range(0, WIDTH, GRID_SIZE):
-            for y in range(0, HEIGHT, GRID_SIZE):
-                if not (
-                    abs(x - snake_start_x) < GRID_SIZE * 8
-                    and abs(y - snake_start_y) < GRID_SIZE * 2
-                ):
-                    available_positions.append((x, y))
-        random.shuffle(available_positions)
-
-        temp_available = list(available_positions)
-
-        # Attempt to place one obstacle at a time
-        while len(obstacles) < num_obstacles and temp_available:
-            candidate_pos = temp_available.pop()
-
-            # Rule 1: Don't create narrow passages or traps
-            if would_create_trap(candidate_pos, obstacles_positions):
-                continue
-
-            # If the local check passes, add the obstacle
-            obstacles.append(
-                Obstacle(candidate_pos[0], candidate_pos[1], arena, GRID_SIZE)
-            )
-            obstacles_positions.add(candidate_pos)
-
-        # Rule 2: Don't disconnect the map
-        if len(obstacles) == num_obstacles and is_grid_connected(
-            obstacles, snake_start_x, snake_start_y
-        ):
-            return obstacles
-
 ##
 ## Main game function
 ##
@@ -632,23 +516,25 @@ def main():
     """Main game entry point with GameState initialization."""
     # Initialize game state
     state = GameState(WIDTH, HEIGHT, GRID_SIZE)
+    
 
     # Apply default settings with state
     apply_settings(state, reset_objects=False)
+
+    #we only have NUM_OBSTACLES set after applyng settings
+    state.create_obstacles_constructively(NUM_OBSTACLES)
     pygame.display.set_caption(WINDOW_TITLE)
 
     ##
     ## Start flow
     ##
-    start_menu()  # blocks until user picks "Start Game"
-    snake = Snake(WIDTH, HEIGHT, GRID_SIZE)  # create with the final, chosen GRID_SIZE
-    apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
+    start_menu(state)  # blocks until user picks "Start Game"
 
     ##
     ## Main loop
     ##
-    died = False
     while True:
+            died = False
             dt = state.clock.tick_busy_loop(0)
             for event in pygame.event.get():  # Wait for events
                 # App terminated
@@ -699,78 +585,81 @@ def main():
 
             ## Update the game
             if state.game_on:
-                died = state.snake.update(state.apple, lambda: game_over_handler(state))
+                # Only update snake position when it has reached its current target
+                if state.snake.target_x == state.snake.head.x and state.snake.target_y == state.snake.head.y:
+                    if state.snake.xmov or state.snake.ymov:
+                        died = state.snake.update(state.apple, state.obstacles, lambda: game_over_handler(state))
+                        
+                        # Play death sound if snake died
+                if died and DEATH_SOUND_ON:
+                    gameover_sound.play()
 
-            # Play death sound if snake died
-            if died and DEATH_SOUND_ON:
-                gameover_sound.play()
+                # Advance interpolation toward the current target grid cell (if any)
+                if state.snake.target_x != state.snake.head.x or state.snake.target_y != state.snake.head.y:
+                    move_interval_ms = 1000.0 / state.snake.speed
+                    state.snake.move_progress += dt / move_interval_ms
+                    if state.snake.move_progress > 1.0:
+                        state.snake.move_progress = 1.0
+                    state.snake.draw_x = (
+                        state.snake.head.x + (state.snake.target_x - state.snake.head.x) * state.snake.move_progress
+                    )
+                    state.snake.draw_y = (
+                        state.snake.head.y + (state.snake.target_y - state.snake.head.y) * state.snake.move_progress
+                    )
+                    if state.snake.move_progress >= 1.0:
+                        # Move completed: remember previous head position
+                        prev_x = state.snake.head.x
+                        prev_y = state.snake.head.y
 
-            # Advance interpolation toward the current target grid cell (if any)
-            if snake.target_x != snake.head.x or snake.target_y != snake.head.y:
-                move_interval_ms = 1000.0 / snake.speed
-                snake.move_progress += dt / move_interval_ms
-                if snake.move_progress > 1.0:
-                    snake.move_progress = 1.0
-                snake.draw_x = (
-                    snake.head.x + (snake.target_x - snake.head.x) * snake.move_progress
-                )
-                snake.draw_y = (
-                    snake.head.y + (snake.target_y - snake.head.y) * snake.move_progress
-                )
-                if snake.move_progress >= 1.0:
-                    # Move completed: remember previous head position
-                    prev_x = snake.head.x
-                    prev_y = snake.head.y
+                        # Snap head to target grid cell
+                        state.snake.head.x = state.snake.target_x
+                        state.snake.head.y = state.snake.target_y
+                        state.snake.x = state.snake.head.x
+                        state.snake.y = state.snake.head.y
 
-                    # Snap head to target grid cell
-                    snake.head.x = snake.target_x
-                    snake.head.y = snake.target_y
-                    snake.x = snake.head.x
-                    snake.y = snake.head.y
+                        # Insert previous head position into tail (store as (x,y) tuple)
+                        state.snake.tail.insert(0, (prev_x, prev_y))
+                        if state.snake.got_apple:
+                            state.snake.got_apple = False
+                        else:
+                            # Only pop when we didn't just eat an apple
+                            if state.snake.tail:
+                                state.snake.tail.pop()
 
-                    # Insert previous head position into tail (store as (x,y) tuple)
-                    snake.tail.insert(0, (prev_x, prev_y))
-                    if snake.got_apple:
-                        snake.got_apple = False
-                    else:
-                        # Only pop when we didn't just eat an apple
-                        if snake.tail:
-                            snake.tail.pop()
+                        # Reset progress and ensure draw coords are exact integers
+                        state.snake.move_progress = 0.0
+                        state.snake.draw_x = float(state.snake.head.x)
+                        state.snake.draw_y = float(state.snake.head.y)
+                        state.snake.prev_head_x = state.snake.head.x
+                        state.snake.prev_head_y = state.snake.head.y
+                else:
+                    # No pending move: keep draw coordinates synced to head
+                    state.snake.move_progress = 0.0
+                    state.snake.draw_x = float(state.snake.head.x)
+                    state.snake.draw_y = float(state.snake.head.y)
 
-                    # Reset progress and ensure draw coords are exact integers
-                    snake.move_progress = 0.0
-                    snake.draw_x = float(snake.head.x)
-                    snake.draw_y = float(snake.head.y)
-                    snake.prev_head_x = snake.head.x
-                    snake.prev_head_y = snake.head.y
-            else:
-                # No pending move: keep draw coordinates synced to head
-                snake.move_progress = 0.0
-                snake.draw_x = float(snake.head.x)
-                snake.draw_y = float(snake.head.y)
 
-           
             state.arena.fill(ARENA_COLOR)
             draw_grid(state)
 
             # Draw obstacles
-            for obstacle in obstacles:
+            for obstacle in state.obstacles:
                 obstacle.update()
 
-                state.apple.update(state.arena)
+            state.apple.update(state.arena)
 
             # Draw the tail with smooth interpolation
-            for i, (tx, ty) in enumerate(snake.tail):
+            for i, (tx, ty) in enumerate(state.snake.tail):
                 draw_tx = tx
                 draw_ty = ty
 
-                if i == 0 and snake.move_progress > 0.0:
-                    draw_tx = snake.head.x + (tx - snake.head.x) * (1.0 - snake.move_progress)
-                    draw_ty = snake.head.y + (ty - snake.head.y) * (1.0 - snake.move_progress)
-                elif i > 0 and snake.move_progress > 0.0:
+                if i == 0 and state.snake.move_progress > 0.0:
+                    draw_tx = state.snake.head.x + (tx - state.snake.head.x) * (1.0 - state.snake.move_progress)
+                    draw_ty = state.snake.head.y + (ty - state.snake.head.y) * (1.0 - state.snake.move_progress)
+                elif i > 0 and state.snake.move_progress > 0.0:
                     prev_tx, prev_ty = state.snake.tail[i - 1]
-                    draw_tx = prev_tx + (tx - prev_tx) * (1.0 - snake.move_progress)
-                    draw_ty = prev_ty + (ty - prev_ty) * (1.0 - snake.move_progress)
+                    draw_tx = prev_tx + (tx - prev_tx) * (1.0 - state.snake.move_progress)
+                    draw_ty = prev_ty + (ty - prev_ty) * (1.0 - state.snake.move_progress)
 
                 pygame.draw.rect(state.
                     arena,
@@ -782,7 +671,7 @@ def main():
             pygame.draw.rect(state.
                 arena,
                 HEAD_COLOR,
-                pygame.Rect(round(state.snake.draw_x), round(snake.draw_y), GRID_SIZE, GRID_SIZE),
+                pygame.Rect(round(state.snake.draw_x), round(state.snake.draw_y), GRID_SIZE, GRID_SIZE),
             )
 
             # Show score (snake length = head + tail)
@@ -797,11 +686,10 @@ def main():
             if state.snake.head.x == state.apple.x and state.snake.head.y == state.apple.y:
                 state.snake.got_apple = True
                 state.snake.speed = min(state.snake.speed * 1.1, MAX_SPEED)  # Increase speed
-                state.apple.ensure_valid_position(state.snake, obstacles)
+                state.apple.ensure_valid_position(state.snake, state.obstacles)
 
-            # Update display and move clock.
+            # Update display
             pygame.display.update()
-            state.clock.tick_busy_loop(int(state.snake.speed))
 
 
 if __name__ == "__main__":
