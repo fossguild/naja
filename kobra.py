@@ -55,6 +55,8 @@ HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
 APPLE_COLOR = "#aa0000"  # Color of the apple.
+ORANGE_COLOR = "#ff7700"  # Color of the orange.
+GRAPE_COLOR = "#800080"  # Color of the grape.
 ARENA_COLOR = "#202020"  # Color of the ground.
 GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
@@ -446,8 +448,8 @@ class Snake:
         # The snake is born.
         self.alive = True
 
-        # No collected apples.
-        self.got_apple = False
+        # Track how many segments to grow.
+        self.segments_to_grow = 0
 
         # Initial speed
         self.speed = CLOCK_TICKS
@@ -455,7 +457,7 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(self):
-        global apple
+        global current_fruit
 
         # Calculate the head's next position based on current movement
         next_x = self.head.x + self.xmov * GRID_SIZE
@@ -496,13 +498,13 @@ class Snake:
 
             # Resurrection
             self.alive = True
-            self.got_apple = False
+            self.segments_to_grow = 0
 
             # Reset speed
             self.speed = CLOCK_TICKS
 
-            # Drop an apple
-            apple = Apple(self)
+            # Reset fruit
+            current_fruit = spawn_random_fruit(self)
 
         # Move the snake.
 
@@ -513,8 +515,9 @@ class Snake:
                 0, pygame.Rect(self.head.x, self.head.y, GRID_SIZE, GRID_SIZE)
             )
 
-            if self.got_apple:
-                self.got_apple = False
+            # If snake should grow, decrement the counter; otherwise remove last segment
+            if self.segments_to_grow > 0:
+                self.segments_to_grow -= 1
             else:
                 self.tail.pop()
 
@@ -524,12 +527,14 @@ class Snake:
 
 
 ##
-## The apple class.
+## The fruit classes.
 ##
 
 
-class Apple:
-    def __init__(self, snake):
+class Fruit:
+    """Base class for all fruits with common behavior."""
+
+    def __init__(self, snake, color, growth, speed_modifier):
         # Keep trying until we find a free grid cell (not on the snake).
         while True:
             self.x = random.randrange(0, WIDTH, GRID_SIZE)
@@ -541,10 +546,61 @@ class Apple:
             if head_free and tail_free:
                 break
 
+        # Set fruit properties
+        self.color = color
+        self.growth = growth
+        self.speed_modifier = speed_modifier
+
     # This function is called each iteration of the game loop
     def update(self):
-        # Draw the apple
-        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
+        # Draw the fruit
+        pygame.draw.rect(arena, self.color, self.rect)
+
+
+class Apple(Fruit):
+    def __init__(self, snake):
+        super().__init__(
+            snake=snake,
+            color=APPLE_COLOR,
+            growth=1,  # Apple grows snake by 1 segment
+            speed_modifier=1.0,  # No speed change
+        )
+
+
+class Orange(Fruit):
+    def __init__(self, snake):
+        super().__init__(
+            snake=snake,
+            color=ORANGE_COLOR,
+            growth=2,  # Orange grows snake by 2 segments
+            speed_modifier=1.0,  # No speed change
+        )
+
+
+class Grape(Fruit):
+    def __init__(self, snake):
+        super().__init__(
+            snake=snake,
+            color=GRAPE_COLOR,
+            growth=1,  # Grape grows snake by 1 segment (normal)
+            speed_modifier=0.8,  # Grape slows down the snake (20% slower)
+        )
+
+
+##
+## Fruit spawning logic
+##
+
+
+def spawn_random_fruit(snake):
+    """Spawn a random fruit based on weighted probabilities."""
+    rand = random.random()
+    if rand < 0.65:  # 65% chance for apple
+        return Apple(snake)
+    elif rand < 0.90:  # 25% chance for grape
+        return Grape(snake)
+    else:  # 10% chance for orange
+        return Orange(snake)
 
 
 ##
@@ -564,7 +620,9 @@ def draw_grid():
 ##
 start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
-apple = Apple(snake)
+
+# Initialize fruit (only one fruit at a time)
+current_fruit = spawn_random_fruit(snake)
 
 ##
 ## Main loop
@@ -622,7 +680,8 @@ while True:
         arena.fill(ARENA_COLOR)
         draw_grid()
 
-        apple.update()
+        # Draw current fruit
+        current_fruit.update()
 
     # Draw the tail
     for square in snake.tail:
@@ -636,13 +695,21 @@ while True:
     score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
     arena.blit(score, score_rect)
 
-    # If the head pass over an apple, lengthen the snake and drop another apple
-    if snake.head.x == apple.x and snake.head.y == apple.y:
-        # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        snake.got_apple = True
-        snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
-        # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple(snake)
+    # Check collision with current fruit
+    if snake.head.x == current_fruit.x and snake.head.y == current_fruit.y:
+        # Add segments to grow
+        snake.segments_to_grow += current_fruit.growth
+
+        # Apply speed modifier (grape slows down, others increase speed)
+        if current_fruit.speed_modifier < 1.0:
+            # Grape: decrease speed (divide to slow down)
+            snake.speed = max(snake.speed / 1.2, CLOCK_TICKS)
+        else:
+            # Apple/Orange: increase speed as before
+            snake.speed = min(snake.speed * 1.1, MAX_SPEED)
+
+        # Spawn a new random fruit
+        current_fruit = spawn_random_fruit(snake)
 
     # Update display and move clock.
     pygame.display.update()
