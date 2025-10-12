@@ -398,7 +398,7 @@ def game_over_handler(state: GameState) -> None:
         pygame.mixer.music.stop()  # Stop current music
         pygame.mixer.music.load(DEATH_MUSIC_PATH)  # Load death song
         pygame.mixer.music.play(-1)  # Play death song in loop
-    
+
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
     pygame.display.update()
@@ -407,13 +407,13 @@ def game_over_handler(state: GameState) -> None:
         state, "Game Over", "Press Enter/Space to restart  •  Q to exit"
     )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
-    
+
     # Switch back to background music
     if DEATH_SOUND_ON and MUSIC_ON:
         pygame.mixer.music.stop()  # Stop death song
         pygame.mixer.music.load(BACKGROUND_MUSIC_PATH)  # Load background music
         pygame.mixer.music.play(-1)  # Resume background music in loop
-    
+
     if key == pygame.K_q:
         pygame.quit()
         sys.exit()
