@@ -531,9 +531,6 @@ def draw_music_indicator(state: GameState, assets: GameAssets) -> None:
     icon_x = WIDTH - padding_x - icon_size
     icon_y = HEIGHT - padding_y - total_widget_height
 
-    # Choose the appropriate sprite based on music state.
-    sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
-
     # Scale and draw the sprite.
     if sprite is not None:
         scaled_sprite = pygame.transform.scale(sprite, (icon_size, icon_size))
