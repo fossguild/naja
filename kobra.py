@@ -519,6 +519,23 @@ def draw_music_indicator(state: GameState):
 
     state.arena.blit(hint_surf, hint_rect)
 
+def draw_pause_screen(state: GameState):
+    """Desenha uma sobreposição semi-transparente e o texto de pausa."""
+    # Cria uma superfície para a sobreposição com transparência alfa
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
+    state.arena.blit(overlay, (0, 0))
+
+    # Mostra o texto "Paused"
+    paused_title = BIG_FONT.render("Paused", True, MESSAGE_COLOR)
+    paused_title_rect = paused_title.get_rect(center=(WIDTH / 2, HEIGHT / 2))
+    state.arena.blit(paused_title, paused_title_rect)
+
+    paused_subtitle = SMALL_FONT.render("Press P to continue", True, MESSAGE_COLOR)
+    paused_subtitle_rect = paused_subtitle.get_rect(
+        center=(WIDTH / 2, HEIGHT * 2 / 3)
+    )
+    state.arena.blit(paused_subtitle, paused_subtitle_rect)
 
 ##
 ## Main game function
@@ -539,6 +556,9 @@ def main():
     ## Start flow
     ##
     start_menu(state)  # blocks until user picks "Start Game"
+
+    show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
+    previous_tail_length = 0
 
     ##
     ## Main loop
@@ -585,6 +605,8 @@ def main():
                     sys.exit()
                 elif event.key == pygame.K_p:  # P         : pause game
                     state.game_on = not state.game_on
+                    if state.game_on:
+                        show_pause_hint_end_time = pygame.time.get_ticks() + 2000
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.game_on = 0
@@ -615,6 +637,9 @@ def main():
 
         ## Update the game
         if state.game_on:
+            if len(state.snake.tail) == 0 and previous_tail_length > 0:
+                show_pause_hint_end_time = pygame.time.get_ticks() + 2000
+            previous_tail_length = len(state.snake.tail)
             # Only update snake position when it has reached its current target
             if (
                 state.snake.target_x == state.snake.head.x
@@ -739,6 +764,16 @@ def main():
                 state.snake.speed * 1.1, MAX_SPEED
             )  # Increase speed
             state.apple.ensure_valid_position(state.snake, state.obstacles)
+
+        if pygame.time.get_ticks() < show_pause_hint_end_time and state.game_on:
+            hint_surf = SMALL_FONT.render("Press P to pause", True, MESSAGE_COLOR)
+            hint_surf.set_alpha(180)  # Deixa o texto semi-transparente
+            hint_rect = hint_surf.get_rect(center=(WIDTH / 2, HEIGHT - 40))
+            state.arena.blit(hint_surf, hint_rect)
+
+        # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
+        if not state.game_on:
+            draw_pause_screen(state)
 
         # Update display
         pygame.display.update()
