@@ -1,0 +1,129 @@
+---
+description: Code style and formatting guidelines for Naja project
+globs:
+  - "**/*.py"
+alwaysApply: true
+---
+
+# Code Style Guidelines
+
+## Python Code Standards
+
+### Formatting
+- **Use Black formatter**: All Python code must be Black-formatted
+- **Line length**: 88 characters (Black default)
+- **Indentation**: 4 spaces (no tabs)
+- **String quotes**: Prefer double quotes (Black default)
+- **Trailing commas**: Use for multi-line structures
+
+### Naming Conventions
+- **Functions/variables**: `snake_case`
+- **Classes**: `PascalCase`
+- **Constants**: `UPPER_SNAKE_CASE`
+- **Private members**: `_leading_underscore`
+- **File names**: `lowercase.py` or `snake_case.py`
+
+### Comments and Documentation
+- **Language**: English only
+- **Style**: Complete sentences with proper capitalization and punctuation
+- **Inline comments**: Use sparingly, explain "why" not "what"
+- **Docstrings**: Use for public functions and classes
+- **Comment format**: 
+  ```python
+  # This is a single-line comment.
+  
+  ##
+  ## This is a section header comment.
+  ##
+  ```
+
+### Code Organization
+- **Imports**: Standard library → third-party → local
+- **Global variables**: Define at module level with UPPER_CASE
+- **Class organization**: `__init__` first, then public methods, then private
+- **Function length**: Keep functions focused and concise
+- **Blank lines**: Two blank lines between top-level definitions
+
+## Pygame-Specific Patterns
+
+### Event Handling
+```python
+for event in pygame.event.get():
+    if event.type == pygame.QUIT:
+        pygame.quit()
+        sys.exit()
+    if event.type == pygame.KEYDOWN:
+        # Handle key events
+```
+
+### Game Loop Structure
+```python
+while True:
+    # 1. Event handling
+    # 2. Update game state
+    # 3. Draw to screen
+    # 4. Update display
+    # 5. Tick clock
+```
+
+### Drawing Pattern
+```python
+# Clear screen
+arena.fill(BACKGROUND_COLOR)
+
+# Draw game objects
+draw_game_elements()
+
+# Update display
+pygame.display.update()
+```
+
+## Linting Rules
+
+### Ruff Configuration
+- Follow pyproject.toml ruff settings
+- Fix all linting errors before committing
+- No unused imports or variables
+- No undefined names
+
+### Common Patterns to Avoid
+ **Don't**:
+- Use `from module import *`
+- Leave unused variables or imports
+- Use mutable default arguments
+- Ignore type hints (when used)
+- Use `== True` or `== False` (use boolean directly)
+
+ **Do**:
+- Use specific imports: `from pygame import event, display`
+- Clean up unused code immediately
+- Use `if condition:` not `if condition == True:`
+- Add type hints for complex functions
+- Use guard clauses to reduce nesting
+
+## Pre-commit Workflow
+
+Before every commit:
+1. Black automatically formats code
+2. Ruff checks for linting errors
+3. Fix any issues reported
+4. Commit only passes if all checks pass
+
+To run manually:
+```bash
+black .
+ruff check .
+```
+
+## Code Review Checklist
+
+When reviewing or writing code:
+- [ ] Code is Black-formatted
+- [ ] No Ruff linting errors
+- [ ] Variables have descriptive names
+- [ ] Comments use proper English grammar
+- [ ] No commented-out code (remove it)
+- [ ] Functions are focused and < 50 lines
+- [ ] No magic numbers (use named constants)
+- [ ] Error handling is appropriate
+- [ ] Copyright notice intact/updated
