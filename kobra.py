@@ -55,6 +55,7 @@ HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
 APPLE_COLOR = "#aa0000"  # Color of the apple.
+OBSTACLE_COLOR = "#666666"  # Color of the obstacles.
 ARENA_COLOR = "#202020"  # Color of the ground.
 GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
@@ -74,6 +75,7 @@ SETTINGS = {
     "initial_speed": 4.0,  # current CLOCK_TICKS
     "max_speed": 20.0,  # current speed clamp at apple pickup
     "death_sound": True,  # toggle death sound playback
+    "obstacle_difficulty": "None",  # obstacle difficulty level
     "background_music": True,  # toggle background music playback
 }
 
@@ -104,17 +106,39 @@ MENU_FIELDS = [
         "step": 1.0,
     },
     {"key": "death_sound", "label": "Death Sound", "type": "bool"},
+    {
+        "key": "obstacle_difficulty",
+        "label": "Obstacles",
+        "type": "select",
+        "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
+    },
     {"key": "background_music", "label": "Background Music", "type": "bool"},
 ]
 
 # Effective runtime values (hydrated by apply_settings).
 MAX_SPEED = SETTINGS["max_speed"]
 DEATH_SOUND_ON = SETTINGS["death_sound"]
+NUM_OBSTACLES = 0  # Will be calculated in apply_settings
 MUSIC_ON = SETTINGS["background_music"]
 
 
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+
+def _calculate_obstacles_from_difficulty(difficulty):
+    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+
+    difficulty_percentages = {
+        "None": 0.0,
+        "Easy": 0.04,
+        "Medium": 0.06,
+        "Hard": 0.10,
+        "Impossible": 0.15,
+    }
+
+    percentage = difficulty_percentages.get(difficulty, 0.0)
+    return int(total_cells * percentage)
 
 
 ## Format a setting value for display.
@@ -127,9 +151,12 @@ def _fmt_setting_value(field, value):
             if requested == actual
             else f"{requested} × {requested} (cur: {actual})"
         )
-    if isinstance(value, bool):
+    elif field["key"] == "obstacle_difficulty":
+        # Show difficulty with obstacle count
+        return f"{value}"
+    elif isinstance(value, bool):
         return "On" if value else "Off"
-    if isinstance(value, float):
+    elif isinstance(value, float):
         return f"{value:.1f}"
     return str(value)
 
@@ -181,6 +208,13 @@ def _step_setting(field: dict, direction: int) -> None:
 
     if kind == "bool":
         SETTINGS[key] = not SETTINGS[key]
+        return
+
+    elif kind == "select":
+        options = field["options"]
+        current_index = options.index(SETTINGS[key])
+        new_index = (current_index + direction) % len(options)
+        SETTINGS[key] = options[new_index]
         return
 
     step = field.get("step", 1 if kind == "int" else 1.0)
@@ -236,7 +270,7 @@ def run_settings_menu() -> None:
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, arena, BIG_FONT, SMALL_FONT
-    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, MUSIC_ON
+    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
 
     old_grid = GRID_SIZE
 
@@ -250,6 +284,9 @@ def apply_settings(reset_objects: bool = False) -> None:
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
+    NUM_OBSTACLES = _calculate_obstacles_from_difficulty(
+        SETTINGS["obstacle_difficulty"]
+    )
     MUSIC_ON = bool(SETTINGS["background_music"])
 
     # Control background music playback based on setting
@@ -273,7 +310,10 @@ def apply_settings(reset_objects: bool = False) -> None:
     if reset_objects:
         try:
             globals()["snake"] = Snake()
-            globals()["apple"] = Apple(snake)
+            globals()["obstacles"] = create_obstacles_constructively(
+                NUM_OBSTACLES, snake.x, snake.y
+            )
+            globals()["apple"] = Apple(snake, obstacles)
             snake.speed = CLOCK_TICKS
         except NameError:
             # If called before classes/instances exist, ignore.
@@ -487,7 +527,7 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(self):
-        global apple
+        global apple, obstacles
 
         # Calculate the head's next position based on current movement
         next_x = self.head.x + self.xmov * GRID_SIZE
@@ -508,6 +548,12 @@ class Snake:
                     if DEATH_SOUND_ON:
                         gameover_sound.play()
 
+            # Check for obstacle collision.
+            for obstacle in obstacles:
+                if next_x == obstacle.x and next_y == obstacle.y:
+                    self.alive = False
+                    if DEATH_SOUND_ON:
+                        gameover_sound.play()
             if self.alive:
                 self.target_x = next_x
                 self.target_y = next_y
@@ -548,7 +594,157 @@ class Snake:
             self.prev_head_y = self.y
 
             # Drop an apple
-            apple = Apple(self)
+            apple = Apple(self, obstacles)
+
+
+##
+## The obstacle class.
+##
+
+
+class Obstacle:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
+
+    def update(self):
+        # Draw the obstacle
+        pygame.draw.rect(arena, OBSTACLE_COLOR, self.rect)
+
+
+def is_grid_connected(obstacles, snake_start_x, snake_start_y):
+    """Checks if all free cells on the grid are connected using BFS."""
+    obstacles_positions = {(obs.x, obs.y) for obs in obstacles}
+    if (snake_start_x, snake_start_y) in obstacles_positions:
+        return False
+
+    # Calculate the expected number of reachable cells
+    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+    total_free_cells = total_cells - len(obstacles)
+
+    # Use a standard list as a queue
+    queue = [(snake_start_x, snake_start_y)]
+    visited = set([(snake_start_x, snake_start_y)])
+
+    while queue:
+        # Pop the first element to behave like a queue (FIFO)
+        x, y = queue.pop(0)
+
+        # Check all four neighbors
+        for dx, dy in [
+            (0, GRID_SIZE),
+            (0, -GRID_SIZE),
+            (GRID_SIZE, 0),
+            (-GRID_SIZE, 0),
+        ]:
+            neighbor = (x + dx, y + dy)
+
+            # If neighbor is valid and unvisited, add it to the queue
+            if (
+                0 <= neighbor[0] < WIDTH
+                and 0 <= neighbor[1] < HEIGHT
+                and neighbor not in obstacles_positions
+                and neighbor not in visited
+            ):
+                visited.add(neighbor)
+                queue.append(neighbor)
+
+    # The grid is connected if all free cells were visited
+    return len(visited) == total_free_cells
+
+
+def is_blocked(x, y, new_obstacle_pos, obstacles_positions):
+    """Checks if a given coordinate is blocked by an obstacle, the new one, or the board edge."""
+    # Check if it's outside the board boundaries
+    if not (0 <= x < WIDTH and 0 <= y < HEIGHT):
+        return True
+    # Check if it's the potential new obstacle
+    if (x, y) == new_obstacle_pos:
+        return True
+    # Check if it's an already existing obstacle
+    if (x, y) in obstacles_positions:
+        return True
+    return False
+
+
+def would_create_trap(new_obstacle_pos, obstacles_positions):
+    """
+    Checks if placing a new obstacle creates a trap for any adjacent cell.
+    A trap is a free cell with 3 or more blocked sides.
+    """
+    new_x, new_y = new_obstacle_pos
+
+    # We only need to check the four direct neighbors of the new obstacle.
+    # Only these cells could possibly become trapped by this new addition.
+    for dx, dy in [(0, GRID_SIZE), (0, -GRID_SIZE), (GRID_SIZE, 0), (-GRID_SIZE, 0)]:
+        neighbor_x, neighbor_y = new_x + dx, new_y + dy
+
+        # If the neighbor is not a free cell, we don't need to check it.
+        if is_blocked(
+            neighbor_x, neighbor_y, (0, 0), obstacles_positions
+        ):  # Note: passing dummy new_pos
+            continue
+
+        # This neighbor is a free cell. Let's count how many of its sides are blocked.
+        blocked_sides_count = 0
+
+        # Check the 4 sides of this neighbor cell
+        sides_to_check = [
+            (neighbor_x + GRID_SIZE, neighbor_y),  # Right
+            (neighbor_x - GRID_SIZE, neighbor_y),  # Left
+            (neighbor_x, neighbor_y + GRID_SIZE),  # Down
+            (neighbor_x, neighbor_y - GRID_SIZE),  # Up
+        ]
+
+        for side_x, side_y in sides_to_check:
+            if is_blocked(side_x, side_y, new_obstacle_pos, obstacles_positions):
+                blocked_sides_count += 1
+
+        # If 3 or more sides are blocked, it's a trap.
+        if blocked_sides_count >= 3:
+            return True
+
+    # If we check all neighbors and none of them become traps, the placement is safe.
+    return False
+
+
+def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y):
+    """Builds a valid map by adding obstacles one by one safely."""
+    while True:
+        obstacles = []
+        obstacles_positions = set()
+
+        # Get all possible spawn points for obstacles, avoiding the snake's start area
+        available_positions = []
+        for x in range(0, WIDTH, GRID_SIZE):
+            for y in range(0, HEIGHT, GRID_SIZE):
+                if not (
+                    abs(x - snake_start_x) < GRID_SIZE * 8
+                    and abs(y - snake_start_y) < GRID_SIZE * 2
+                ):
+                    available_positions.append((x, y))
+        random.shuffle(available_positions)
+
+        temp_available = list(available_positions)
+
+        # Attempt to place one obstacle at a time
+        while len(obstacles) < num_obstacles and temp_available:
+            candidate_pos = temp_available.pop()
+
+            # Rule 1: Don't create narrow passages or traps
+            if would_create_trap(candidate_pos, obstacles_positions):
+                continue
+
+            # If the local check passes, add the obstacle
+            obstacles.append(Obstacle(candidate_pos[0], candidate_pos[1]))
+            obstacles_positions.add(candidate_pos)
+
+        # Rule 2: Don't disconnect the map
+        if len(obstacles) == num_obstacles and is_grid_connected(
+            obstacles, snake_start_x, snake_start_y
+        ):
+            return obstacles
 
 
 ##
@@ -557,8 +753,10 @@ class Snake:
 
 
 class Apple:
-    def __init__(self, snake):
-        # Keep trying until we find a free grid cell (not on the snake).
+    def __init__(self, snake, obstacles=None):
+        if obstacles is None:
+            obstacles = []
+
         while True:
             self.x = random.randrange(0, WIDTH, GRID_SIZE)
             self.y = random.randrange(0, HEIGHT, GRID_SIZE)
@@ -568,7 +766,10 @@ class Apple:
             tail_free = all(
                 (self.x != seg[0] or self.y != seg[1]) for seg in snake.tail
             )
-            if head_free and tail_free:
+            obstacle_free = all(
+                (self.x != obs.x or self.y != obs.y) for obs in obstacles
+            )
+            if head_free and tail_free and obstacle_free:
                 break
 
     # This function is called each iteration of the game loop
@@ -627,7 +828,10 @@ def draw_music_indicator():
 ##
 start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
-apple = Apple(snake)
+obstacles = create_obstacles_constructively(
+    NUM_OBSTACLES, snake.x, snake.y
+)  # create obstacles
+apple = Apple(snake, obstacles)
 
 ##
 ## Main loop
@@ -737,6 +941,10 @@ while True:
         arena.fill(ARENA_COLOR)
         draw_grid()
 
+        # Draw obstacles
+        for obstacle in obstacles:
+            obstacle.update()
+
         apple.update()
 
     # Draw the tail with smooth interpolation
@@ -779,7 +987,7 @@ while True:
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple(snake)
+        apple = Apple(snake, obstacles)
 
     # Update display and move clock.
     pygame.display.update()
