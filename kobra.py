@@ -95,6 +95,7 @@ SETTINGS = {
     "max_speed": 20.0,  # current speed clamp at apple pickup
     "death_sound": True,  # toggle death sound playback
     "obstacle_difficulty": "None",  # obstacle difficulty level
+    "number_of_apples": 1,  # number of apples simultaneously in the arena
     "background_music": True,  # toggle background music playback
     "reset_game_on_apply": False,  # reset game when applying settings
 }
@@ -132,6 +133,14 @@ MENU_FIELDS = [
         "type": "select",
         "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
     },
+    {
+        "key": "number_of_apples",
+        "label": "Apples (needs reset)",
+        "type": "int",
+        "min": 1,
+        "max": 30,  # Capped at 30 for gameplay balance
+        "step": 1,
+    },
     {"key": "background_music", "label": "Background Music", "type": "bool"},
     {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
 ]
@@ -140,6 +149,7 @@ MENU_FIELDS = [
 MAX_SPEED = SETTINGS["max_speed"]
 DEATH_SOUND_ON = SETTINGS["death_sound"]
 NUM_OBSTACLES = 0  # Will be calculated in apply_settings
+NUM_APPLES = SETTINGS["number_of_apples"]
 MUSIC_ON = SETTINGS["background_music"]
 
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
@@ -282,7 +292,7 @@ def run_settings_menu(state) -> None:
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT
-    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
+    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, NUM_APPLES, MUSIC_ON
 
     old_grid = GRID_SIZE
 
@@ -297,6 +307,15 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     NUM_OBSTACLES = Obstacle.calculate_obstacles_from_difficulty(
         SETTINGS["obstacle_difficulty"], WIDTH, GRID_SIZE, HEIGHT
     )
+    
+    # Calculate max apples based on a reasonable percentage of total cells
+    # Limit to 15% of grid or 30 apples max (whichever is smaller)
+    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+    max_apples_by_percent = int(total_cells * 0.15)  # 15% of grid
+    max_apples_absolute = 30  # Hard cap
+    max_apples = max(1, min(max_apples_by_percent, max_apples_absolute))
+    NUM_APPLES = min(int(SETTINGS["number_of_apples"]), max_apples)
+    
     MUSIC_ON = bool(SETTINGS["background_music"])
 
     # Control background music playback based on setting
@@ -330,9 +349,18 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
         # Objects will be recreated in the game state
         state.snake = Snake(WIDTH, HEIGHT, GRID_SIZE)
         state.create_obstacles_constructively(NUM_OBSTACLES)
-        state.apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
+        
+        # Create multiple apples
+        state.apples = []
+        for _ in range(NUM_APPLES):
+            apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
+            apple.ensure_valid_position(state.snake, state.obstacles)
+            # Also ensure it doesn't overlap with existing apples
+            while any(apple.x == a.x and apple.y == a.y for a in state.apples):
+                apple.ensure_valid_position(state.snake, state.obstacles)
+            state.apples.append(apple)
+        
         state.snake.speed = CLOCK_TICKS
-        state.apple.ensure_valid_position(state.snake)  # ensure apple is not on snake
 
 
 ##
@@ -610,6 +638,7 @@ def main():
                     old_cells = SETTINGS["cells_per_side"]
                     old_obstacles = SETTINGS["obstacle_difficulty"]
                     old_initial_speed = SETTINGS["initial_speed"]
+                    old_num_apples = SETTINGS["number_of_apples"]
 
                     run_settings_menu(state)
 
@@ -618,6 +647,7 @@ def main():
                         old_cells != SETTINGS["cells_per_side"]
                         or old_obstacles != SETTINGS["obstacle_difficulty"]
                         or old_initial_speed != SETTINGS["initial_speed"]
+                        or old_num_apples != SETTINGS["number_of_apples"]
                     )
 
                     # Force reset if critical settings changed, or use player preference
@@ -639,7 +669,7 @@ def main():
             ):
                 if state.snake.xmov or state.snake.ymov:
                     state.snake.update(
-                        state.apple, state.obstacles, lambda: game_over_handler(state)
+                        state.apples, state.obstacles, lambda: game_over_handler(state)
                     )
 
             # Advance interpolation toward the current target grid cell (if any)
@@ -700,7 +730,9 @@ def main():
         for obstacle in state.obstacles:
             obstacle.update()
 
-        state.apple.update(state.arena)
+        # Draw all apples
+        for apple in state.apples:
+            apple.update(state.arena)
 
         # Draw the tail with smooth interpolation
         for i, (tx, ty) in enumerate(state.snake.tail):
@@ -746,13 +778,32 @@ def main():
         # Draw music status indicator
         draw_music_indicator(state)
 
-        # If the head pass over an apple, lengthen the snake and drop another apple
-        if state.snake.head.x == state.apple.x and state.snake.head.y == state.apple.y:
-            state.snake.got_apple = True
-            state.snake.speed = min(
-                state.snake.speed * 1.1, MAX_SPEED
-            )  # Increase speed
-            state.apple.ensure_valid_position(state.snake, state.obstacles)
+        # Check collision with all apples and maintain N apples in arena
+        for apple in state.apples[:]:  # Use slice to iterate over copy
+            if state.snake.head.x == apple.x and state.snake.head.y == apple.y:
+                state.snake.got_apple = True
+                state.snake.speed = min(
+                    state.snake.speed * 1.1, MAX_SPEED
+                )  # Increase speed
+                
+                # Remove eaten apple and spawn a new one
+                state.apples.remove(apple)
+                
+                # Calculate available free cells
+                total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+                occupied_cells = 1 + len(state.snake.tail) + len(state.obstacles) + len(state.apples)
+                free_cells = total_cells - occupied_cells
+                
+                # Only spawn new apple if there are free cells
+                if free_cells > 0:
+                    new_apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
+                    new_apple.ensure_valid_position(state.snake, state.obstacles)
+                    # Ensure it doesn't overlap with existing apples
+                    while any(new_apple.x == a.x and new_apple.y == a.y for a in state.apples):
+                        new_apple.ensure_valid_position(state.snake, state.obstacles)
+                    state.apples.append(new_apple)
+                
+                break  # Only eat one apple per frame
 
         # Update display
         pygame.display.update()

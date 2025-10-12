@@ -34,7 +34,7 @@ class GameState:
     arena: pygame.Surface
     game_on: int
     snake: Snake
-    apple: Apple
+    apples: list[Apple]
     obstacles: list[Obstacle]
 
     # Private fields
@@ -67,8 +67,12 @@ class GameState:
         # Game objects (initialized with proper dimensions)
         self.snake = Snake(display_width, display_height, grid_size)
         self.obstacles = []  # Will be populated by create_obstacles if needed
-        self.apple = Apple(display_width, display_height, grid_size)
-        self.apple.ensure_valid_position(self.snake, self.obstacles)
+        
+        # Initialize with a single apple (will be updated by apply_settings)
+        self.apples = []
+        apple = Apple(display_width, display_height, grid_size)
+        apple.ensure_valid_position(self.snake, self.obstacles)
+        self.apples.append(apple)
 
     def update_dimensions(self, width: int, height: int, grid_size: int) -> None:
         """Update the game dimensions.
