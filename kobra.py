@@ -608,7 +608,7 @@ while True:
                 sys.exit()
             elif event.key == pygame.K_p:  # P         : pause game
                 game_on = not game_on
-            elif event.key == pygame.K_m:
+            elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                 was_running = game_on
                 game_on = 0
                 run_settings_menu()
