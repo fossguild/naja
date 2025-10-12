@@ -403,23 +403,6 @@ def game_over_handler(state: GameState) -> None:
         sys.exit()
 
 
-## This function is called when the game is paused.
-def display_pause_screen():
-    # Create a semi-transparent overlay
-    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-    overlay.fill((32, 32, 32, 180))  # Dark transparent gray
-    #arena.blit(overlay, (0, 0))
-
-    # Show "Paused" text
-    paused_title = BIG_FONT.render("Paused", True, MESSAGE_COLOR)
-    paused_title_rect = paused_title.get_rect(center=(WIDTH / 2, HEIGHT / 2))
-    #arena.blit(paused_title, paused_title_rect)
-
-    paused_subtitle = SMALL_FONT.render("Press P to continue", True, MESSAGE_COLOR)
-    paused_subtitle_rect = paused_subtitle.get_rect(center=(WIDTH / 2, HEIGHT * 2 / 3))
-    #arena.blit(paused_subtitle, paused_subtitle_rect)
-
-
 ##
 ## Start menu (Start / Settings)
 ##
