@@ -606,7 +606,7 @@ def main():
                     )
 
                     # Play death sound if snake died
-            if died and DEATH_SOUND_ON:
+            if died and DEATH_SOUND_ON and MUSIC_ON:
                 gameover_sound.play()
 
             # Advance interpolation toward the current target grid cell (if any)
