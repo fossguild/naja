@@ -115,6 +115,52 @@ class GameAssets:
             self.window_width = new_window_width
         self.load_all()
 
+    def render_big(self, text: str, color, antialias: bool = True):
+        """Render text using the big font.
+
+        Args:
+            text: Text to render
+            color: Text color
+            antialias: Whether to use antialiasing (default: True)
+
+        Returns:
+            Rendered text surface
+        """
+        return self.big_font.render(text, antialias, color)
+
+    def render_small(self, text: str, color, antialias: bool = True):
+        """Render text using the small font.
+
+        Args:
+            text: Text to render
+            color: Text color
+            antialias: Whether to use antialiasing (default: True)
+
+        Returns:
+            Rendered text surface
+        """
+        return self.small_font.render(text, antialias, color)
+
+    def render_custom(self, text: str, color, size_px: int, antialias: bool = True):
+        """Render text using a custom font size.
+
+        Args:
+            text: Text to render
+            color: Text color
+            size_px: Font size in pixels
+            antialias: Whether to use antialiasing (default: True)
+
+        Returns:
+            Rendered text surface
+        """
+        try:
+            custom_font = pygame.font.Font(self.FONT_PATH, size_px)
+            return custom_font.render(text, antialias, color)
+        except Exception as e:
+            print(f"Error creating custom font: {e}")
+            fallback_font = pygame.font.Font(None, size_px)
+            return fallback_font.render(text, antialias, color)
+
     @staticmethod
     def init_music(volume: float = 0.2, start_playing: bool = True) -> None:
         """Initialize and start background music.

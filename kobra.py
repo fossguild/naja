@@ -121,9 +121,6 @@ DEATH_SOUND_ON = SETTINGS["death_sound"]
 NUM_OBSTACLES = 0  # Will be calculated in apply_settings
 MUSIC_ON = SETTINGS["background_music"]
 
-# Global assets instance (initialized in main)
-assets = None
-
 
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
@@ -150,11 +147,10 @@ def _fmt_setting_value(field, value):
 
 
 ## Draw the entire settings screen (scrollable if needed).
-def _draw_settings_menu(state, selected_index: int) -> None:
+def _draw_settings_menu(state, assets, selected_index: int) -> None:
     state.arena.fill(ARENA_COLOR)
 
-    title_font = pygame.font.Font(GameAssets.FONT_PATH, int(WIDTH / 10))
-    title = title_font.render("Settings", True, MESSAGE_COLOR)
+    title = assets.render_custom("Settings", MESSAGE_COLOR, int(WIDTH / 10))
     title_rect = title.get_rect(center=(WIDTH / 2, HEIGHT / 10))
     state.arena.blit(title, title_rect)
 
@@ -170,9 +166,8 @@ def _draw_settings_menu(state, selected_index: int) -> None:
             break
         f = MENU_FIELDS[field_i]
         val = SETTINGS[f["key"]]
-        text = assets.small_font.render(
+        text = assets.render_small(
             f"{f['label']}: {_fmt_setting_value(f, val)}",
-            True,
             SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
         )
         rect = text.get_rect()
@@ -181,9 +176,8 @@ def _draw_settings_menu(state, selected_index: int) -> None:
         state.arena.blit(text, rect)
 
     # hint footer (smaller)
-    hint_font = pygame.font.Font(GameAssets.FONT_PATH, int(WIDTH / 40))
     hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
-    hint = hint_font.render(hint_text, True, GRID_COLOR)
+    hint = assets.render_custom(hint_text, GRID_COLOR, int(WIDTH / 40))
     state.arena.blit(hint, hint.get_rect(center=(WIDTH / 2, HEIGHT * 0.95)))
 
     pygame.display.update()
@@ -218,11 +212,11 @@ def _step_setting(field: dict, direction: int) -> None:
 
 
 ## Modal loop for the Settings screen.
-def run_settings_menu(state) -> None:
+def run_settings_menu(state, assets) -> None:
     selected = 0
 
     while True:
-        _draw_settings_menu(state, selected)
+        _draw_settings_menu(state, assets, selected)
 
         for event in pygame.event.get():
             # Guard clauses keep nesting shallow.
@@ -256,7 +250,7 @@ def run_settings_menu(state) -> None:
 
 
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
-def apply_settings(state: GameState, reset_objects: bool = False) -> None:
+def apply_settings(state: GameState, assets, reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT
     global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
 
@@ -313,7 +307,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
 
 
 ## Text fitting helper (keeps long lines inside the window)
-def _render_text_fit(text: str, color, max_width_ratio: float, base_px: int):
+def _render_text_fit(assets, text: str, color, max_width_ratio: float, base_px: int):
     """
     Render text using the game's font, shrinking until it fits the given width ratio.
     max_width_ratio: fraction of WIDTH allowed.
@@ -321,26 +315,25 @@ def _render_text_fit(text: str, color, max_width_ratio: float, base_px: int):
     """
     px = base_px
     while px > 8:  # don't go too tiny
-        font = pygame.font.Font(GameAssets.FONT_PATH, px)
-        surf = font.render(text, True, color)
+        surf = assets.render_custom(text, color, px)
         if surf.get_width() <= WIDTH * max_width_ratio:
             return surf
         px -= 2
     return surf  # last attempt even if it doesn't fit perfectly
 
 
-def _draw_center_message(state: GameState, title: str, subtitle: str) -> None:
+def _draw_center_message(state: GameState, assets, title: str, subtitle: str) -> None:
     state.arena.fill(ARENA_COLOR)
 
     # Title ~ up to 80% of window width, start from BIG font size.
     title_surf = _render_text_fit(
-        title, MESSAGE_COLOR, max_width_ratio=0.8, base_px=int(WIDTH / 8)
+        assets, title, MESSAGE_COLOR, max_width_ratio=0.8, base_px=int(WIDTH / 8)
     )
     state.arena.blit(title_surf, title_surf.get_rect(center=(WIDTH / 2, HEIGHT / 2.6)))
 
     # Subtitle ~ up to 90% of width, start from SMALL font size.
     sub_surf = _render_text_fit(
-        subtitle, MESSAGE_COLOR, max_width_ratio=0.9, base_px=int(WIDTH / 20)
+        assets, subtitle, MESSAGE_COLOR, max_width_ratio=0.9, base_px=int(WIDTH / 20)
     )
     state.arena.blit(sub_surf, sub_surf.get_rect(center=(WIDTH / 2, HEIGHT / 1.8)))
 
@@ -360,11 +353,12 @@ def _wait_for_keys(allowed_keys: set[int]) -> int:
             return event.key
 
 
-def game_over_handler(state: GameState) -> None:
+def game_over_handler(state: GameState, assets) -> None:
     """Handle game over scenario with visual feedback and prompt.
 
     Args:
         state: GameState instance
+        assets: GameAssets instance
     """
     # Play death sound effect and switch to death song
     if DEATH_SOUND_ON and MUSIC_ON:
@@ -377,7 +371,7 @@ def game_over_handler(state: GameState) -> None:
     pygame.display.update()
     # Game-over prompt: only Space/Enter restart; Q quits.
     _draw_center_message(
-        state, "Game Over", "Press Enter/Space to restart  •  Q to exit"
+        state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
     )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
 
@@ -393,11 +387,12 @@ def game_over_handler(state: GameState) -> None:
 ##
 ## Start menu (Start / Settings)
 ##
-def start_menu(state: GameState):
+def start_menu(state: GameState, assets):
     """Main menu shown before the game starts.
 
     Args:
         state: GameState instance (required)
+        assets: GameAssets instance (required)
     """
     selected = 0
     items = ["Start Game", "Settings"]
@@ -406,13 +401,13 @@ def start_menu(state: GameState):
         state.arena.fill(ARENA_COLOR)
 
         # title
-        title = assets.big_font.render(WINDOW_TITLE, True, MESSAGE_COLOR)
+        title = assets.render_big(WINDOW_TITLE, MESSAGE_COLOR)
         state.arena.blit(title, title.get_rect(center=(WIDTH / 2, HEIGHT / 4)))
 
         # draw buttons
         for i, text_label in enumerate(items):
             color = SCORE_COLOR if i == selected else MESSAGE_COLOR
-            text = assets.small_font.render(text_label, True, color)
+            text = assets.render_small(text_label, color)
             rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12)))
             state.arena.blit(text, rect)
 
@@ -434,11 +429,11 @@ def start_menu(state: GameState):
                     if items[selected] == "Start Game":
                         return  # proceed to game
                     elif items[selected] == "Settings":
-                        run_settings_menu(state)
-                        apply_settings(state, reset_objects=False)
+                        run_settings_menu(state, assets)
+                        apply_settings(state, assets, reset_objects=False)
                 elif key == pygame.K_m:
-                    run_settings_menu(state)
-                    apply_settings(state, reset_objects=False)
+                    run_settings_menu(state, assets)
+                    apply_settings(state, assets, reset_objects=False)
                 elif key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
@@ -447,15 +442,15 @@ def start_menu(state: GameState):
                 # simple click detection
                 mx, my = event.pos
                 for i, text_label in enumerate(items):
-                    rect = assets.small_font.render(
-                        text_label, True, MESSAGE_COLOR
-                    ).get_rect(center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12)))
+                    rect = assets.render_small(text_label, MESSAGE_COLOR).get_rect(
+                        center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12))
+                    )
                     if rect.collidepoint(mx, my):
                         if text_label == "Start Game":
                             return
                         elif text_label == "Settings":
-                            run_settings_menu(state)
-                            apply_settings(state, reset_objects=False)
+                            run_settings_menu(state, assets)
+                            apply_settings(state, assets, reset_objects=False)
 
 
 ##
@@ -475,11 +470,12 @@ def draw_grid(state: GameState):
 ##
 
 
-def draw_music_indicator(state: GameState):
+def draw_music_indicator(state: GameState, assets):
     """Draw a subtle music status indicator in the bottom-right corner.
 
     Args:
         state: GameState instance (required)
+        assets: GameAssets instance (required)
     """
     # Calculate position in bottom-right corner
     padding = int(WIDTH * 0.02)
@@ -496,10 +492,9 @@ def draw_music_indicator(state: GameState):
         state.arena.blit(scaled_sprite, (icon_x, icon_y))
 
     # Add [N] text hint below the icon
-    hint_font = pygame.font.Font(GameAssets.FONT_PATH, int(WIDTH / 50))
     hint_color = SCORE_COLOR if MUSIC_ON else GRID_COLOR
     hint_text = "[N]"
-    hint_surf = hint_font.render(hint_text, True, hint_color)
+    hint_surf = assets.render_custom(hint_text, hint_color, int(WIDTH / 50))
     hint_rect = hint_surf.get_rect()
     hint_rect.centerx = icon_x + icon_size // 2
     hint_rect.top = icon_y + icon_size + 2
@@ -512,8 +507,6 @@ def draw_music_indicator(state: GameState):
 ##
 def main():
     """Main game entry point with GameState initialization."""
-    global assets
-
     # Initialize game assets
     assets = GameAssets(WIDTH)
 
@@ -524,7 +517,7 @@ def main():
     state = GameState(WIDTH, HEIGHT, GRID_SIZE)
 
     # Apply default settings with state
-    apply_settings(state, reset_objects=False)
+    apply_settings(state, assets, reset_objects=False)
 
     # we only have NUM_OBSTACLES set after applyng settings
     state.create_obstacles_constructively(NUM_OBSTACLES)
@@ -533,7 +526,7 @@ def main():
     ##
     ## Start flow
     ##
-    start_menu(state)  # blocks until user picks "Start Game"
+    start_menu(state, assets)  # blocks until user picks "Start Game"
 
     ##
     ## Main loop
@@ -588,7 +581,7 @@ def main():
                     old_obstacles = SETTINGS["obstacle_difficulty"]
                     old_initial_speed = SETTINGS["initial_speed"]
 
-                    run_settings_menu(state)
+                    run_settings_menu(state, assets)
 
                     # Check if critical settings changed (require reset)
                     needs_reset = (
@@ -600,12 +593,13 @@ def main():
                     # Force reset if critical settings changed, or use player preference
                     apply_settings(
                         state,
+                        assets,
                         reset_objects=needs_reset or SETTINGS["reset_game_on_apply"],
                     )
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
                     SETTINGS["background_music"] = not SETTINGS["background_music"]
-                    apply_settings(state, reset_objects=False)
+                    apply_settings(state, assets, reset_objects=False)
 
         ## Update the game
         if state.game_on:
@@ -616,7 +610,9 @@ def main():
             ):
                 if state.snake.xmov or state.snake.ymov:
                     state.snake.update(
-                        state.apple, state.obstacles, lambda: game_over_handler(state)
+                        state.apple,
+                        state.obstacles,
+                        lambda: game_over_handler(state, assets),
                     )
 
             # Advance interpolation toward the current target grid cell (if any)
@@ -715,13 +711,13 @@ def main():
         )
 
         # Show score (snake length = head + tail)
-        score = assets.big_font.render(f"{len(state.snake.tail)}", True, SCORE_COLOR)
+        score = assets.render_big(f"{len(state.snake.tail)}", SCORE_COLOR)
         score.set_alpha(75)  # opacity
         score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
         state.arena.blit(score, score_rect)
 
         # Draw music status indicator
-        draw_music_indicator(state)
+        draw_music_indicator(state, assets)
 
         # If the head pass over an apple, lengthen the snake and drop another apple
         if state.snake.head.x == state.apple.x and state.snake.head.y == state.apple.y:
