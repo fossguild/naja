@@ -27,11 +27,11 @@ from constants import (
     HEAD_COLOR,
     DEAD_HEAD_COLOR,
     TAIL_COLOR,
-    ARENA_COLOR,
     GRID_COLOR,
     SCORE_COLOR,
     MESSAGE_COLOR,
     WINDOW_TITLE,
+    SETTINGS_COLOR,
 )
 from state import GameState
 
@@ -97,6 +97,7 @@ SETTINGS = {
     "death_sound": True,  # toggle death sound playback
     "obstacle_difficulty": "None",  # obstacle difficulty level
     "background_music": True,  # toggle background music playback
+    "background_color": "Gray",  # standard background color
 }
 
 # Declarative menu fields.
@@ -133,6 +134,12 @@ MENU_FIELDS = [
         "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
     },
     {"key": "background_music", "label": "Background Music", "type": "bool"},
+    {
+        "key": "background_color",
+        "label": "Background Color",
+        "type": "select",
+        "options": ["Gray", "Black", "Blue", "Pink", "Purple", "Orange", "Brown"],
+    },
 ]
 
 # Effective runtime values (hydrated by apply_settings).
@@ -140,6 +147,7 @@ MAX_SPEED = SETTINGS["max_speed"]
 DEATH_SOUND_ON = SETTINGS["death_sound"]
 NUM_OBSTACLES = 0  # Will be calculated in apply_settings
 MUSIC_ON = SETTINGS["background_music"]
+ARENA_COLOR = "#202020"  # Color of the ground.
 
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
@@ -174,7 +182,7 @@ def _fmt_setting_value(field, value):
 
 ## Draw the entire settings screen (scrollable if needed).
 def _draw_settings_menu(state, selected_index: int) -> None:
-    state.arena.fill(ARENA_COLOR)
+    state.arena.fill(SETTINGS_COLOR)
 
     title_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 10))
     title = title_font.render("Settings", True, MESSAGE_COLOR)
@@ -278,10 +286,27 @@ def run_settings_menu(state) -> None:
                 continue
 
 
+def _define_arena_color(ascii_color):
+    color_table = {
+        "Black": "#000000",
+        "Gray": "#202020",
+        "Blue": "#3a6bff",
+        "Yellow": "#ffff57",
+        "White": "#ffffff",
+        "Pink": "#ff5aee",
+        "Purple": "#a81cff",
+        "Orange": "#ffab2e",
+        "Brown": "#734a31",
+    }
+
+    # Return the mapped color string; if unknown, keep current ARENA_COLOR
+    return color_table.get(ascii_color, ARENA_COLOR)
+
+
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT
-    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
+    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON, ARENA_COLOR
 
     old_grid = GRID_SIZE
 
@@ -297,6 +322,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
         SETTINGS["obstacle_difficulty"], WIDTH, GRID_SIZE, HEIGHT
     )
     MUSIC_ON = bool(SETTINGS["background_music"])
+    ARENA_COLOR = _define_arena_color(SETTINGS["background_color"])
 
     # Control background music playback based on setting
     if MUSIC_ON:
@@ -433,7 +459,7 @@ def start_menu(state: GameState):
     items = ["Start Game", "Settings"]
 
     while True:
-        state.arena.fill(ARENA_COLOR)
+        state.arena.fill(SETTINGS_COLOR)
 
         # title
         title = BIG_FONT.render(WINDOW_TITLE, True, MESSAGE_COLOR)
