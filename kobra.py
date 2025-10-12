@@ -20,6 +20,18 @@
 import sys
 import random
 import pygame
+from entities import Snake, Apple, Obstacle
+from constants import (
+    HEAD_COLOR,
+    DEAD_HEAD_COLOR,
+    TAIL_COLOR,
+    ARENA_COLOR,
+    GRID_COLOR,
+    SCORE_COLOR,
+    MESSAGE_COLOR,
+    WINDOW_TITLE,
+    CLOCK_TICKS,
+)
 
 ##
 ## Game customization.
@@ -125,20 +137,6 @@ MUSIC_ON = SETTINGS["background_music"]
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
-
-def _calculate_obstacles_from_difficulty(difficulty):
-    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
-
-    difficulty_percentages = {
-        "None": 0.0,
-        "Easy": 0.04,
-        "Medium": 0.06,
-        "Hard": 0.10,
-        "Impossible": 0.15,
-    }
-
-    percentage = difficulty_percentages.get(difficulty, 0.0)
-    return int(total_cells * percentage)
 
 
 ## Format a setting value for display.
@@ -284,8 +282,8 @@ def apply_settings(reset_objects: bool = False) -> None:
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
-    NUM_OBSTACLES = _calculate_obstacles_from_difficulty(
-        SETTINGS["obstacle_difficulty"]
+    NUM_OBSTACLES = Obstacle.calculate_obstacles_from_difficulty(
+        SETTINGS["obstacle_difficulty"],WIDTH,GRID_SIZE,HEIGHT
     )
     MUSIC_ON = bool(SETTINGS["background_music"])
 
@@ -309,11 +307,11 @@ def apply_settings(reset_objects: bool = False) -> None:
     # Optionally recreate moving objects to reflect new geometry/speed.
     if reset_objects:
         try:
-            globals()["snake"] = Snake()
+            globals()["snake"] = Snake(WIDTH, HEIGHT, GRID_SIZE)
             globals()["obstacles"] = create_obstacles_constructively(
                 NUM_OBSTACLES, snake.x, snake.y
             )
-            globals()["apple"] = Apple(snake, obstacles)
+            globals()["apple"] = Apple(WIDTH, HEIGHT, GRID_SIZE)
             snake.speed = CLOCK_TICKS
         except NameError:
             # If called before classes/instances exist, ignore.
@@ -396,9 +394,11 @@ def _wait_for_keys(allowed_keys: set[int]) -> int:
         ):
             return event.key
 
-
-## Game-over prompt: only Space/Enter restart; Q quits.
-def game_over_prompt() -> None:
+def game_over_handler() -> None:
+     # Tell the bad news
+    pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
+    pygame.display.update()
+    ## Game-over prompt: only Space/Enter restart; Q quits.
     _draw_center_message("Game Over", "Press Enter/Space to restart  •  Q to exit")
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
     if key == pygame.K_q:
@@ -480,139 +480,6 @@ def start_menu():
                             apply_settings(reset_objects=False)
 
 
-##
-## Snake class
-##
-
-
-class Snake:
-    def __init__(self):
-        # Dimension of each snake segment.
-
-        self.x, self.y = GRID_SIZE, GRID_SIZE
-
-        # Initial direction
-        # xmov :  -1 left,    0 still,   1 right
-        # ymov :  -1 up       0 still,   1 dows
-        self.xmov = 1
-        self.ymov = 0
-
-        # The snake has a head segement,
-        self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
-
-        # and a tail/history of positions (head first).
-        # Store integer grid coordinates (x, y) in `positions`, head at index 0.
-        self.positions = [(self.x, self.y)]
-        self.tail = self.positions[1:]
-
-        # The snake is born.
-        self.alive = True
-
-        # No collected apples.
-        self.got_apple = False
-
-        # Initial speed
-        self.speed = float(CLOCK_TICKS)
-
-        # For smooth movement
-        self.move_progress = 0.0
-        self.target_x = self.x
-        self.target_y = self.y
-        self.draw_x = self.x
-        self.draw_y = self.y
-
-        self.prev_head_x = self.x
-        self.prev_head_y = self.y
-
-    # This function is called at each loop interation.
-
-    def update(self):
-        global apple, obstacles
-
-        # Calculate the head's next position based on current movement
-        next_x = self.head.x + self.xmov * GRID_SIZE
-        next_y = self.head.y + self.ymov * GRID_SIZE
-
-        # Only check collisions if the snake is currently moving
-        if self.xmov or self.ymov:
-            # Check for border crash.
-            if next_x not in range(0, WIDTH) or next_y not in range(0, HEIGHT):
-                self.alive = False
-                if DEATH_SOUND_ON:
-                    gameover_sound.play()
-
-            # Check for self-bite (tail stores grid tuples (x,y)).
-            for square in self.tail:
-                if next_x == square[0] and next_y == square[1]:
-                    self.alive = False
-                    if DEATH_SOUND_ON:
-                        gameover_sound.play()
-
-            # Check for obstacle collision.
-            for obstacle in obstacles:
-                if next_x == obstacle.x and next_y == obstacle.y:
-                    self.alive = False
-                    if DEATH_SOUND_ON:
-                        gameover_sound.play()
-            if self.alive:
-                self.target_x = next_x
-                self.target_y = next_y
-                self.move_progress = 0.0
-
-        # In the event of death, reset the game arena.
-        if not self.alive:
-            # Tell the bad news
-            pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
-            pygame.display.update()
-            game_over_prompt()
-
-            # Respan the head
-            self.x, self.y = GRID_SIZE, GRID_SIZE
-            self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
-
-            # Respan the initial tail
-            self.tail = []
-
-            # Initial direction
-            self.xmov = 1  # Right
-            self.ymov = 0  # Still
-
-            # Resurrection
-            self.alive = True
-            self.got_apple = False
-
-            # Reset speed
-            self.speed = float(CLOCK_TICKS)
-
-            # For smooth movement
-            self.move_progress = 0.0
-            self.target_x = self.x
-            self.target_y = self.y
-            self.draw_x = self.x
-            self.draw_y = self.y
-            self.prev_head_x = self.x
-            self.prev_head_y = self.y
-
-            # Drop an apple
-            apple = Apple(self, obstacles)
-
-
-##
-## The obstacle class.
-##
-
-
-class Obstacle:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
-
-    def update(self):
-        # Draw the obstacle
-        pygame.draw.rect(arena, OBSTACLE_COLOR, self.rect)
-
-
 def is_grid_connected(obstacles, snake_start_x, snake_start_y):
     """Checks if all free cells on the grid are connected using BFS."""
     obstacles_positions = {(obs.x, obs.y) for obs in obstacles}
@@ -653,21 +520,6 @@ def is_grid_connected(obstacles, snake_start_x, snake_start_y):
     # The grid is connected if all free cells were visited
     return len(visited) == total_free_cells
 
-
-def is_blocked(x, y, new_obstacle_pos, obstacles_positions):
-    """Checks if a given coordinate is blocked by an obstacle, the new one, or the board edge."""
-    # Check if it's outside the board boundaries
-    if not (0 <= x < WIDTH and 0 <= y < HEIGHT):
-        return True
-    # Check if it's the potential new obstacle
-    if (x, y) == new_obstacle_pos:
-        return True
-    # Check if it's an already existing obstacle
-    if (x, y) in obstacles_positions:
-        return True
-    return False
-
-
 def would_create_trap(new_obstacle_pos, obstacles_positions):
     """
     Checks if placing a new obstacle creates a trap for any adjacent cell.
@@ -681,8 +533,8 @@ def would_create_trap(new_obstacle_pos, obstacles_positions):
         neighbor_x, neighbor_y = new_x + dx, new_y + dy
 
         # If the neighbor is not a free cell, we don't need to check it.
-        if is_blocked(
-            neighbor_x, neighbor_y, (0, 0), obstacles_positions
+        if Obstacle.is_blocked(
+            neighbor_x, neighbor_y, (0, 0), obstacles_positions, WIDTH,HEIGHT
         ):  # Note: passing dummy new_pos
             continue
 
@@ -698,7 +550,7 @@ def would_create_trap(new_obstacle_pos, obstacles_positions):
         ]
 
         for side_x, side_y in sides_to_check:
-            if is_blocked(side_x, side_y, new_obstacle_pos, obstacles_positions):
+            if Obstacle.is_blocked(side_x, side_y, new_obstacle_pos, obstacles_positions,WIDTH,HEIGHT):
                 blocked_sides_count += 1
 
         # If 3 or more sides are blocked, it's a trap.
@@ -737,7 +589,7 @@ def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y)
                 continue
 
             # If the local check passes, add the obstacle
-            obstacles.append(Obstacle(candidate_pos[0], candidate_pos[1]))
+            obstacles.append(Obstacle(candidate_pos[0], candidate_pos[1], arena, GRID_SIZE))
             obstacles_positions.add(candidate_pos)
 
         # Rule 2: Don't disconnect the map
@@ -745,38 +597,6 @@ def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y)
             obstacles, snake_start_x, snake_start_y
         ):
             return obstacles
-
-
-##
-## The apple class.
-##
-
-
-class Apple:
-    def __init__(self, snake, obstacles=None):
-        if obstacles is None:
-            obstacles = []
-
-        while True:
-            self.x = random.randrange(0, WIDTH, GRID_SIZE)
-            self.y = random.randrange(0, HEIGHT, GRID_SIZE)
-            self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
-
-            head_free = not (self.x == snake.head.x and self.y == snake.head.y)
-            tail_free = all(
-                (self.x != seg[0] or self.y != seg[1]) for seg in snake.tail
-            )
-            obstacle_free = all(
-                (self.x != obs.x or self.y != obs.y) for obs in obstacles
-            )
-            if head_free and tail_free and obstacle_free:
-                break
-
-    # This function is called each iteration of the game loop
-    def update(self):
-        # Draw the apple
-        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
-
 
 ##
 ## Draw the arena
@@ -827,11 +647,11 @@ def draw_music_indicator():
 ## Start flow
 ##
 start_menu()  # blocks until user picks "Start Game"
-snake = Snake()  # create with the final, chosen GRID_SIZE
+snake = Snake(WIDTH, HEIGHT, GRID_SIZE)  # create with the final, chosen GRID_SIZE
 obstacles = create_obstacles_constructively(
     NUM_OBSTACLES, snake.x, snake.y
 )  # create obstacles
-apple = Apple(snake, obstacles)
+apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
 
 ##
 ## Main loop
@@ -886,13 +706,18 @@ while True:
                 SETTINGS["background_music"] = not SETTINGS["background_music"]
                 apply_settings(reset_objects=False)
     ## Update the game
-
+ 
+    died = False
     if game_on:
         # If we're not currently interpolating between grid cells and a movement
         # direction is set, schedule the next grid move by calling snake.update().
         if snake.target_x == snake.head.x and snake.target_y == snake.head.y:
             if snake.xmov or snake.ymov:
-                snake.update()
+                died = snake.update(apple,obstacles,game_over_handler)
+        
+        # Play death sound if snake died
+        if died and DEATH_SOUND_ON:
+            gameover_sound.play()
 
         # Advance interpolation toward the current target grid cell (if any)
         if snake.target_x != snake.head.x or snake.target_y != snake.head.y:
@@ -945,7 +770,7 @@ while True:
         for obstacle in obstacles:
             obstacle.update()
 
-        apple.update()
+        apple.update(arena)
 
     # Draw the tail with smooth interpolation
     for i, (tx, ty) in enumerate(snake.tail):
@@ -987,7 +812,8 @@ while True:
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple(snake, obstacles)
+        apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
+        apple.ensure_valid_position(snake, obstacles)
 
     # Update display and move clock.
     pygame.display.update()
