@@ -55,6 +55,7 @@ HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
 APPLE_COLOR = "#aa0000"  # Color of the apple.
+OBSTACLE_COLOR = "#666666"  # Color of the obstacles.
 ARENA_COLOR = "#202020"  # Color of the ground.
 GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
@@ -74,6 +75,7 @@ SETTINGS = {
     "initial_speed": 4.0,  # current CLOCK_TICKS
     "max_speed": 20.0,  # current speed clamp at apple pickup
     "death_sound": True,  # toggle death sound playback
+    "obstacle_difficulty": "None",  # obstacle difficulty level
 }
 
 # Declarative menu fields.
@@ -103,15 +105,36 @@ MENU_FIELDS = [
         "step": 1.0,
     },
     {"key": "death_sound", "label": "Death Sound", "type": "bool"},
+    {
+        "key": "obstacle_difficulty",
+        "label": "Obstacles",
+        "type": "select",
+        "options": ["None", "Easy", "Medium", "Hard"],
+    },
 ]
 
 # Effective runtime values (hydrated by apply_settings).
 MAX_SPEED = SETTINGS["max_speed"]
 DEATH_SOUND_ON = SETTINGS["death_sound"]
+NUM_OBSTACLES = 0  # Will be calculated in apply_settings
 
 
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+
+def _calculate_obstacles_from_difficulty(difficulty):
+    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+
+    difficulty_percentages = {
+        "None": 0.0,
+        "Easy": 0.02,  # 2% of grid
+        "Medium": 0.04,  # 4% of grid
+        "Hard": 0.15,  # 7% of grid
+    }
+
+    percentage = difficulty_percentages.get(difficulty, 0.0)
+    return max(0, int(total_cells * percentage))
 
 
 ## Format a setting value for display.
@@ -124,9 +147,12 @@ def _fmt_setting_value(field, value):
             if requested == actual
             else f"{requested} × {requested} (cur: {actual})"
         )
-    if isinstance(value, bool):
+    elif field["key"] == "obstacle_difficulty":
+        # Show difficulty with obstacle count
+        return f"{value}"
+    elif isinstance(value, bool):
         return "On" if value else "Off"
-    if isinstance(value, float):
+    elif isinstance(value, float):
         return f"{value:.1f}"
     return str(value)
 
@@ -178,6 +204,13 @@ def _step_setting(field: dict, direction: int) -> None:
 
     if kind == "bool":
         SETTINGS[key] = not SETTINGS[key]
+        return
+
+    elif kind == "select":
+        options = field["options"]
+        current_index = options.index(SETTINGS[key])
+        new_index = (current_index + direction) % len(options)
+        SETTINGS[key] = options[new_index]
         return
 
     step = field.get("step", 1 if kind == "int" else 1.0)
@@ -233,7 +266,7 @@ def run_settings_menu() -> None:
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, arena, BIG_FONT, SMALL_FONT
-    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON
+    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES
 
     old_grid = GRID_SIZE
 
@@ -247,6 +280,9 @@ def apply_settings(reset_objects: bool = False) -> None:
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
+    NUM_OBSTACLES = _calculate_obstacles_from_difficulty(
+        SETTINGS["obstacle_difficulty"]
+    )
 
     # Recompute window and recreate surface/fonts if grid changed.
     if GRID_SIZE != old_grid:
@@ -263,7 +299,8 @@ def apply_settings(reset_objects: bool = False) -> None:
     if reset_objects:
         try:
             globals()["snake"] = Snake()
-            globals()["apple"] = Apple(snake)
+            globals()["obstacles"] = generate_obstacles(NUM_OBSTACLES, snake.x, snake.y)
+            globals()["apple"] = Apple(snake, obstacles)
             snake.speed = CLOCK_TICKS
         except NameError:
             # If called before classes/instances exist, ignore.
@@ -455,7 +492,7 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(self):
-        global apple
+        global apple, obstacles
 
         # Calculate the head's next position based on current movement
         next_x = self.head.x + self.xmov * GRID_SIZE
@@ -472,6 +509,13 @@ class Snake:
             # Check for self-bite.
             for square in self.tail:
                 if next_x == square.x and next_y == square.y:
+                    self.alive = False
+                    if DEATH_SOUND_ON:
+                        gameover_sound.play()
+
+            # Check for obstacle collision.
+            for obstacle in obstacles:
+                if next_x == obstacle.x and next_y == obstacle.y:
                     self.alive = False
                     if DEATH_SOUND_ON:
                         gameover_sound.play()
@@ -502,7 +546,7 @@ class Snake:
             self.speed = CLOCK_TICKS
 
             # Drop an apple
-            apple = Apple(self)
+            apple = Apple(self, obstacles)
 
         # Move the snake.
 
@@ -524,22 +568,185 @@ class Snake:
 
 
 ##
+## The obstacle class.
+##
+
+
+class Obstacle:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
+
+    def update(self):
+        # Draw the obstacle
+        pygame.draw.rect(arena, OBSTACLE_COLOR, self.rect)
+
+
+##
 ## The apple class.
 ##
 
 
-class Apple:
-    def __init__(self, snake):
-        # Keep trying until we find a free grid cell (not on the snake).
+def generate_obstacles(num_obstacles, snake_start_x, snake_start_y):
+    obstacles = []
+
+    for _ in range(num_obstacles):
         while True:
+            x = random.randrange(0, WIDTH, GRID_SIZE)
+            y = random.randrange(0, HEIGHT, GRID_SIZE)
+
+            # Avoid snake's starting area
+            start_area_free = not (
+                abs(x - snake_start_x) < GRID_SIZE * 8
+                and abs(y - snake_start_y) < GRID_SIZE * 2
+            )
+
+            # Don't overlap with existing obstacles
+            obstacle_free = all((x != obs.x or y != obs.y) for obs in obstacles)
+
+            if start_area_free and obstacle_free:
+                obstacles.append(Obstacle(x, y))
+                break
+
+    return obstacles
+
+
+def _find_path_to_apple(
+    start_x, start_y, target_x, target_y, obstacles, snake_segments, global_visited
+):
+    # Create blocked positions (obstacles + snake segments)
+    blocked = set()
+    for obs in obstacles:
+        blocked.add((obs.x, obs.y))
+    for seg in snake_segments:
+        blocked.add((seg.x, seg.y))
+
+    # BFS to find path, respecting global visited set
+    queue = [(start_x, start_y)]
+    local_visited = set()
+
+    while queue:
+        x, y = queue.pop(0)
+
+        if x == target_x and y == target_y:
+            # Mark this path in global visited to prevent reuse
+            global_visited.update(local_visited)
+            global_visited.add((x, y))
+            return True
+
+        if (x, y) in local_visited or (x, y) in global_visited:
+            continue
+
+        local_visited.add((x, y))
+
+        # Check 4 adjacent cells
+        for dx, dy in [
+            (0, GRID_SIZE),
+            (0, -GRID_SIZE),
+            (GRID_SIZE, 0),
+            (-GRID_SIZE, 0),
+        ]:
+            next_x, next_y = x + dx, y + dy
+
+            # Within bounds and not blocked
+            if (
+                0 <= next_x < WIDTH
+                and 0 <= next_y < HEIGHT
+                and (next_x, next_y) not in blocked
+                and (next_x, next_y) not in local_visited
+                and (next_x, next_y) not in global_visited
+            ):
+                queue.append((next_x, next_y))
+
+    return False
+
+
+def _is_apple_accessible(
+    start_x, start_y, target_x, target_y, obstacles, snake_segments
+):
+    if start_x == target_x and start_y == target_y:
+        return True
+
+    # Get all adjacent positions to the apple
+    adjacent_positions = []
+    for dx, dy in [(0, GRID_SIZE), (0, -GRID_SIZE), (GRID_SIZE, 0), (-GRID_SIZE, 0)]:
+        adj_x, adj_y = target_x + dx, target_y + dy
+        if 0 <= adj_x < WIDTH and 0 <= adj_y < HEIGHT:
+            adjacent_positions.append((adj_x, adj_y))
+
+    # Track globally visited cells to ensure truly disconnected paths
+    global_visited = set()
+    accessible_paths = 0
+
+    for adj_pos in adjacent_positions:
+        adj_x, adj_y = adj_pos
+
+        # Skip if this adjacent position is blocked by obstacles
+        obstacle_blocked = any(obs.x == adj_x and obs.y == adj_y for obs in obstacles)
+        if obstacle_blocked:
+            continue
+
+        # Check if we can reach this adjacent position via a disconnected path
+        if _find_path_to_apple(
+            start_x, start_y, adj_x, adj_y, obstacles, snake_segments, global_visited
+        ):
+            accessible_paths += 1
+
+            # If we found 2 truly disconnected paths, the apple is safely accessible
+            if accessible_paths >= 2:
+                return True
+
+    return False
+
+
+class Apple:
+    def __init__(self, snake, obstacles=None):
+        if obstacles is None:
+            obstacles = []
+
+        max_attempts = 100  # Prevent infinite loop
+        attempts = 0
+
+        # Keep trying until we find a reachable free grid cell
+        while attempts < max_attempts:
             self.x = random.randrange(0, WIDTH, GRID_SIZE)
             self.y = random.randrange(0, HEIGHT, GRID_SIZE)
             self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
 
             head_free = not (self.x == snake.head.x and self.y == snake.head.y)
             tail_free = all((self.x != seg.x or self.y != seg.y) for seg in snake.tail)
-            if head_free and tail_free:
-                break
+            obstacle_free = all(
+                (self.x != obs.x or self.y != obs.y) for obs in obstacles
+            )
+
+            if head_free and tail_free and obstacle_free:
+                # Check if the apple is accessible and snake can occupy its position
+                if _is_apple_accessible(
+                    snake.head.x, snake.head.y, self.x, self.y, obstacles, snake.tail
+                ):
+                    break
+
+            attempts += 1
+
+        # If we couldn't find a reachable position, place it anywhere valid
+        # (This shouldn't happen with reasonable obstacle counts)
+        if attempts >= max_attempts:
+            while True:
+                self.x = random.randrange(0, WIDTH, GRID_SIZE)
+                self.y = random.randrange(0, HEIGHT, GRID_SIZE)
+                self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
+
+                head_free = not (self.x == snake.head.x and self.y == snake.head.y)
+                tail_free = all(
+                    (self.x != seg.x or self.y != seg.y) for seg in snake.tail
+                )
+                obstacle_free = all(
+                    (self.x != obs.x or self.y != obs.y) for obs in obstacles
+                )
+
+                if head_free and tail_free and obstacle_free:
+                    break
 
     # This function is called each iteration of the game loop
     def update(self):
@@ -564,7 +771,8 @@ def draw_grid():
 ##
 start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
-apple = Apple(snake)
+obstacles = generate_obstacles(NUM_OBSTACLES, snake.x, snake.y)  # create obstacles
+apple = Apple(snake, obstacles)
 
 ##
 ## Main loop
@@ -622,6 +830,10 @@ while True:
         arena.fill(ARENA_COLOR)
         draw_grid()
 
+        # Draw obstacles
+        for obstacle in obstacles:
+            obstacle.update()
+
         apple.update()
 
     # Draw the tail
@@ -642,7 +854,7 @@ while True:
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple(snake)
+        apple = Apple(snake, obstacles)
 
     # Update display and move clock.
     pygame.display.update()
