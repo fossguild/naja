@@ -22,7 +22,7 @@ Game state configuration.
 This module contains the GameState class that holds all mutable game state variables.
 """
 
-from entities import Snake, Apple
+from entities import Snake, Apple, Obstacle
 import pygame
 
 
@@ -34,6 +34,7 @@ class GameState:
     game_on: int
     snake: Snake
     apple: Apple
+    obstacles: list[Obstacle]
 
     def __init__(self, display_width: int, display_height: int, grid_size: int):
         """Initialize game state with default values.
@@ -54,5 +55,6 @@ class GameState:
 
         # Game objects (initialized with proper dimensions)
         self.snake = Snake(display_width, display_height, grid_size)
+        self.obstacles = []  # Will be populated by create_obstacles if needed
         self.apple = Apple(display_width, display_height, grid_size)
-        self.apple.ensure_not_on_snake(self.snake)
+        self.apple.ensure_valid_position(self.snake, self.obstacles)
