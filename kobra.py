@@ -144,7 +144,6 @@ MUSIC_ON = SETTINGS["background_music"]
 BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
 SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20))
 
-
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
@@ -402,6 +401,21 @@ def game_over_handler(state: GameState) -> None:
         pygame.quit()
         sys.exit()
 
+## This function is called when the game is paused.
+def display_pause_screen():
+    # Create a semi-transparent overlay
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((32, 32, 32, 180)) # Dark transparent gray
+    arena.blit(overlay, (0, 0))
+
+    # Show "Paused" text
+    paused_title = BIG_FONT.render("Paused", True, MESSAGE_COLOR)
+    paused_title_rect = paused_title.get_rect(center=(WIDTH / 2, HEIGHT / 2))
+    arena.blit(paused_title, paused_title_rect)
+
+    paused_subtitle = SMALL_FONT.render("Press P to continue", True, MESSAGE_COLOR)
+    paused_subtitle_rect = paused_subtitle.get_rect(center=(WIDTH / 2, HEIGHT * 2 / 3))
+    arena.blit(paused_subtitle, paused_subtitle_rect)
 
 ##
 ## Start menu (Start / Settings)
@@ -455,20 +469,6 @@ def start_menu(state: GameState):
                 elif key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # simple click detection
-                mx, my = event.pos
-                for i, text_label in enumerate(items):
-                    rect = SMALL_FONT.render(text_label, True, MESSAGE_COLOR).get_rect(
-                        center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12))
-                    )
-                    if rect.collidepoint(mx, my):
-                        if text_label == "Start Game":
-                            return
-                        elif text_label == "Settings":
-                            run_settings_menu(state)
-                            apply_settings(state, reset_objects=False)
 
 
 ##
@@ -653,6 +653,7 @@ def main():
                     # Play death sound if snake died
             if died and DEATH_SOUND_ON:
                 gameover_sound.play()
+
 
             # Advance interpolation toward the current target grid cell (if any)
             if (
