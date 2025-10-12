@@ -279,6 +279,56 @@ def run_settings_menu(state) -> None:
                 continue
 
 
+def run_instructions_menu() -> None:
+    global arena
+    while True:
+        arena.fill(ARENA_COLOR)
+
+        # Title
+        title_font = pygame.font.Font(
+            "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 10)
+        )
+        title = title_font.render("Instructions", True, MESSAGE_COLOR)
+        title_rect = title.get_rect(center=(WIDTH / 2, HEIGHT / 10))
+        arena.blit(title, title_rect)
+
+        # Instructions text
+        instructions = [
+            "Use the arrow keys or WASD to move the snake.",
+            "Eat apples to grow longer and increase your speed.",
+            "Avoid running into walls, obstacles, or yourself.",
+            "Press 'P' to pause the game.",
+            "Press 'M' or 'ESC' to open the settings menu.",
+            "Press 'N' to toggle background music.",
+            "Press 'Q' to quit the game.",
+            "",
+            "Press Enter/Space to return to the main menu.",
+        ]
+
+        for i, line in enumerate(instructions):
+            instruction_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 40)
+            )
+            instruction_text = instruction_font.render(line, True, MESSAGE_COLOR)
+            arena.blit(
+                instruction_text,
+                instruction_text.get_rect(
+                    center=(WIDTH / 2, HEIGHT / 5 + i * (HEIGHT * 0.07))
+                ),
+            )
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    return  # exit instructions menu
+
+
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT
@@ -431,7 +481,7 @@ def start_menu(state: GameState):
         state: GameState instance (required)
     """
     selected = 0
-    items = ["Start Game", "Settings"]
+    items = ["Start Game", "Settings", "Instructions"]
 
     while True:
         state.arena.fill(ARENA_COLOR)
@@ -465,8 +515,11 @@ def start_menu(state: GameState):
                     if items[selected] == "Start Game":
                         return  # proceed to game
                     elif items[selected] == "Settings":
-                        run_settings_menu(state)
-                        apply_settings(state, reset_objects=False)
+                        run_settings_menu()
+                        apply_settings(reset_objects=False)
+                    elif items[selected] == "Instructions":
+                        run_instructions_menu()
+
                 elif key == pygame.K_m:
                     run_settings_menu(state)
                     apply_settings(state, reset_objects=False)
@@ -485,8 +538,10 @@ def start_menu(state: GameState):
                         if text_label == "Start Game":
                             return
                         elif text_label == "Settings":
-                            run_settings_menu(state)
-                            apply_settings(state, reset_objects=False)
+                            run_settings_menu()
+                            apply_settings(reset_objects=False)
+                        elif text_label == "Instructions":
+                            run_instructions_menu()
 
 
 ##

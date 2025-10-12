@@ -28,10 +28,10 @@ alwaysApply: true
 - **Style**: Complete sentences with proper capitalization and punctuation
 - **Inline comments**: Use sparingly, explain "why" not "what"
 - **Docstrings**: Use for public functions and classes
-- **Comment format**: 
+- **Comment format**:
   ```python
   # This is a single-line comment.
-  
+
   ##
   ## This is a section header comment.
   ##

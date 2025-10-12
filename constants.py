@@ -24,7 +24,6 @@ This file is only for objects/constants whose values are known
 before runtime and never changed
 """
 
-
 HEAD_COLOR = "#00aa00"  # Color of the snake's head.
 DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
