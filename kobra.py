@@ -110,7 +110,7 @@ MENU_FIELDS = [
         "key": "obstacle_difficulty",
         "label": "Obstacles",
         "type": "select",
-        "options": ["None", "Easy", "Medium", "Hard"],
+        "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
     },
     {"key": "background_music", "label": "Background Music", "type": "bool"},
 ]
@@ -131,9 +131,10 @@ def _calculate_obstacles_from_difficulty(difficulty):
 
     difficulty_percentages = {
         "None": 0.0,
-        "Easy": 0.02,  # 2% of grid
-        "Medium": 0.04,  # 4% of grid
-        "Hard": 0.15,  # 7% of grid
+        "Easy": 0.04,
+        "Medium": 0.06,
+        "Hard": 0.10,
+        "Impossible": 0.15,
     }
 
     percentage = difficulty_percentages.get(difficulty, 0.0)
@@ -309,7 +310,9 @@ def apply_settings(reset_objects: bool = False) -> None:
     if reset_objects:
         try:
             globals()["snake"] = Snake()
-            globals()["obstacles"] = generate_obstacles(NUM_OBSTACLES, snake.x, snake.y)
+            globals()["obstacles"] = create_obstacles_constructively(
+                NUM_OBSTACLES, snake.x, snake.y
+            )
             globals()["apple"] = Apple(snake, obstacles)
             snake.speed = CLOCK_TICKS
         except NameError:
@@ -602,121 +605,143 @@ class Obstacle:
         pygame.draw.rect(arena, OBSTACLE_COLOR, self.rect)
 
 
-##
-## The apple class.
-##
+def is_grid_connected(obstacles, snake_start_x, snake_start_y):
+    """Checks if all free cells on the grid are connected using BFS."""
+    obstacles_positions = {(obs.x, obs.y) for obs in obstacles}
+    if (snake_start_x, snake_start_y) in obstacles_positions:
+        return False
 
+    # Calculate the expected number of reachable cells
+    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+    total_free_cells = total_cells - len(obstacles)
 
-def generate_obstacles(num_obstacles, snake_start_x, snake_start_y):
-    obstacles = []
-
-    for _ in range(num_obstacles):
-        while True:
-            x = random.randrange(0, WIDTH, GRID_SIZE)
-            y = random.randrange(0, HEIGHT, GRID_SIZE)
-
-            # Avoid snake's starting area
-            start_area_free = not (
-                abs(x - snake_start_x) < GRID_SIZE * 8
-                and abs(y - snake_start_y) < GRID_SIZE * 2
-            )
-
-            # Don't overlap with existing obstacles
-            obstacle_free = all((x != obs.x or y != obs.y) for obs in obstacles)
-
-            if start_area_free and obstacle_free:
-                obstacles.append(Obstacle(x, y))
-                break
-
-    return obstacles
-
-
-def _find_path_to_apple(
-    start_x, start_y, target_x, target_y, obstacles, snake_segments, global_visited
-):
-    # Create blocked positions (obstacles + snake segments)
-    blocked = set()
-    for obs in obstacles:
-        blocked.add((obs.x, obs.y))
-    for seg in snake_segments:
-        blocked.add((seg.x, seg.y))
-
-    # BFS to find path, respecting global visited set
-    queue = [(start_x, start_y)]
-    local_visited = set()
+    # Use a standard list as a queue
+    queue = [(snake_start_x, snake_start_y)]
+    visited = set([(snake_start_x, snake_start_y)])
 
     while queue:
+        # Pop the first element to behave like a queue (FIFO)
         x, y = queue.pop(0)
 
-        if x == target_x and y == target_y:
-            # Mark this path in global visited to prevent reuse
-            global_visited.update(local_visited)
-            global_visited.add((x, y))
-            return True
-
-        if (x, y) in local_visited or (x, y) in global_visited:
-            continue
-
-        local_visited.add((x, y))
-
-        # Check 4 adjacent cells
+        # Check all four neighbors
         for dx, dy in [
             (0, GRID_SIZE),
             (0, -GRID_SIZE),
             (GRID_SIZE, 0),
             (-GRID_SIZE, 0),
         ]:
-            next_x, next_y = x + dx, y + dy
+            neighbor = (x + dx, y + dy)
 
-            # Within bounds and not blocked
+            # If neighbor is valid and unvisited, add it to the queue
             if (
-                0 <= next_x < WIDTH
-                and 0 <= next_y < HEIGHT
-                and (next_x, next_y) not in blocked
-                and (next_x, next_y) not in local_visited
-                and (next_x, next_y) not in global_visited
+                0 <= neighbor[0] < WIDTH
+                and 0 <= neighbor[1] < HEIGHT
+                and neighbor not in obstacles_positions
+                and neighbor not in visited
             ):
-                queue.append((next_x, next_y))
+                visited.add(neighbor)
+                queue.append(neighbor)
 
+    # The grid is connected if all free cells were visited
+    return len(visited) == total_free_cells
+
+
+def is_blocked(x, y, new_obstacle_pos, obstacles_positions):
+    """Checks if a given coordinate is blocked by an obstacle, the new one, or the board edge."""
+    # Check if it's outside the board boundaries
+    if not (0 <= x < WIDTH and 0 <= y < HEIGHT):
+        return True
+    # Check if it's the potential new obstacle
+    if (x, y) == new_obstacle_pos:
+        return True
+    # Check if it's an already existing obstacle
+    if (x, y) in obstacles_positions:
+        return True
     return False
 
 
-def _is_apple_accessible(
-    start_x, start_y, target_x, target_y, obstacles, snake_segments
-):
-    if start_x == target_x and start_y == target_y:
-        return True
+def would_create_trap(new_obstacle_pos, obstacles_positions):
+    """
+    Checks if placing a new obstacle creates a trap for any adjacent cell.
+    A trap is a free cell with 3 or more blocked sides.
+    """
+    new_x, new_y = new_obstacle_pos
 
-    # Get all adjacent positions to the apple
-    adjacent_positions = []
+    # We only need to check the four direct neighbors of the new obstacle.
+    # Only these cells could possibly become trapped by this new addition.
     for dx, dy in [(0, GRID_SIZE), (0, -GRID_SIZE), (GRID_SIZE, 0), (-GRID_SIZE, 0)]:
-        adj_x, adj_y = target_x + dx, target_y + dy
-        if 0 <= adj_x < WIDTH and 0 <= adj_y < HEIGHT:
-            adjacent_positions.append((adj_x, adj_y))
+        neighbor_x, neighbor_y = new_x + dx, new_y + dy
 
-    # Track globally visited cells to ensure truly disconnected paths
-    global_visited = set()
-    accessible_paths = 0
-
-    for adj_pos in adjacent_positions:
-        adj_x, adj_y = adj_pos
-
-        # Skip if this adjacent position is blocked by obstacles
-        obstacle_blocked = any(obs.x == adj_x and obs.y == adj_y for obs in obstacles)
-        if obstacle_blocked:
+        # If the neighbor is not a free cell, we don't need to check it.
+        if is_blocked(
+            neighbor_x, neighbor_y, (0, 0), obstacles_positions
+        ):  # Note: passing dummy new_pos
             continue
 
-        # Check if we can reach this adjacent position via a disconnected path
-        if _find_path_to_apple(
-            start_x, start_y, adj_x, adj_y, obstacles, snake_segments, global_visited
-        ):
-            accessible_paths += 1
+        # This neighbor is a free cell. Let's count how many of its sides are blocked.
+        blocked_sides_count = 0
 
-            # If we found 2 truly disconnected paths, the apple is safely accessible
-            if accessible_paths >= 2:
-                return True
+        # Check the 4 sides of this neighbor cell
+        sides_to_check = [
+            (neighbor_x + GRID_SIZE, neighbor_y),  # Right
+            (neighbor_x - GRID_SIZE, neighbor_y),  # Left
+            (neighbor_x, neighbor_y + GRID_SIZE),  # Down
+            (neighbor_x, neighbor_y - GRID_SIZE),  # Up
+        ]
 
+        for side_x, side_y in sides_to_check:
+            if is_blocked(side_x, side_y, new_obstacle_pos, obstacles_positions):
+                blocked_sides_count += 1
+
+        # If 3 or more sides are blocked, it's a trap.
+        if blocked_sides_count >= 3:
+            return True
+
+    # If we check all neighbors and none of them become traps, the placement is safe.
     return False
+
+
+def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y):
+    """Builds a valid map by adding obstacles one by one safely."""
+    while True:
+        obstacles = []
+        obstacles_positions = set()
+
+        # Get all possible spawn points for obstacles, avoiding the snake's start area
+        available_positions = []
+        for x in range(0, WIDTH, GRID_SIZE):
+            for y in range(0, HEIGHT, GRID_SIZE):
+                if not (
+                    abs(x - snake_start_x) < GRID_SIZE * 8
+                    and abs(y - snake_start_y) < GRID_SIZE * 2
+                ):
+                    available_positions.append((x, y))
+        random.shuffle(available_positions)
+
+        temp_available = list(available_positions)
+
+        # Attempt to place one obstacle at a time
+        while len(obstacles) < num_obstacles and temp_available:
+            candidate_pos = temp_available.pop()
+
+            # Rule 1: Don't create narrow passages or traps
+            if would_create_trap(candidate_pos, obstacles_positions):
+                continue
+
+            # If the local check passes, add the obstacle
+            obstacles.append(Obstacle(candidate_pos[0], candidate_pos[1]))
+            obstacles_positions.add(candidate_pos)
+
+        # Rule 2: Don't disconnect the map
+        if len(obstacles) == num_obstacles and is_grid_connected(
+            obstacles, snake_start_x, snake_start_y
+        ):
+            return obstacles
+
+
+##
+## The apple class.
+##
 
 
 class Apple:
@@ -724,11 +749,7 @@ class Apple:
         if obstacles is None:
             obstacles = []
 
-        max_attempts = 100  # Prevent infinite loop
-        attempts = 0
-
-        # Keep trying until we find a reachable free grid cell
-        while attempts < max_attempts:
+        while True:
             self.x = random.randrange(0, WIDTH, GRID_SIZE)
             self.y = random.randrange(0, HEIGHT, GRID_SIZE)
             self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
@@ -740,32 +761,7 @@ class Apple:
             )
 
             if head_free and tail_free and obstacle_free:
-                # Check if the apple is accessible and snake can occupy its position
-                if _is_apple_accessible(
-                    snake.head.x, snake.head.y, self.x, self.y, obstacles, snake.tail
-                ):
-                    break
-
-            attempts += 1
-
-        # If we couldn't find a reachable position, place it anywhere valid
-        # (This shouldn't happen with reasonable obstacle counts)
-        if attempts >= max_attempts:
-            while True:
-                self.x = random.randrange(0, WIDTH, GRID_SIZE)
-                self.y = random.randrange(0, HEIGHT, GRID_SIZE)
-                self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
-
-                head_free = not (self.x == snake.head.x and self.y == snake.head.y)
-                tail_free = all(
-                    (self.x != seg.x or self.y != seg.y) for seg in snake.tail
-                )
-                obstacle_free = all(
-                    (self.x != obs.x or self.y != obs.y) for obs in obstacles
-                )
-
-                if head_free and tail_free and obstacle_free:
-                    break
+                break
 
     # This function is called each iteration of the game loop
     def update(self):
@@ -823,7 +819,9 @@ def draw_music_indicator():
 ##
 start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
-obstacles = generate_obstacles(NUM_OBSTACLES, snake.x, snake.y)  # create obstacles
+obstacles = create_obstacles_constructively(
+    NUM_OBSTACLES, snake.x, snake.y
+)  # create obstacles
 apple = Apple(snake, obstacles)
 
 ##
