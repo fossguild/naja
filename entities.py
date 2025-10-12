@@ -77,11 +77,11 @@ class Snake:
         self.speed = float(CLOCK_TICKS)
 
         # For smooth movement
-        self.move_progress = 0.0
-        self.target_x = self.x
-        self.target_y = self.y
-        self.draw_x = self.x
-        self.draw_y = self.y
+        self.move_progress: float = 0.0
+        self.target_x: int = self.x
+        self.target_y: int = self.y
+        self.draw_x: float = float(self.x)
+        self.draw_y: float = float(self.y)
 
         self.prev_head_x = self.x
         self.prev_head_y = self.y
