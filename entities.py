@@ -87,7 +87,9 @@ class Snake:
 
     # This function is called at each loop interation.
 
-    def update(self, apple: Apple, obstacles: list[Obstacle], game_over_func: Callable):
+    def update(
+        self, apple: Apple, obstacles: list[Obstacle], game_over_func: Callable
+    ) -> bool:
         """Update snake position and check for collisions.
 
         Returns:
@@ -127,6 +129,7 @@ class Snake:
 
         # In the event of death, reset the game arena.
         if not self.alive:
+            died = True
             # handle game over visuals to the user
             game_over_func()
 
@@ -158,7 +161,7 @@ class Snake:
             self.prev_head_y = self.y
 
             # Reposition the apple
-            apple.ensure_valid_position(self)
+            apple.ensure_valid_position(self, obstacles)
 
         return died
 
@@ -186,7 +189,9 @@ class Apple:
         self.y = random.randrange(0, height, grid_size)
         self.rect = pygame.Rect(self.x, self.y, grid_size, grid_size)
 
-    def ensure_valid_position(self, snake: Snake, obstacles: Obstacle | None = None):
+    def ensure_valid_position(
+        self, snake: Snake, obstacles: list[Obstacle] | None = None
+    ):
         """Move apple to a position not occupied by the snak or obstacles
 
         Args:
