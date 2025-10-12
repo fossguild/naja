@@ -74,6 +74,7 @@ SETTINGS = {
     "initial_speed": 4.0,  # current CLOCK_TICKS
     "max_speed": 20.0,  # current speed clamp at apple pickup
     "death_sound": True,  # toggle death sound playback
+    "background_music": True,  # toggle background music playback
 }
 
 # Declarative menu fields.
@@ -103,11 +104,13 @@ MENU_FIELDS = [
         "step": 1.0,
     },
     {"key": "death_sound", "label": "Death Sound", "type": "bool"},
+    {"key": "background_music", "label": "Background Music", "type": "bool"},
 ]
 
 # Effective runtime values (hydrated by apply_settings).
 MAX_SPEED = SETTINGS["max_speed"]
 DEATH_SOUND_ON = SETTINGS["death_sound"]
+MUSIC_ON = SETTINGS["background_music"]
 
 
 def _clamp(v, lo, hi):
@@ -233,7 +236,7 @@ def run_settings_menu() -> None:
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, arena, BIG_FONT, SMALL_FONT
-    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON
+    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, MUSIC_ON
 
     old_grid = GRID_SIZE
 
@@ -247,6 +250,13 @@ def apply_settings(reset_objects: bool = False) -> None:
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
+    MUSIC_ON = bool(SETTINGS["background_music"])
+
+    # Control background music playback based on setting
+    if MUSIC_ON:
+        pygame.mixer.music.unpause()
+    else:
+        pygame.mixer.music.pause()
 
     # Recompute window and recreate surface/fonts if grid changed.
     if GRID_SIZE != old_grid:
@@ -274,6 +284,15 @@ clock = pygame.time.Clock()
 
 # Load gameover sound
 gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
+
+# Load speaker sprites
+try:
+    speaker_on_sprite = pygame.image.load("assets/sprites/speaker-on.png")
+    speaker_muted_sprite = pygame.image.load("assets/sprites/speaker-muted.png")
+except pygame.error as e:
+    print(f"Warning: Could not load speaker sprites: {e}")
+    speaker_on_sprite = None
+    speaker_muted_sprite = None
 
 arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
 
@@ -560,6 +579,39 @@ def draw_grid():
 
 
 ##
+## Draws the icon representing whether the background music is on or off
+##
+
+
+def draw_music_indicator():
+    """Draw a subtle music status indicator in the bottom-right corner."""
+    # Calculate position in bottom-right corner
+    padding = int(WIDTH * 0.02)
+    icon_size = int(WIDTH / 25)  # Icon size for scaling
+    icon_x = WIDTH - padding - icon_size
+    icon_y = HEIGHT - padding - icon_size
+
+    # Choose the appropriate sprite based on music state
+    sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
+
+    # Scale and draw the sprite
+    if sprite is not None:
+        scaled_sprite = pygame.transform.scale(sprite, (icon_size, icon_size))
+        arena.blit(scaled_sprite, (icon_x, icon_y))
+
+    # Add [N] text hint below the icon
+    hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 50))
+    hint_color = SCORE_COLOR if MUSIC_ON else GRID_COLOR
+    hint_text = "[N]"
+    hint_surf = hint_font.render(hint_text, True, hint_color)
+    hint_rect = hint_surf.get_rect()
+    hint_rect.centerx = icon_x + icon_size // 2
+    hint_rect.top = icon_y + icon_size + 2
+
+    arena.blit(hint_surf, hint_rect)
+
+
+##
 ## Start flow
 ##
 start_menu()  # blocks until user picks "Start Game"
@@ -614,6 +666,9 @@ while True:
                 run_settings_menu()
                 apply_settings(reset_objects=True)
                 game_on = was_running
+            elif event.key == pygame.K_n:  # N : toggle music mute
+                SETTINGS["background_music"] = not SETTINGS["background_music"]
+                apply_settings(reset_objects=False)
     ## Update the game
 
     if game_on:
@@ -635,6 +690,9 @@ while True:
     score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
     score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
     arena.blit(score, score_rect)
+
+    # Draw music status indicator
+    draw_music_indicator()
 
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
