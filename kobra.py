@@ -73,7 +73,7 @@ pygame.display.set_caption(WINDOW_TITLE)
 
 game_on = 1
 game_paused = 1
-show_pause_hint_timer = 0
+show_pause_hint_timer = 2
 
 ## This function is called when the snake dies.
 
@@ -173,6 +173,7 @@ class Snake:
 
         # In the event of death, reset the game arena.
         if not self.alive:
+            global show_pause_hint_timer
             # Tell the bad news
             pygame.draw.rect(arena, DEAD_HEAD_COLOR, snake.head)
             center_prompt("Game Over", "Press to restart (Q to exit)")
@@ -194,6 +195,8 @@ class Snake:
 
             # Reset speed
             self.speed = CLOCK_TICKS
+
+            show_pause_hint_timer = 2
 
             # Drop an apple
             apple = Apple()
@@ -307,25 +310,38 @@ while True:
 
         apple.update()
 
-    # Draw the tail
-    for square in snake.tail:
-        pygame.draw.rect(arena, TAIL_COLOR, square)
+        # Draw the tail
+        for square in snake.tail:
+            pygame.draw.rect(arena, TAIL_COLOR, square)
 
-    # Draw head
-    pygame.draw.rect(arena, HEAD_COLOR, snake.head)
+        # Draw head
+        pygame.draw.rect(arena, HEAD_COLOR, snake.head)
 
-    # Show score (snake length = head + tail)
-    score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
-    score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
-    arena.blit(score, score_rect)
+        # Show score (snake length = head + tail)
+        score = BIG_FONT.render(f"{len(snake.tail)}", True, SCORE_COLOR)
+        score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
+        arena.blit(score, score_rect)
 
-    # If the head pass over an apple, lengthen the snake and drop another apple
-    if snake.head.x == apple.x and snake.head.y == apple.y:
-        # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        snake.got_apple = True
-        snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
-        # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
-        apple = Apple()
+        # Show "Press P to pause" hint for a few seconds
+        if show_pause_hint_timer > 0:
+            hint_text = SMALL_FONT.render("Press P to pause", True, MESSAGE_COLOR)
+            hint_rect = hint_text.get_rect(center=(WIDTH / 2, HEIGHT - 30))
+            arena.blit(hint_text, hint_rect)
+            # Decrease timer based on elapsed time per frame
+            show_pause_hint_timer -= clock.get_time() / 1000.0
+
+
+        # If the head pass over an apple, lengthen the snake and drop another apple
+        if snake.head.x == apple.x and snake.head.y == apple.y:
+            # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
+            snake.got_apple = True
+            snake.speed = min(snake.speed * 1.1, 20)  # Increase speed, max 20
+            # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
+            apple = Apple()
+
+    else:
+        # If the game is not 'on', it is paused
+        display_pause_screen()
 
     # Update display and move clock.
     pygame.display.update()
