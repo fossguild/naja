@@ -36,10 +36,10 @@ from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 
 class Snake:
-    
+
     def __init__(self, width, height, grid_size):
         """Initialize the Snake.
-        
+
         Args:
             width: Game window width
             height: Game window height
@@ -49,7 +49,7 @@ class Snake:
         self.width = width
         self.height = height
         self.grid_size = grid_size
-        
+
         # Dimension of each snake segment.
         self.x, self.y = grid_size, grid_size
 
@@ -90,7 +90,7 @@ class Snake:
 
     def update(self, apple: Apple, obstacles: list[Obstacle] ,game_over_func: Callable):
         """Update snake position and check for collisions.
-        
+
         Returns:
             bool: True if the snake died this frame, False otherwise
         """
@@ -103,7 +103,9 @@ class Snake:
         # Only check collisions if the snake is currently moving
         if self.xmov or self.ymov:
             # Check for border crash.
-            if next_x not in range(0, self.width) or next_y not in range(0, self.height):
+            if next_x not in range(0, self.width) or next_y not in range(
+                0, self.height
+            ):
                 self.alive = False
                 died = True
 
@@ -126,7 +128,7 @@ class Snake:
 
         # In the event of death, reset the game arena.
         if not self.alive:
-            #handle game over visuals to the user
+            # handle game over visuals to the user
             game_over_func()
 
             # Respan the head
@@ -197,7 +199,7 @@ class Snake:
 class Apple:
     def __init__(self, width, height, grid_size):
         """Initialize the Apple.
-        
+
         Args:
             width: Game window width
             height: Game window height
@@ -239,7 +241,7 @@ class Apple:
                 break
 
     # This function is called each iteration of the game loop
-    def update(self,arena):
+    def update(self, arena):
         """Draw the apple."""
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
 

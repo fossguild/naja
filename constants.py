@@ -19,8 +19,8 @@
 
 
 """
-This file is for defining constants for the kobra.py game. 
-This file is only for objects/constants whose values are known 
+This file is for defining constants for the kobra.py game.
+This file is only for objects/constants whose values are known
 before runtime and never changed
 """
 
