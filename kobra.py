@@ -705,7 +705,7 @@ while True:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
         if EAT_SOUND_ON:
             eat_sound.play()  # Play the sound
-        
+
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
