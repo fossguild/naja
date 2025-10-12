@@ -94,7 +94,7 @@ class Snake:
         """Update snake position and check for collisions.
 
         Returns:
-            tuple: (died, new_apple) where died is bool and new_apple is Apple or None
+            bool: True if the snake died this frame, False otherwise
         """
         died = False
 

@@ -65,18 +65,18 @@ except pygame.error as e:
 gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 # Get the current display's resolution from the system.
-DISPLAY_INFO = pygame.display.Info()
-USER_SCREEN_WIDTH = DISPLAY_INFO.current_w
-USER_SCREEN_HEIGHT = DISPLAY_INFO.current_h
+display_info = pygame.display.Info()
+user_screen_width = display_info.current_w
+user_screen_height = display_info.current_h
 
 # Determine the largest possible square size that fits safely on the screen.
-SAFE_MAX_DIMENSION = int(min(USER_SCREEN_WIDTH, USER_SCREEN_HEIGHT) * 0.9)
+safe_max_dimension = int(min(user_screen_width, user_screen_height) * 0.9)
 
 # Define the size of each cell in the game's grid.
 GRID_SIZE = 50
 
 # Calculate the final window dimension.
-WIDTH = HEIGHT = (SAFE_MAX_DIMENSION // GRID_SIZE) * GRID_SIZE
+WIDTH = HEIGHT = (safe_max_dimension // GRID_SIZE) * GRID_SIZE
 
 CLOCK_TICKS = 4  # How fast the snake moves.
 
@@ -283,7 +283,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     # Derive cell size from desired cells per side
     desired_cells = max(10, int(SETTINGS["cells_per_side"]))
     # Size each cell so that desired_cells fit within the safe dimension.
-    GRID_SIZE = max(8, SAFE_MAX_DIMENSION // desired_cells)
+    GRID_SIZE = max(8, safe_max_dimension // desired_cells)
 
     CLOCK_TICKS = float(SETTINGS["initial_speed"])
     MAX_SPEED = float(SETTINGS["max_speed"])
@@ -301,7 +301,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
 
     # Recompute window and recreate surface/fonts if grid changed.
     if GRID_SIZE != old_grid:
-        new_dim = (SAFE_MAX_DIMENSION // GRID_SIZE) * GRID_SIZE
+        new_dim = (safe_max_dimension // GRID_SIZE) * GRID_SIZE
         WIDTH = HEIGHT = new_dim
         state.arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
         pygame.display.set_caption(WINDOW_TITLE)
