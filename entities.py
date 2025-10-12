@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import random
 from typing import Callable
+from typing import Callable
 import pygame
 
 from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
@@ -37,7 +38,7 @@ from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 class Snake:
 
-    def __init__(self, width, height, grid_size):
+    def __init__(self, width:int, height:int, grid_size:int):
         """Initialize the Snake.
 
         Args:
@@ -197,7 +198,7 @@ class Snake:
 
 
 class Apple:
-    def __init__(self, width, height, grid_size):
+    def __init__(self, width:int, height:int, grid_size:int):
         """Initialize the Apple.
 
         Args:
@@ -241,7 +242,7 @@ class Apple:
                 break
 
     # This function is called each iteration of the game loop
-    def update(self, arena):
+    def update(self, arena: pygame.Surface):
         """Draw the apple."""
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
 
