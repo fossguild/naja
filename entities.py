@@ -92,9 +92,10 @@ class Snake:
         """Update snake position and check for collisions.
 
         Returns:
-            bool: True if the snake died this frame, False otherwise
+            tuple: (died, new_apple) where died is bool and new_apple is Apple or None
         """
         died = False
+        new_apple = None
 
         # Calculate the head's next position based on current movement
         next_x = self.head.x + self.xmov * self.grid_size
@@ -161,7 +162,7 @@ class Snake:
             # Reposition the apple
             apple.ensure_valid_position(self)
 
-        return died
+        return died, new_apple
 
 
 ##
