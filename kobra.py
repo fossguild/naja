@@ -660,6 +660,13 @@ while True:
                 sys.exit()
             elif event.key == pygame.K_p:  # P         : pause game
                 game_on = not game_on
+            elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
+                if not game_on:
+                    was_running = game_on
+                    game_on = 0
+                    run_settings_menu()
+                    apply_settings(reset_objects=True)
+                    game_on = was_running
             elif event.key == pygame.K_n:  # N : toggle music mute
                 SETTINGS["background_music"] = not SETTINGS["background_music"]
                 apply_settings(reset_objects=False)
