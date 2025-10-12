@@ -83,7 +83,7 @@ SETTINGS = {
 MENU_FIELDS = [
     {
         "key": "cells_per_side",
-        "label": "Cells per side",
+        "label": "Cells per side (needs reset)",
         "type": "int",
         "min": 10,
         "max": 60,
@@ -91,7 +91,7 @@ MENU_FIELDS = [
     },
     {
         "key": "initial_speed",
-        "label": "Initial speed",
+        "label": "Initial speed (needs reset)",
         "type": "float",
         "min": 1.0,
         "max": 40.0,
@@ -108,7 +108,7 @@ MENU_FIELDS = [
     {"key": "death_sound", "label": "Death Sound", "type": "bool"},
     {
         "key": "obstacle_difficulty",
-        "label": "Obstacles",
+        "label": "Obstacles (needs reset)",
         "type": "select",
         "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
     },
@@ -696,8 +696,23 @@ while True:
             elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                 was_running = game_on
                 game_on = 0
+                
+                # Store old values of critical settings
+                old_cells = SETTINGS["cells_per_side"]
+                old_obstacles = SETTINGS["obstacle_difficulty"]
+                old_initial_speed = SETTINGS["initial_speed"]
+                
                 run_settings_menu()
-                apply_settings(reset_objects=SETTINGS["reset_game_on_apply"])
+                
+                # Check if critical settings changed (require reset)
+                needs_reset = (
+                    old_cells != SETTINGS["cells_per_side"] or
+                    old_obstacles != SETTINGS["obstacle_difficulty"] or
+                    old_initial_speed != SETTINGS["initial_speed"]
+                )
+                
+                # Force reset if critical settings changed, or use player preference
+                apply_settings(reset_objects=needs_reset or SETTINGS["reset_game_on_apply"])
                 game_on = was_running
             elif event.key == pygame.K_n:  # N : toggle music mute
                 SETTINGS["background_music"] = not SETTINGS["background_music"]
