@@ -76,6 +76,7 @@ SETTINGS = {
     "death_sound": True,  # toggle death sound playback
     "obstacle_difficulty": "None",  # obstacle difficulty level
     "background_music": True,  # toggle background music playback
+    "reset_game_on_apply": False,  # reset game when applying settings
 }
 
 # Declarative menu fields.
@@ -112,6 +113,7 @@ MENU_FIELDS = [
         "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
     },
     {"key": "background_music", "label": "Background Music", "type": "bool"},
+    {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
 ]
 
 # Effective runtime values (hydrated by apply_settings).
@@ -695,7 +697,7 @@ while True:
                 was_running = game_on
                 game_on = 0
                 run_settings_menu()
-                apply_settings(reset_objects=True)
+                apply_settings(reset_objects=SETTINGS["reset_game_on_apply"])
                 game_on = was_running
             elif event.key == pygame.K_n:  # N : toggle music mute
                 SETTINGS["background_music"] = not SETTINGS["background_music"]
