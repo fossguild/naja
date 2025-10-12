@@ -104,9 +104,7 @@ class Snake:
         # Only check collisions if the snake is currently moving
         if self.xmov or self.ymov:
             # Check for border crash.
-            if next_x not in range(0, self.width) or next_y not in range(
-                0, self.height
-            ):
+            if next_x not in range(0, self.width) or next_y not in range(0, self.height):
                 self.alive = False
                 died = True
 
@@ -161,33 +159,6 @@ class Snake:
 
             # Reposition the apple
             apple.ensure_valid_position(self)
-
-        # Move the snake.
-        # Increment smooth movement progress
-        if self.xmov or self.ymov:
-            self.move_progress += self.speed / 60.0  # Adjust based on frame rate
-            
-            # Interpolate drawing position
-            self.draw_x = self.head.x + (self.target_x - self.head.x) * min(self.move_progress, 1.0)
-            self.draw_y = self.head.y + (self.target_y - self.head.y) * min(self.move_progress, 1.0)
-            
-            # Only update grid position when movement is complete
-            if self.move_progress >= 1.0:
-                self.prev_head_x = self.head.x
-                self.prev_head_y = self.head.y
-                
-                # Prepend a new segment to tail.
-                self.tail.insert(0, (self.head.x, self.head.y))
-
-                if self.got_apple:
-                    self.got_apple = False
-                else:
-                    self.tail.pop()
-
-                # Move the head to target position
-                self.head.x = self.target_x
-                self.head.y = self.target_y
-                self.move_progress = 0.0
 
         return died
 
