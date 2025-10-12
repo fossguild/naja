@@ -47,7 +47,7 @@ pygame.init()
 pygame.mixer.init()
 
 # Define paths for music files
-BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.mp3"
+BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
 DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
 
 # Carrega e toca a música de fundo (loop infinito)
@@ -66,8 +66,7 @@ except pygame.error as e:
     speaker_muted_sprite = None
 
 # Load gameover sound effect (short sound played once when snake dies)
-gameover_sound = pygame.mixer.Sound("assets/sound/gameover.mp3")
-gameover_sound.set_volume(0.2)  # Same volume as music (0.0 to 1.0)
+gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 # Get the current display's resolution from the system.
 display_info = pygame.display.Info()
@@ -98,13 +97,14 @@ SETTINGS = {
     "obstacle_difficulty": "None",  # obstacle difficulty level
     "background_music": True,  # toggle background music playback
     "background_color": "Gray",  # standard background color
+    "reset_game_on_apply": False,  # reset game when applying settings
 }
 
 # Declarative menu fields.
 MENU_FIELDS = [
     {
         "key": "cells_per_side",
-        "label": "Cells per side",
+        "label": "Cells per side (needs reset)",
         "type": "int",
         "min": 10,
         "max": 60,
@@ -112,7 +112,7 @@ MENU_FIELDS = [
     },
     {
         "key": "initial_speed",
-        "label": "Initial speed",
+        "label": "Initial speed (needs reset)",
         "type": "float",
         "min": 1.0,
         "max": 40.0,
@@ -129,7 +129,7 @@ MENU_FIELDS = [
     {"key": "death_sound", "label": "Death Sound", "type": "bool"},
     {
         "key": "obstacle_difficulty",
-        "label": "Obstacles",
+        "label": "Obstacles (needs reset)",
         "type": "select",
         "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
     },
@@ -140,6 +140,7 @@ MENU_FIELDS = [
         "type": "select",
         "options": ["Gray", "Black", "Blue", "Pink", "Purple", "Orange", "Brown"],
     },
+    {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
 ]
 
 # Effective runtime values (hydrated by apply_settings).
@@ -630,8 +631,26 @@ def main():
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.game_on = 0
+
+                    # Store old values of critical settings
+                    old_cells = SETTINGS["cells_per_side"]
+                    old_obstacles = SETTINGS["obstacle_difficulty"]
+                    old_initial_speed = SETTINGS["initial_speed"]
+
                     run_settings_menu(state)
-                    apply_settings(state, reset_objects=True)
+
+                    # Check if critical settings changed (require reset)
+                    needs_reset = (
+                        old_cells != SETTINGS["cells_per_side"]
+                        or old_obstacles != SETTINGS["obstacle_difficulty"]
+                        or old_initial_speed != SETTINGS["initial_speed"]
+                    )
+
+                    # Force reset if critical settings changed, or use player preference
+                    apply_settings(
+                        state,
+                        reset_objects=needs_reset or SETTINGS["reset_game_on_apply"],
+                    )
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
                     SETTINGS["background_music"] = not SETTINGS["background_music"]
@@ -746,6 +765,7 @@ def main():
 
         # Show score (snake length = head + tail)
         score = BIG_FONT.render(f"{len(state.snake.tail)}", True, SCORE_COLOR)
+        score.set_alpha(75)  # opacity
         score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
         state.arena.blit(score, score_rect)
 
