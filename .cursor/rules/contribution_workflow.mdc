@@ -1,0 +1,328 @@
+---
+description: Git workflow, branching strategy, and contribution guidelines for Naja
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Contribution Workflow
+
+## GitFlow Branching Strategy
+
+### Permanent Branches
+
+**main**
+- Stable, production-ready code
+- Tagged with version numbers (Semantic Versioning)
+- Only receives merges from `rel/*` or `hot/*` branches
+- Never commit directly to main
+
+**dev** (develop)
+- Active development branch
+- Integration branch for features
+- Should always be in a working state
+- Merges into `main` for releases
+
+### Temporary Branches
+
+**Feature branches** (`feat/<issue-number>/<description>`)
+- Branch from: `dev`
+- Merge into: `dev`
+- Purpose: New features or enhancements
+- Example: `feat/42/add-high-score-system`
+
+**Hotfix branches** (`hot/<issue-number>/<description>`)
+- Branch from: `main`
+- Merge into: `main` AND `dev`
+- Purpose: Critical bug fixes for production
+- Example: `hot/66/fix-crash-on-startup`
+
+**Work-in-progress** (`wip/<issue-number>/<description>`)
+- Branch from: `dev`
+- Merge into: `dev` (when ready)
+- Purpose: Experimental or incomplete work
+- Example: `wip/24/multiplayer-prototype`
+
+**Release branches** (`rel/<version>`)
+- Branch from: `dev`
+- Merge into: `main` AND `dev`
+- Purpose: Release preparation, bug fixes only
+- Example: `rel/1.0.0-beta`
+
+**Auxiliary branches** (`aux/<description>`)
+- Branch from: `dev`
+- Merge into: `dev`
+- Purpose: Miscellaneous tasks not related to issues
+- Example: `aux/update-dependencies`
+
+### Branch Naming Rules
+
+**Correct**:
+```
+feat/15/settings-menu
+hot/23/apple-spawn-bug
+wip/8/difficulty-levels
+rel/1.0.0
+aux/update-readme
+```
+
+**Incorrect**:
+```
+feature-15-settings-menu  (use feat)
+FEAT/15/Settings Menu     (use lowercase)
+15-settings-menu          (missing prefix)
+feat/settings             (missing issue number)
+```
+
+## Commit Message Format
+
+### Structure
+```
+tag: imperative short description
+
+[Optional longer explanation with proper grammar and punctuation.
+Explain the "why" behind the change, not the "what".]
+```
+
+### Commit Tags
+
+- `code`: Source code fixes, additions, or refactoring
+- `doc`: Documentation changes
+- `build`: Build system or dependency changes
+- `repo`: Repository organization and maintenance
+- `minor`: Trivial changes (typos, whitespace, comments)
+- `other`: Anything that doesn't fit above categories
+
+### Examples
+
+**Good commits**:
+```
+code: fix self-bite detection for single tail segment
+
+The collision check now handles the edge case where the snake
+has exactly one tail segment and attempts to reverse direction.
+
+doc: update manual with new settings options
+
+build: add pre-commit hook configuration
+
+minor: fix typo in comment
+```
+
+**Bad commits**:
+```
+Fixed bug                    (no tag, not descriptive)
+code: Fixed the thing        (not imperative, vague)
+added new feature for menu   (no tag)
+WIP                          (not descriptive)
+```
+
+## Pull Request Workflow
+
+### Before Creating PR
+
+1. **Link to Issue**: PR must relate to an open GitHub issue
+2. **Branch from correct base**: `feat/*` from `dev`, `hot/*` from `main`
+3. **Run quality checks**:
+   ```bash
+   black .
+   ruff check .
+   python kobra.py  # Manual test
+   ```
+4. **Update documentation**: If adding features, update relevant docs
+5. **Review your own changes**: Check diff for unintended changes
+
+### PR Title Format
+```
+[TAG] Brief description (closes #issue-number)
+```
+
+Examples:
+- `[FEAT] Add high score persistence (closes #42)`
+- `[FIX] Resolve apple spawn collision bug (closes #23)`
+- `[DOC] Update contributing guidelines (closes #15)`
+
+### PR Description Template
+
+```markdown
+## Description
+Brief summary of changes.
+
+## Related Issue
+Closes #[issue-number]
+
+## Changes Made
+- Specific change 1
+- Specific change 2
+- Specific change 3
+
+## Testing
+- [ ] Manual testing completed
+- [ ] Black formatting passed
+- [ ] Ruff linting passed
+- [ ] Pre-commit hooks passed
+- [ ] Game runs without errors
+
+## Screenshots (if UI changes)
+[Add screenshots if applicable]
+
+## Checklist
+- [ ] Code follows project style guidelines
+- [ ] Comments use proper English grammar
+- [ ] Documentation updated (if needed)
+- [ ] Copyright notice updated (if substantial changes)
+- [ ] No unrelated changes included
+```
+
+## Issue Tracking
+
+### Creating Issues
+
+**Required elements**:
+- Clear, descriptive title
+- Description of problem or feature request
+- Steps to reproduce (for bugs)
+- Expected vs. actual behavior (for bugs)
+- Relevant labels (bug, enhancement, documentation, etc.)
+- Assignment to milestone (if applicable)
+
+### Issue Labels
+
+- `bug`: Something isn't working
+- `enhancement`: New feature or improvement
+- `documentation`: Documentation updates
+- `good first issue`: Good for newcomers
+- `help wanted`: Extra attention needed
+- `wontfix`: Will not be worked on
+- `duplicate`: Issue already exists
+
+### Milestones
+
+Example milestone structure:
+- `v1.0.0-alpha`: Initial feedback release
+- `v1.0.0-beta`: Feature freeze, testing phase
+- `v1.0.0`: Stable release
+
+## Semantic Versioning
+
+Format: `MAJOR.MINOR.PATCH[-PRERELEASE]`
+
+- `MAJOR`: Incompatible API changes
+- `MINOR`: New features, backwards-compatible
+- `PATCH`: Bug fixes, backwards-compatible
+- `PRERELEASE`: `-alpha`, `-beta`, `-rc1`, etc.
+
+Examples:
+- `0.1.0`: Initial development
+- `1.0.0-alpha`: First test release
+- `1.0.0-beta`: Feature-complete test
+- `1.0.0`: First stable release
+- `1.1.0`: Added features to stable
+- `1.1.1`: Bug fix release
+
+## Copyright and Licensing
+
+### Adding Your Name
+
+Add your copyright notice when you:
+- Substantially modify an existing file (not just typos)
+- Create a new file
+- Copy/paste significant code
+
+**Format**:
+```python
+# Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
+# Copyright (c) 2024, Your Name <your.email@example.com>
+```
+
+### Derivative Work Notice
+
+If copying from KobraPy, add:
+```python
+# This file is a derivative work of KobraPy
+# Original: https://github.com/fossguild/kobrapy
+```
+
+### License Header
+
+All source files must include GPL license header:
+```python
+#   This file is part of Naja.
+#
+#   Naja is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+```
+
+## Code Review Guidelines
+
+### For Authors
+
+- Keep PRs focused and small
+- Respond promptly to feedback
+- Don't take criticism personally
+- Update PR based on review comments
+- Mark resolved conversations
+
+### For Reviewers
+
+- Be respectful and constructive
+- Suggest specific improvements
+- Explain reasoning behind requests
+- Approve when standards are met
+- Check: code style, logic, testing, docs
+
+## Development Environment Setup
+
+```bash
+# Clone repository
+git clone https://github.com/fossguild/naja.git
+cd naja
+
+# Switch to dev branch
+git checkout dev
+
+# Install dependencies
+uv sync --group dev
+
+# Install pre-commit hooks
+pre-commit install
+
+# Create feature branch
+git checkout -b feat/123/your-feature
+
+# Make changes, commit, push
+git add .
+git commit -m "code: implement feature X"
+git push -u origin feat/123/your-feature
+
+# Create pull request on GitHub
+```
+
+## Quality Checklist
+
+Before submitting PR:
+
+- [ ] Code is Black-formatted
+- [ ] No Ruff linting errors
+- [ ] All commits follow message format
+- [ ] Branch name follows convention
+- [ ] Documentation updated
+- [ ] Manual testing completed
+- [ ] No unrelated changes
+- [ ] Copyright notice updated (if needed)
+- [ ] Linked to GitHub issue
+- [ ] PR description complete
+
+## Resources
+
+- [GitFlow Model](https://nvie.com/posts/a-successful-git-branching-model/)
+- [Semantic Versioning](https://semver.org/)
+- [REUSE Specification](https://reuse.software/)
+- [Keep a Changelog](https://keepachangelog.com/)
