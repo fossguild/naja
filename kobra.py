@@ -47,7 +47,7 @@ pygame.init()
 pygame.mixer.init()
 
 # Define paths for music files
-BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
+BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.mp3"
 DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
 
 # Carrega e toca a música de fundo (loop infinito)
@@ -66,7 +66,8 @@ except pygame.error as e:
     speaker_muted_sprite = None
 
 # Load gameover sound effect (short sound played once when snake dies)
-gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
+gameover_sound = pygame.mixer.Sound("assets/sound/gameover.mp3")
+gameover_sound.set_volume(0.2)  # Same volume as music (0.0 to 1.0)
 
 # Get the current display's resolution from the system.
 display_info = pygame.display.Info()
