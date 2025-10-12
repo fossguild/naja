@@ -307,7 +307,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     NUM_OBSTACLES = Obstacle.calculate_obstacles_from_difficulty(
         SETTINGS["obstacle_difficulty"], WIDTH, GRID_SIZE, HEIGHT
     )
-    
+
     # Calculate max apples based on a reasonable percentage of total cells
     # Limit to 15% of grid or 30 apples max (whichever is smaller)
     total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
@@ -315,7 +315,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     max_apples_absolute = 30  # Hard cap
     max_apples = max(1, min(max_apples_by_percent, max_apples_absolute))
     NUM_APPLES = min(int(SETTINGS["number_of_apples"]), max_apples)
-    
+
     MUSIC_ON = bool(SETTINGS["background_music"])
 
     # Control background music playback based on setting

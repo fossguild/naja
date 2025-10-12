@@ -165,7 +165,9 @@ class Snake:
             for i, apple in enumerate(apples):
                 apple.ensure_valid_position(self, obstacles)
                 # Ensure this apple doesn't overlap with previously repositioned apples
-                while any(apple.x == apples[j].x and apple.y == apples[j].y for j in range(i)):
+                while any(
+                    apple.x == apples[j].x and apple.y == apples[j].y for j in range(i)
+                ):
                     apple.ensure_valid_position(self, obstacles)
 
         return died

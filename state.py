@@ -67,7 +67,7 @@ class GameState:
         # Game objects (initialized with proper dimensions)
         self.snake = Snake(display_width, display_height, grid_size)
         self.obstacles = []  # Will be populated by create_obstacles if needed
-        
+
         # Initialize with a single apple (will be updated by apply_settings)
         self.apples = []
         apple = Apple(display_width, display_height, grid_size)
