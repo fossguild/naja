@@ -32,6 +32,7 @@ from constants import (
     SCORE_COLOR,
     MESSAGE_COLOR,
     WINDOW_TITLE,
+    FONT_PATH,
 )
 from state import GameState
 
@@ -145,8 +146,45 @@ MUSIC_ON = SETTINGS["background_music"]
 # BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
 # SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
 
-BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
-SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20))
+# Font and sprite cache to avoid repeated allocations
+FONT_CACHE: dict[tuple[str, int], pygame.font.Font] = {}
+
+
+def get_font(px: int) -> pygame.font.Font:
+    key = (FONT_PATH, int(px))
+    if key not in FONT_CACHE:
+        FONT_CACHE[key] = pygame.font.Font(FONT_PATH, int(px))
+    return FONT_CACHE[key]
+
+
+# Cached big/small fonts (will be initialized via get_font)
+BIG_FONT = get_font(int(WIDTH / 8))
+SMALL_FONT = get_font(int(WIDTH / 20))
+
+# Pre-rendered grid surface and sprite cache
+GRID_SURFACE: pygame.Surface | None = None
+SPRITE_CACHE: dict[int, pygame.Surface] = {}
+
+
+def _build_grid_surface() -> pygame.Surface:
+    """Create and return a pre-rendered grid surface for current WIDTH/HEIGHT.
+
+    This can be called at startup and when settings change to regenerate the cached grid.
+    """
+    surf = pygame.Surface((WIDTH, HEIGHT))
+    surf.fill(ARENA_COLOR)
+    for x in range(0, WIDTH, GRID_SIZE):
+        for y in range(0, HEIGHT, GRID_SIZE):
+            rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
+            pygame.draw.rect(surf, GRID_COLOR, rect, 1)
+    return surf
+
+
+# Build initial grid surface at module import time so draw_grid can use it immediately
+try:
+    GRID_SURFACE = _build_grid_surface()
+except Exception:
+    GRID_SURFACE = None
 
 
 def _clamp(v, lo, hi):
@@ -177,7 +215,7 @@ def _fmt_setting_value(field, value):
 def _draw_settings_menu(state, selected_index: int) -> None:
     state.arena.fill(ARENA_COLOR)
 
-    title_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 10))
+    title_font = get_font(int(WIDTH / 10))
     title = title_font.render("Settings", True, MESSAGE_COLOR)
     title_rect = title.get_rect(center=(WIDTH / 2, HEIGHT / 10))
     state.arena.blit(title, title_rect)
@@ -205,7 +243,7 @@ def _draw_settings_menu(state, selected_index: int) -> None:
         state.arena.blit(text, rect)
 
     # hint footer (smaller)
-    hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 40))
+    hint_font = get_font(int(WIDTH / 40))
     hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
     hint = hint_font.render(hint_text, True, GRID_COLOR)
     state.arena.blit(hint, hint.get_rect(center=(WIDTH / 2, HEIGHT * 0.95)))
@@ -281,7 +319,7 @@ def run_settings_menu(state) -> None:
 
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(state: GameState, reset_objects: bool = False) -> None:
-    global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT
+    global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT, GRID_SURFACE, SPRITE_CACHE
     global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
 
     old_grid = GRID_SIZE
@@ -315,12 +353,34 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
         # Update state's dimensions to match new grid size
         state.update_dimensions(WIDTH, HEIGHT, GRID_SIZE)
 
-        # Reload fonts globally with new width
+        # Reload fonts globally with new width using font cache
         global BIG_FONT, SMALL_FONT
-        BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
-        SMALL_FONT = pygame.font.Font(
-            "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20)
-        )
+        BIG_FONT = get_font(int(WIDTH / 8))
+        SMALL_FONT = get_font(int(WIDTH / 20))
+
+        # Recreate and cache the pre-rendered grid surface to avoid per-frame drawing
+        GRID_SURFACE = pygame.Surface((WIDTH, HEIGHT))
+        GRID_SURFACE.fill(ARENA_COLOR)
+        for x in range(0, WIDTH, GRID_SIZE):
+            for y in range(0, HEIGHT, GRID_SIZE):
+                rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
+                pygame.draw.rect(GRID_SURFACE, GRID_COLOR, rect, 1)
+
+        # Clear sprite cache then pre-populate common icon sizes to avoid first-frame scaling
+        SPRITE_CACHE.clear()
+        try:
+            icon_size = int(WIDTH / 25)
+            if speaker_on_sprite is not None:
+                SPRITE_CACHE[icon_size] = pygame.transform.scale(
+                    speaker_on_sprite, (icon_size, icon_size)
+                )
+            if speaker_muted_sprite is not None:
+                SPRITE_CACHE[-icon_size] = pygame.transform.scale(
+                    speaker_muted_sprite, (icon_size, icon_size)
+                )
+        except Exception:
+            # If scaling fails for any reason, leave cache empty
+            pass
 
         # Force reset_objects when grid size changes to prevent misalignment
         reset_objects = True
@@ -348,8 +408,10 @@ def _render_text_fit(text: str, color, max_width_ratio: float, base_px: int):
     base_px: starting font size in pixels.
     """
     px = base_px
+    # Initialize a fallback surface so we always return a valid Surface
+    surf = get_font(max(8, px)).render(text, True, color)
     while px > 8:  # don't go too tiny
-        font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", px)
+        font = get_font(px)
         surf = font.render(text, True, color)
         if surf.get_width() <= WIDTH * max_width_ratio:
             return surf
@@ -495,6 +557,10 @@ def start_menu(state: GameState):
 
 
 def draw_grid(state: GameState):
+    """Blit the pre-rendered grid when available, otherwise draw it."""
+    if GRID_SURFACE is not None:
+        state.arena.blit(GRID_SURFACE, (0, 0))
+        return
     for x in range(0, WIDTH, GRID_SIZE):
         for y in range(0, HEIGHT, GRID_SIZE):
             rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
@@ -521,13 +587,16 @@ def draw_music_indicator(state: GameState):
     # Choose the appropriate sprite based on music state
     sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
 
-    # Scale and draw the sprite
+    # Scale and draw the sprite using a simple cache to avoid per-frame scaling
     if sprite is not None:
-        scaled_sprite = pygame.transform.scale(sprite, (icon_size, icon_size))
-        state.arena.blit(scaled_sprite, (icon_x, icon_y))
+        cached = SPRITE_CACHE.get(icon_size)
+        if cached is None:
+            cached = pygame.transform.scale(sprite, (icon_size, icon_size))
+            SPRITE_CACHE[icon_size] = cached
+        state.arena.blit(cached, (icon_x, icon_y))
 
-    # Add [N] text hint below the icon
-    hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 50))
+    # Add [N] text hint below the icon using cached font
+    hint_font = get_font(int(WIDTH / 50))
     hint_color = SCORE_COLOR if MUSIC_ON else GRID_COLOR
     hint_text = "[N]"
     hint_surf = hint_font.render(hint_text, True, hint_color)

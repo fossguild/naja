@@ -37,3 +37,6 @@ MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
 WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
+
+# Font asset path used by the game (kept as a true constant)
+FONT_PATH = "assets/font/GetVoIP-Grotesque.ttf"
