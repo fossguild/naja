@@ -696,23 +696,25 @@ while True:
             elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                 was_running = game_on
                 game_on = 0
-                
+
                 # Store old values of critical settings
                 old_cells = SETTINGS["cells_per_side"]
                 old_obstacles = SETTINGS["obstacle_difficulty"]
                 old_initial_speed = SETTINGS["initial_speed"]
-                
+
                 run_settings_menu()
-                
+
                 # Check if critical settings changed (require reset)
                 needs_reset = (
-                    old_cells != SETTINGS["cells_per_side"] or
-                    old_obstacles != SETTINGS["obstacle_difficulty"] or
-                    old_initial_speed != SETTINGS["initial_speed"]
+                    old_cells != SETTINGS["cells_per_side"]
+                    or old_obstacles != SETTINGS["obstacle_difficulty"]
+                    or old_initial_speed != SETTINGS["initial_speed"]
                 )
-                
+
                 # Force reset if critical settings changed, or use player preference
-                apply_settings(reset_objects=needs_reset or SETTINGS["reset_game_on_apply"])
+                apply_settings(
+                    reset_objects=needs_reset or SETTINGS["reset_game_on_apply"]
+                )
                 game_on = was_running
             elif event.key == pygame.K_n:  # N : toggle music mute
                 SETTINGS["background_music"] = not SETTINGS["background_music"]
