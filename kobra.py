@@ -600,9 +600,7 @@ def draw_music_indicator():
         arena.blit(scaled_sprite, (icon_x, icon_y))
 
     # Add [N] text hint below the icon
-    hint_font = pygame.font.Font(
-        "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 50)
-    )
+    hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 50))
     hint_color = SCORE_COLOR if MUSIC_ON else GRID_COLOR
     hint_text = "[N]"
     hint_surf = hint_font.render(hint_text, True, hint_color)
