@@ -294,15 +294,6 @@ except pygame.error as e:
     speaker_on_sprite = None
     speaker_muted_sprite = None
 
-arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
-
-
-# BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
-# SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
-
-BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
-SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20))
-
 
 ##
 ## Center message + simple key wait helpers
