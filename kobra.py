@@ -62,18 +62,6 @@ GRID_SIZE = 50
 # Calculate the final window dimension.
 WIDTH = HEIGHT = (safe_max_dimension // GRID_SIZE) * GRID_SIZE
 
-HEAD_COLOR = "#00aa00"  # Color of the snake's head.
-DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
-TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
-APPLE_COLOR = "#aa0000"  # Color of the apple.
-OBSTACLE_COLOR = "#666666"  # Color of the obstacles.
-ARENA_COLOR = "#202020"  # Color of the ground.
-GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
-SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
-MESSAGE_COLOR = "#808080"  # Color of the game-over message.
-
-WINDOW_TITLE = "KobraPy"  # Window title.
-
 CLOCK_TICKS = 4  # How fast the snake moves.
 
 ##
@@ -135,7 +123,6 @@ MUSIC_ON = SETTINGS["background_music"]
 
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
-
 
 
 ## Format a setting value for display.
@@ -282,7 +269,7 @@ def apply_settings(reset_objects: bool = False) -> None:
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
     NUM_OBSTACLES = Obstacle.calculate_obstacles_from_difficulty(
-        SETTINGS["obstacle_difficulty"],WIDTH,GRID_SIZE,HEIGHT
+        SETTINGS["obstacle_difficulty"], WIDTH, GRID_SIZE, HEIGHT
     )
     MUSIC_ON = bool(SETTINGS["background_music"])
 
@@ -312,7 +299,7 @@ def apply_settings(reset_objects: bool = False) -> None:
             )
             globals()["apple"] = Apple(WIDTH, HEIGHT, GRID_SIZE)
             snake.speed = CLOCK_TICKS
-            apple.ensure_valid_position(snake) #ensure apple is not on snake
+            apple.ensure_valid_position(snake)  # ensure apple is not on snake
         except NameError:
             # If called before classes/instances exist, ignore.
             pass
@@ -525,6 +512,7 @@ def draw_music_indicator():
 
     arena.blit(hint_surf, hint_rect)
 
+
 def is_grid_connected(obstacles, snake_start_x, snake_start_y):
     """Checks if all free cells on the grid are connected using BFS."""
     obstacles_positions = {(obs.x, obs.y) for obs in obstacles}
@@ -565,6 +553,7 @@ def is_grid_connected(obstacles, snake_start_x, snake_start_y):
     # The grid is connected if all free cells were visited
     return len(visited) == total_free_cells
 
+
 def would_create_trap(new_obstacle_pos, obstacles_positions):
     """
     Checks if placing a new obstacle creates a trap for any adjacent cell.
@@ -579,7 +568,7 @@ def would_create_trap(new_obstacle_pos, obstacles_positions):
 
         # If the neighbor is not a free cell, we don't need to check it.
         if Obstacle.is_blocked(
-            neighbor_x, neighbor_y, (0, 0), obstacles_positions,WIDTH,HEIGHT
+            neighbor_x, neighbor_y, (0, 0), obstacles_positions, WIDTH, HEIGHT
         ):  # Note: passing dummy new_pos
             continue
 
@@ -595,7 +584,9 @@ def would_create_trap(new_obstacle_pos, obstacles_positions):
         ]
 
         for side_x, side_y in sides_to_check:
-            if Obstacle.is_blocked(side_x, side_y, new_obstacle_pos, obstacles_positions,WIDTH,HEIGHT):
+            if Obstacle.is_blocked(
+                side_x, side_y, new_obstacle_pos, obstacles_positions, WIDTH, HEIGHT
+            ):
                 blocked_sides_count += 1
 
         # If 3 or more sides are blocked, it's a trap.
@@ -604,6 +595,7 @@ def would_create_trap(new_obstacle_pos, obstacles_positions):
 
     # If we check all neighbors and none of them become traps, the placement is safe.
     return False
+
 
 def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y):
     """Builds a valid map by adding obstacles one by one safely."""
@@ -633,7 +625,9 @@ def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y)
                 continue
 
             # If the local check passes, add the obstacle
-            obstacles.append(Obstacle(candidate_pos[0], candidate_pos[1],arena,GRID_SIZE))
+            obstacles.append(
+                Obstacle(candidate_pos[0], candidate_pos[1], arena, GRID_SIZE)
+            )
             obstacles_positions.add(candidate_pos)
 
         # Rule 2: Don't disconnect the map
@@ -641,6 +635,7 @@ def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y)
             obstacles, snake_start_x, snake_start_y
         ):
             return obstacles
+
 
 ##
 ## Start flow
@@ -706,15 +701,15 @@ while True:
                 SETTINGS["background_music"] = not SETTINGS["background_music"]
                 apply_settings(reset_objects=False)
     ## Update the game
- 
+
     died = False
     if game_on:
         # If we're not currently interpolating between grid cells and a movement
         # direction is set, schedule the next grid move by calling snake.update().
         if snake.target_x == snake.head.x and snake.target_y == snake.head.y:
             if snake.xmov or snake.ymov:
-                died = snake.update(apple,obstacles,game_over_handler)
-        
+                died = snake.update(apple, obstacles, game_over_handler)
+
         # Play death sound if snake died
         if died and DEATH_SOUND_ON:
             gameover_sound.play()

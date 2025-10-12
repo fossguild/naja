@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import random
 from typing import Callable
-from typing import Callable
 import pygame
 
 from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
@@ -89,7 +88,7 @@ class Snake:
 
     # This function is called at each loop interation.
 
-    def update(self, apple: Apple, obstacles: list[Obstacle] ,game_over_func: Callable):
+    def update(self, apple: Apple, obstacles: list[Obstacle], game_over_func: Callable):
         """Update snake position and check for collisions.
 
         Returns:
@@ -104,7 +103,9 @@ class Snake:
         # Only check collisions if the snake is currently moving
         if self.xmov or self.ymov:
             # Check for border crash.
-            if next_x not in range(0, self.width) or next_y not in range(0, self.height):
+            if next_x not in range(0, self.width) or next_y not in range(
+                0, self.height
+            ):
                 self.alive = False
                 died = True
 
@@ -113,13 +114,13 @@ class Snake:
                 if next_x == square[0] and next_y == square[1]:
                     self.alive = False
                     died = True
-            
+
             # Check for obstacle collision.
             for obstacle in obstacles:
                 if next_x == obstacle.x and next_y == obstacle.y:
                     self.alive = False
                     died = True
-            
+
             if self.alive:
                 self.target_x = next_x
                 self.target_y = next_y
@@ -170,7 +171,7 @@ class Snake:
 
 class Apple:
     def __init__(self, width: int, height: int, grid_size: int):
-        """Initialize the Apple in a random position on the grid, but does not guarantee it is not overlaped with the snake 
+        """Initialize the Apple in a random position on the grid, but does not guarantee it is not overlaped with the snake
 
         Args:
             width: Game window width
@@ -180,15 +181,15 @@ class Apple:
         self.width = width
         self.height = height
         self.grid_size = grid_size
-        
+
         # Place at random position (will be refined by ensure_valid_position)
         self.x = random.randrange(0, width, grid_size)
         self.y = random.randrange(0, height, grid_size)
         self.rect = pygame.Rect(self.x, self.y, grid_size, grid_size)
-    
+
     def ensure_valid_position(self, snake: Snake, obstacles: Obstacle | None = None):
         """Move apple to a position not occupied by the snak or obstacles
-        
+
         Args:
             snake: The Snake instance to avoid
             obstacles: Obstacles to avoid
@@ -218,8 +219,6 @@ class Apple:
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
 
 
-
-
 class Obstacle:
     def __init__(self, x, y, arena, grid_size):
         self.x = x
@@ -231,9 +230,8 @@ class Obstacle:
         # Draw the obstacle
         pygame.draw.rect(self.arena, OBSTACLE_COLOR, self.rect)
 
-    
     @staticmethod
-    def calculate_obstacles_from_difficulty(difficulty,width,grid_size,height):
+    def calculate_obstacles_from_difficulty(difficulty, width, grid_size, height):
         total_cells = (width // grid_size) * (height // grid_size)
 
         difficulty_percentages = {
@@ -248,7 +246,7 @@ class Obstacle:
         return int(total_cells * percentage)
 
     @staticmethod
-    def is_blocked(x, y, new_obstacle_pos, obstacles_positions,width,height):
+    def is_blocked(x, y, new_obstacle_pos, obstacles_positions, width, height):
         """Checks if a given coordinate is blocked by an obstacle, the new one, or the board edge."""
         # Check if it's outside the board boundaries
         if not (0 <= x < width and 0 <= y < height):
