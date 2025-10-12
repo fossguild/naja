@@ -252,6 +252,7 @@ def run_settings_menu() -> None:
 
 
 def run_instructions_menu() -> None:
+    global arena
     while True:
         arena.fill(ARENA_COLOR)
 
