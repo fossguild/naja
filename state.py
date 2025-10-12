@@ -44,7 +44,7 @@ class GameState:
 
     def __init__(self, display_width: int, display_height: int, grid_size: int):
         """Initialize game state with default values.
-        
+
         Args:
             display_width: Width of the game window
             display_height: Height of the game window
@@ -72,7 +72,7 @@ class GameState:
 
     def update_dimensions(self, width: int, height: int, grid_size: int) -> None:
         """Update the game dimensions.
-        
+
         Args:
             width: New game window width
             height: New game window height
@@ -88,7 +88,7 @@ class GameState:
         if num_obstacles == 0:
             self.obstacles = []
             return
-        
+
         max_retries = 100
         for _ in range(max_retries):
             obstacles = []
@@ -117,7 +117,9 @@ class GameState:
 
                 # If the local check passes, add the obstacle
                 obstacles.append(
-                    Obstacle(candidate_pos[0], candidate_pos[1], self.arena, self._grid_size)
+                    Obstacle(
+                        candidate_pos[0], candidate_pos[1], self.arena, self._grid_size
+                    )
                 )
                 obstacles_positions.add(candidate_pos)
 
@@ -125,12 +127,14 @@ class GameState:
             if len(obstacles) == num_obstacles and self.__is_grid_connected(obstacles):
                 self.obstacles = obstacles
                 return
-        
+
         # If we couldn't place all obstacles after max_retries, use what we have
-        print(f"Warning: Could only place {len(obstacles)} of {num_obstacles} requested obstacles")
+        print(
+            f"Warning: Could only place {len(obstacles)} of {num_obstacles} requested obstacles"
+        )
         self.obstacles = obstacles
 
-    #private helper functions
+    # private helper functions
 
     def __is_grid_connected(self, obstacles: list[Obstacle]) -> bool:
         """Checks if all free cells on the grid are connected using BFS."""
@@ -139,7 +143,9 @@ class GameState:
             return False
 
         # Calculate the expected number of reachable cells
-        total_cells = (self._width // self._grid_size) * (self._height // self._grid_size)
+        total_cells = (self._width // self._grid_size) * (
+            self._height // self._grid_size
+        )
         total_free_cells = total_cells - len(obstacles)
 
         # Use a standard list as a queue
@@ -172,7 +178,11 @@ class GameState:
         # The grid is connected if all free cells were visited
         return len(visited) == total_free_cells
 
-    def __would_create_trap(self, new_obstacle_pos: tuple[int, int], obstacles_positions: set[tuple[int, int]]) -> bool:
+    def __would_create_trap(
+        self,
+        new_obstacle_pos: tuple[int, int],
+        obstacles_positions: set[tuple[int, int]],
+    ) -> bool:
         """
         Checks if placing a new obstacle creates a trap for any adjacent cell.
         A trap is a free cell with 3 or more blocked sides.
@@ -181,12 +191,22 @@ class GameState:
 
         # We only need to check the four direct neighbors of the new obstacle.
         # Only these cells could possibly become trapped by this new addition.
-        for dx, dy in [(0, self._grid_size), (0, -self._grid_size), (self._grid_size, 0), (-self._grid_size, 0)]:
+        for dx, dy in [
+            (0, self._grid_size),
+            (0, -self._grid_size),
+            (self._grid_size, 0),
+            (-self._grid_size, 0),
+        ]:
             neighbor_x, neighbor_y = new_x + dx, new_y + dy
 
             # If the neighbor is not a free cell, we don't need to check it.
             if Obstacle.is_blocked(
-                neighbor_x, neighbor_y, (0, 0), obstacles_positions, self._width, self._height
+                neighbor_x,
+                neighbor_y,
+                (0, 0),
+                obstacles_positions,
+                self._width,
+                self._height,
             ):  # Note: passing dummy new_pos
                 continue
 
@@ -203,7 +223,12 @@ class GameState:
 
             for side_x, side_y in sides_to_check:
                 if Obstacle.is_blocked(
-                    side_x, side_y, new_obstacle_pos, obstacles_positions, self._width, self._height
+                    side_x,
+                    side_y,
+                    new_obstacle_pos,
+                    obstacles_positions,
+                    self._width,
+                    self._height,
                 ):
                     blocked_sides_count += 1
 

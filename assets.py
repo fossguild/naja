@@ -22,4 +22,5 @@ class GameAssets:
     """
     Loading/managing external resources Ex: Soundtracks
     """
+
     pass

@@ -17,12 +17,12 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Dynamic game settings and menu configuration.
-"""
+"""Dynamic game settings and menu configuration."""
 
 
 class GameSettings:
     """
     Things users can configure
     """
+
     pass
