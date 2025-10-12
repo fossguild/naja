@@ -605,7 +605,8 @@ def main():
 
                     # Force reset if critical settings changed, or use player preference
                     apply_settings(
-                        state, reset_objects=needs_reset or SETTINGS["reset_game_on_apply"]
+                        state,
+                        reset_objects=needs_reset or SETTINGS["reset_game_on_apply"],
                     )
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
