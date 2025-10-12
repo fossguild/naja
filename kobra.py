@@ -34,6 +34,7 @@ from constants import (
     WINDOW_TITLE,
 )
 from state import GameState
+from assets import GameAssets
 
 ##
 ## Game customization.
@@ -43,30 +44,8 @@ from state import GameState
 # Allows to detect the screen size before creating the main window.
 pygame.init()
 
-# Inicializa o mixer de áudio
+# Initialize the audio mixer
 pygame.mixer.init()
-
-# Define paths for music files
-BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
-DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
-
-# Carrega e toca a música de fundo (loop infinito)
-pygame.mixer.music.load(BACKGROUND_MUSIC_PATH)
-pygame.mixer.music.set_volume(0.2)  # volume de 0.0 a 1.0
-pygame.mixer.music.play(-1)  # -1 significa repetir para sempre
-
-
-# Load speaker sprites
-try:
-    speaker_on_sprite = pygame.image.load("assets/sprites/speaker-on.png")
-    speaker_muted_sprite = pygame.image.load("assets/sprites/speaker-muted.png")
-except pygame.error as e:
-    print(f"Warning: Could not load speaker sprites: {e}")
-    speaker_on_sprite = None
-    speaker_muted_sprite = None
-
-# Load gameover sound effect (short sound played once when snake dies)
-gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 # Get the current display's resolution from the system.
 display_info = pygame.display.Info()
@@ -142,11 +121,8 @@ DEATH_SOUND_ON = SETTINGS["death_sound"]
 NUM_OBSTACLES = 0  # Will be calculated in apply_settings
 MUSIC_ON = SETTINGS["background_music"]
 
-# BIG_FONT   = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/8))
-# SMALL_FONT = pygame.font.Font("assets/font/Ramasuri.ttf", int(WIDTH/20))
-
-BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
-SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20))
+# Global assets instance (initialized in main)
+assets = None
 
 
 def _clamp(v, lo, hi):
@@ -177,7 +153,7 @@ def _fmt_setting_value(field, value):
 def _draw_settings_menu(state, selected_index: int) -> None:
     state.arena.fill(ARENA_COLOR)
 
-    title_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 10))
+    title_font = pygame.font.Font(GameAssets.FONT_PATH, int(WIDTH / 10))
     title = title_font.render("Settings", True, MESSAGE_COLOR)
     title_rect = title.get_rect(center=(WIDTH / 2, HEIGHT / 10))
     state.arena.blit(title, title_rect)
@@ -194,7 +170,7 @@ def _draw_settings_menu(state, selected_index: int) -> None:
             break
         f = MENU_FIELDS[field_i]
         val = SETTINGS[f["key"]]
-        text = SMALL_FONT.render(
+        text = assets.small_font.render(
             f"{f['label']}: {_fmt_setting_value(f, val)}",
             True,
             SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
@@ -205,7 +181,7 @@ def _draw_settings_menu(state, selected_index: int) -> None:
         state.arena.blit(text, rect)
 
     # hint footer (smaller)
-    hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 40))
+    hint_font = pygame.font.Font(GameAssets.FONT_PATH, int(WIDTH / 40))
     hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
     hint = hint_font.render(hint_text, True, GRID_COLOR)
     state.arena.blit(hint, hint.get_rect(center=(WIDTH / 2, HEIGHT * 0.95)))
@@ -281,7 +257,7 @@ def run_settings_menu(state) -> None:
 
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(state: GameState, reset_objects: bool = False) -> None:
-    global GRID_SIZE, WIDTH, HEIGHT, BIG_FONT, SMALL_FONT
+    global GRID_SIZE, WIDTH, HEIGHT
     global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, NUM_OBSTACLES, MUSIC_ON
 
     old_grid = GRID_SIZE
@@ -315,12 +291,8 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
         # Update state's dimensions to match new grid size
         state.update_dimensions(WIDTH, HEIGHT, GRID_SIZE)
 
-        # Reload fonts globally with new width
-        global BIG_FONT, SMALL_FONT
-        BIG_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 8))
-        SMALL_FONT = pygame.font.Font(
-            "assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 20)
-        )
+        # Reload fonts with new width
+        assets.reload_fonts(WIDTH)
 
         # Force reset_objects when grid size changes to prevent misalignment
         reset_objects = True
@@ -349,7 +321,7 @@ def _render_text_fit(text: str, color, max_width_ratio: float, base_px: int):
     """
     px = base_px
     while px > 8:  # don't go too tiny
-        font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", px)
+        font = pygame.font.Font(GameAssets.FONT_PATH, px)
         surf = font.render(text, True, color)
         if surf.get_width() <= WIDTH * max_width_ratio:
             return surf
@@ -396,10 +368,9 @@ def game_over_handler(state: GameState) -> None:
     """
     # Play death sound effect and switch to death song
     if DEATH_SOUND_ON and MUSIC_ON:
-        gameover_sound.play()  # Play death sound effect once
-        pygame.mixer.music.stop()  # Stop current music
-        pygame.mixer.music.load(DEATH_MUSIC_PATH)  # Load death song
-        pygame.mixer.music.play(-1)  # Play death song in loop
+        if assets.gameover_sound:
+            assets.gameover_sound.play()  # Play death sound effect once
+        GameAssets.play_death_music()  # Switch to death music
 
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
@@ -412,9 +383,7 @@ def game_over_handler(state: GameState) -> None:
 
     # Switch back to background music
     if DEATH_SOUND_ON and MUSIC_ON:
-        pygame.mixer.music.stop()  # Stop death song
-        pygame.mixer.music.load(BACKGROUND_MUSIC_PATH)  # Load background music
-        pygame.mixer.music.play(-1)  # Resume background music in loop
+        GameAssets.play_background_music()  # Resume background music
 
     if key == pygame.K_q:
         pygame.quit()
@@ -437,13 +406,13 @@ def start_menu(state: GameState):
         state.arena.fill(ARENA_COLOR)
 
         # title
-        title = BIG_FONT.render(WINDOW_TITLE, True, MESSAGE_COLOR)
+        title = assets.big_font.render(WINDOW_TITLE, True, MESSAGE_COLOR)
         state.arena.blit(title, title.get_rect(center=(WIDTH / 2, HEIGHT / 4)))
 
         # draw buttons
         for i, text_label in enumerate(items):
             color = SCORE_COLOR if i == selected else MESSAGE_COLOR
-            text = SMALL_FONT.render(text_label, True, color)
+            text = assets.small_font.render(text_label, True, color)
             rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12)))
             state.arena.blit(text, rect)
 
@@ -478,9 +447,9 @@ def start_menu(state: GameState):
                 # simple click detection
                 mx, my = event.pos
                 for i, text_label in enumerate(items):
-                    rect = SMALL_FONT.render(text_label, True, MESSAGE_COLOR).get_rect(
-                        center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12))
-                    )
+                    rect = assets.small_font.render(
+                        text_label, True, MESSAGE_COLOR
+                    ).get_rect(center=(WIDTH / 2, HEIGHT / 2 + i * (HEIGHT * 0.12)))
                     if rect.collidepoint(mx, my):
                         if text_label == "Start Game":
                             return
@@ -519,7 +488,7 @@ def draw_music_indicator(state: GameState):
     icon_y = HEIGHT - padding - icon_size
 
     # Choose the appropriate sprite based on music state
-    sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
+    sprite = assets.speaker_on_sprite if MUSIC_ON else assets.speaker_muted_sprite
 
     # Scale and draw the sprite
     if sprite is not None:
@@ -527,7 +496,7 @@ def draw_music_indicator(state: GameState):
         state.arena.blit(scaled_sprite, (icon_x, icon_y))
 
     # Add [N] text hint below the icon
-    hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 50))
+    hint_font = pygame.font.Font(GameAssets.FONT_PATH, int(WIDTH / 50))
     hint_color = SCORE_COLOR if MUSIC_ON else GRID_COLOR
     hint_text = "[N]"
     hint_surf = hint_font.render(hint_text, True, hint_color)
@@ -543,6 +512,14 @@ def draw_music_indicator(state: GameState):
 ##
 def main():
     """Main game entry point with GameState initialization."""
+    global assets
+
+    # Initialize game assets
+    assets = GameAssets(WIDTH)
+
+    # Initialize and start background music
+    GameAssets.init_music(volume=0.2, start_playing=True)
+
     # Initialize game state
     state = GameState(WIDTH, HEIGHT, GRID_SIZE)
 
@@ -738,7 +715,7 @@ def main():
         )
 
         # Show score (snake length = head + tail)
-        score = BIG_FONT.render(f"{len(state.snake.tail)}", True, SCORE_COLOR)
+        score = assets.big_font.render(f"{len(state.snake.tail)}", True, SCORE_COLOR)
         score.set_alpha(75)  # opacity
         score_rect = score.get_rect(center=(WIDTH / 2, HEIGHT / 12))
         state.arena.blit(score, score_rect)
