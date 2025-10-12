@@ -38,7 +38,7 @@ from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 class Snake:
 
-    def __init__(self, width:int, height:int, grid_size:int):
+    def __init__(self, width: int, height: int, grid_size: int):
         """Initialize the Snake.
 
         Args:
@@ -198,7 +198,7 @@ class Snake:
 
 
 class Apple:
-    def __init__(self, width:int, height:int, grid_size:int):
+    def __init__(self, width: int, height: int, grid_size: int):
         """Initialize the Apple.
 
         Args:
