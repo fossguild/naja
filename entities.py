@@ -199,7 +199,7 @@ class Snake:
 
 class Apple:
     def __init__(self, width: int, height: int, grid_size: int):
-        """Initialize the Apple.
+        """Initialize the Apple in a random position on the grid, but does not guarantee it is not overlaped with the snake 
 
         Args:
             width: Game window width

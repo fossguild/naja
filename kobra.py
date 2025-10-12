@@ -312,6 +312,7 @@ def apply_settings(reset_objects: bool = False) -> None:
             )
             globals()["apple"] = Apple(WIDTH, HEIGHT, GRID_SIZE)
             snake.speed = CLOCK_TICKS
+            apple.move_away_from_snake(snake) #ensure apple is not on snake
         except NameError:
             # If called before classes/instances exist, ignore.
             pass
@@ -534,6 +535,7 @@ obstacles = create_obstacles_constructively(
     NUM_OBSTACLES, snake.x, snake.y
 )  # create obstacles
 apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
+apple.move_away_from_snake(snake)
 
 ##
 ## Main loop
