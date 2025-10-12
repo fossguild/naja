@@ -687,7 +687,7 @@ apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
 
         ## Update the game
         if state.game_on:
-            state.snake.update(state,game_over_handler)
+            state.snake.update(state.apple, lambda: game_over_handler(state))
 
         # Play death sound if snake died
         if died and DEATH_SOUND_ON:
@@ -746,7 +746,7 @@ apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
         for obstacle in obstacles:
             obstacle.update()
 
-            state.apple.update(state)
+            state.apple.update(state.arena)
 
         # Draw the tail with smooth interpolation
         for i, (tx, ty) in enumerate(snake.tail):
@@ -786,9 +786,7 @@ apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
         if state.snake.head.x == state.apple.x and state.snake.head.y == state.apple.y:
             state.snake.got_apple = True
             state.snake.speed = min(state.snake.speed * 1.1, MAX_SPEED)  # Increase speed
-            state.apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
-        
-        state.apple.ensure_valid_position(state.snake, obstacles)
+            state.apple.ensure_valid_position(state.snake, obstacles)
 
         # Update display and move clock.
         pygame.display.update()
