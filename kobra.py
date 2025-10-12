@@ -360,11 +360,13 @@ def game_over_handler(state: GameState, assets) -> None:
         state: GameState instance
         assets: GameAssets instance
     """
-    # Play death sound effect and switch to death song
-    if DEATH_SOUND_ON and MUSIC_ON:
-        if assets.gameover_sound:
-            assets.gameover_sound.play()  # Play death sound effect once
-        GameAssets.play_death_music()  # Switch to death music
+    # Play death sound effect (if enabled)
+    if DEATH_SOUND_ON and assets.gameover_sound:
+        assets.gameover_sound.play()
+
+    # Switch to death music (if music is enabled)
+    if MUSIC_ON:
+        GameAssets.play_death_music()
 
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
@@ -375,9 +377,9 @@ def game_over_handler(state: GameState, assets) -> None:
     )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
 
-    # Switch back to background music
-    if DEATH_SOUND_ON and MUSIC_ON:
-        GameAssets.play_background_music()  # Resume background music
+    # Switch back to background music (if music is enabled)
+    if MUSIC_ON:
+        GameAssets.play_background_music()
 
     if key == pygame.K_q:
         pygame.quit()
