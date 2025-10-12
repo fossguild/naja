@@ -602,7 +602,7 @@ def main():
                 elif event.key == pygame.K_p:  # P         : pause game
                     if state.game_on:
                         state.game_on = not state.game_on
-                        _draw_center_message(state, "Pause", "Press P to continue")
+                        _draw_center_message(state, "Pause", "Press P to continue  •  Q to exit")
                         key = _wait_for_keys({pygame.K_p, pygame.K_q})
 
                         if key == pygame.K_q:
