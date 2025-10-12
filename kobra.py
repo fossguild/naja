@@ -309,7 +309,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
     if GRID_SIZE != old_grid:
         new_dim = (safe_max_dimension // GRID_SIZE) * GRID_SIZE
         WIDTH = HEIGHT = new_dim
-        state.arena = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED, vsync=1)
+        state.arena = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption(WINDOW_TITLE)
 
         # Update state's dimensions to match new grid size
@@ -512,29 +512,39 @@ def draw_music_indicator(state: GameState):
     Args:
         state: GameState instance (required)
     """
-    # Calculate position in bottom-right corner
-    padding = int(WIDTH * 0.02)
-    icon_size = int(WIDTH / 25)  # Icon size for scaling
-    icon_x = WIDTH - padding - icon_size
-    icon_y = HEIGHT - padding - icon_size
-
-    # Choose the appropriate sprite based on music state
-    sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
-
-    # Scale and draw the sprite
-    if sprite is not None:
-        scaled_sprite = pygame.transform.scale(sprite, (icon_size, icon_size))
-        state.arena.blit(scaled_sprite, (icon_x, icon_y))
-
-    # Add [N] text hint below the icon
+    # First, prepare the text surface to get its height for correct positioning.
     hint_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH / 50))
     hint_color = SCORE_COLOR if MUSIC_ON else GRID_COLOR
     hint_text = "[N]"
     hint_surf = hint_font.render(hint_text, True, hint_color)
     hint_rect = hint_surf.get_rect()
-    hint_rect.centerx = icon_x + icon_size // 2
-    hint_rect.top = icon_y + icon_size + 2
 
+    # Define dimensions and spacing using proportional padding for both axes.
+    # This ensures the margin scales correctly with the window size.
+    padding_x = int(WIDTH * 0.02)
+    padding_y = int(HEIGHT * 0.02)
+
+    icon_size = int(WIDTH / 25)
+    gap = 4  # A small pixel gap between the icon and the text.
+
+    # Calculate the total height of the entire widget (icon + gap + text).
+    total_widget_height = icon_size + gap + hint_rect.height
+
+    # Calculate the positions using the proportional padding variables.
+    icon_x = WIDTH - padding_x - icon_size
+    icon_y = HEIGHT - padding_y - total_widget_height
+
+    # Choose the appropriate sprite based on music state.
+    sprite = speaker_on_sprite if MUSIC_ON else speaker_muted_sprite
+
+    # Scale and draw the sprite.
+    if sprite is not None:
+        scaled_sprite = pygame.transform.scale(sprite, (icon_size, icon_size))
+        state.arena.blit(scaled_sprite, (icon_x, icon_y))
+
+    # Position and draw the text hint below the icon.
+    hint_rect.centerx = icon_x + icon_size // 2
+    hint_rect.top = icon_y + icon_size + gap
     state.arena.blit(hint_surf, hint_rect)
 
 
