@@ -381,7 +381,7 @@ def _wait_for_keys(allowed_keys: set[int]) -> int:
             return event.key
 
 
-def game_over_handler(state: GameState, assets) -> None:
+def game_over_handler(state: GameState, assets: GameAssets) -> None:
     """Handle game over scenario with visual feedback and prompt.
 
     Args:
@@ -417,7 +417,7 @@ def game_over_handler(state: GameState, assets) -> None:
 ##
 ## Start menu (Start / Settings)
 ##
-def start_menu(state: GameState, assets):
+def start_menu(state: GameState, assets: GameAssets) -> None:
     """Main menu shown before the game starts.
 
     Args:
@@ -488,7 +488,7 @@ def start_menu(state: GameState, assets):
 ##
 
 
-def draw_grid(state: GameState):
+def draw_grid(state: GameState) -> None:
     for x in range(0, WIDTH, GRID_SIZE):
         for y in range(0, HEIGHT, GRID_SIZE):
             rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
@@ -500,7 +500,7 @@ def draw_grid(state: GameState):
 ##
 
 
-def draw_music_indicator(state: GameState, assets):
+def draw_music_indicator(state: GameState, assets: GameAssets) -> None:
     """Draw a subtle music status indicator in the bottom-right corner.
 
     Args:
