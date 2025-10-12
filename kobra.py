@@ -349,7 +349,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
         # Objects will be recreated in the game state
         state.snake = Snake(WIDTH, HEIGHT, GRID_SIZE)
         state.create_obstacles_constructively(NUM_OBSTACLES)
-        
+
         # Create multiple apples
         state.apples = []
         for _ in range(NUM_APPLES):
@@ -359,7 +359,7 @@ def apply_settings(state: GameState, reset_objects: bool = False) -> None:
             while any(apple.x == a.x and apple.y == a.y for a in state.apples):
                 apple.ensure_valid_position(state.snake, state.obstacles)
             state.apples.append(apple)
-        
+
         state.snake.speed = CLOCK_TICKS
 
 
@@ -785,24 +785,28 @@ def main():
                 state.snake.speed = min(
                     state.snake.speed * 1.1, MAX_SPEED
                 )  # Increase speed
-                
+
                 # Remove eaten apple and spawn a new one
                 state.apples.remove(apple)
-                
+
                 # Calculate available free cells
                 total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
-                occupied_cells = 1 + len(state.snake.tail) + len(state.obstacles) + len(state.apples)
+                occupied_cells = (
+                    1 + len(state.snake.tail) + len(state.obstacles) + len(state.apples)
+                )
                 free_cells = total_cells - occupied_cells
-                
+
                 # Only spawn new apple if there are free cells
                 if free_cells > 0:
                     new_apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
                     new_apple.ensure_valid_position(state.snake, state.obstacles)
                     # Ensure it doesn't overlap with existing apples
-                    while any(new_apple.x == a.x and new_apple.y == a.y for a in state.apples):
+                    while any(
+                        new_apple.x == a.x and new_apple.y == a.y for a in state.apples
+                    ):
                         new_apple.ensure_valid_position(state.snake, state.obstacles)
                     state.apples.append(new_apple)
-                
+
                 break  # Only eat one apple per frame
 
         # Update display
