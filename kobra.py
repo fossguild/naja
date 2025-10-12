@@ -312,7 +312,7 @@ def apply_settings(reset_objects: bool = False) -> None:
             )
             globals()["apple"] = Apple(WIDTH, HEIGHT, GRID_SIZE)
             snake.speed = CLOCK_TICKS
-            apple.move_away_from_snake(snake) #ensure apple is not on snake
+            apple.ensure_valid_position(snake) #ensure apple is not on snake
         except NameError:
             # If called before classes/instances exist, ignore.
             pass
@@ -525,6 +525,122 @@ def draw_music_indicator():
 
     arena.blit(hint_surf, hint_rect)
 
+def is_grid_connected(obstacles, snake_start_x, snake_start_y):
+    """Checks if all free cells on the grid are connected using BFS."""
+    obstacles_positions = {(obs.x, obs.y) for obs in obstacles}
+    if (snake_start_x, snake_start_y) in obstacles_positions:
+        return False
+
+    # Calculate the expected number of reachable cells
+    total_cells = (WIDTH // GRID_SIZE) * (HEIGHT // GRID_SIZE)
+    total_free_cells = total_cells - len(obstacles)
+
+    # Use a standard list as a queue
+    queue = [(snake_start_x, snake_start_y)]
+    visited = set([(snake_start_x, snake_start_y)])
+
+    while queue:
+        # Pop the first element to behave like a queue (FIFO)
+        x, y = queue.pop(0)
+
+        # Check all four neighbors
+        for dx, dy in [
+            (0, GRID_SIZE),
+            (0, -GRID_SIZE),
+            (GRID_SIZE, 0),
+            (-GRID_SIZE, 0),
+        ]:
+            neighbor = (x + dx, y + dy)
+
+            # If neighbor is valid and unvisited, add it to the queue
+            if (
+                0 <= neighbor[0] < WIDTH
+                and 0 <= neighbor[1] < HEIGHT
+                and neighbor not in obstacles_positions
+                and neighbor not in visited
+            ):
+                visited.add(neighbor)
+                queue.append(neighbor)
+
+    # The grid is connected if all free cells were visited
+    return len(visited) == total_free_cells
+
+def would_create_trap(new_obstacle_pos, obstacles_positions):
+    """
+    Checks if placing a new obstacle creates a trap for any adjacent cell.
+    A trap is a free cell with 3 or more blocked sides.
+    """
+    new_x, new_y = new_obstacle_pos
+
+    # We only need to check the four direct neighbors of the new obstacle.
+    # Only these cells could possibly become trapped by this new addition.
+    for dx, dy in [(0, GRID_SIZE), (0, -GRID_SIZE), (GRID_SIZE, 0), (-GRID_SIZE, 0)]:
+        neighbor_x, neighbor_y = new_x + dx, new_y + dy
+
+        # If the neighbor is not a free cell, we don't need to check it.
+        if Obstacle.is_blocked(
+            neighbor_x, neighbor_y, (0, 0), obstacles_positions,WIDTH,HEIGHT
+        ):  # Note: passing dummy new_pos
+            continue
+
+        # This neighbor is a free cell. Let's count how many of its sides are blocked.
+        blocked_sides_count = 0
+
+        # Check the 4 sides of this neighbor cell
+        sides_to_check = [
+            (neighbor_x + GRID_SIZE, neighbor_y),  # Right
+            (neighbor_x - GRID_SIZE, neighbor_y),  # Left
+            (neighbor_x, neighbor_y + GRID_SIZE),  # Down
+            (neighbor_x, neighbor_y - GRID_SIZE),  # Up
+        ]
+
+        for side_x, side_y in sides_to_check:
+            if Obstacle.is_blocked(side_x, side_y, new_obstacle_pos, obstacles_positions,WIDTH,HEIGHT):
+                blocked_sides_count += 1
+
+        # If 3 or more sides are blocked, it's a trap.
+        if blocked_sides_count >= 3:
+            return True
+
+    # If we check all neighbors and none of them become traps, the placement is safe.
+    return False
+
+def create_obstacles_constructively(num_obstacles, snake_start_x, snake_start_y):
+    """Builds a valid map by adding obstacles one by one safely."""
+    while True:
+        obstacles = []
+        obstacles_positions = set()
+
+        # Get all possible spawn points for obstacles, avoiding the snake's start area
+        available_positions = []
+        for x in range(0, WIDTH, GRID_SIZE):
+            for y in range(0, HEIGHT, GRID_SIZE):
+                if not (
+                    abs(x - snake_start_x) < GRID_SIZE * 8
+                    and abs(y - snake_start_y) < GRID_SIZE * 2
+                ):
+                    available_positions.append((x, y))
+        random.shuffle(available_positions)
+
+        temp_available = list(available_positions)
+
+        # Attempt to place one obstacle at a time
+        while len(obstacles) < num_obstacles and temp_available:
+            candidate_pos = temp_available.pop()
+
+            # Rule 1: Don't create narrow passages or traps
+            if would_create_trap(candidate_pos, obstacles_positions):
+                continue
+
+            # If the local check passes, add the obstacle
+            obstacles.append(Obstacle(candidate_pos[0], candidate_pos[1],arena,GRID_SIZE))
+            obstacles_positions.add(candidate_pos)
+
+        # Rule 2: Don't disconnect the map
+        if len(obstacles) == num_obstacles and is_grid_connected(
+            obstacles, snake_start_x, snake_start_y
+        ):
+            return obstacles
 
 ##
 ## Start flow
@@ -535,7 +651,7 @@ obstacles = create_obstacles_constructively(
     NUM_OBSTACLES, snake.x, snake.y
 )  # create obstacles
 apple = Apple(WIDTH, HEIGHT, GRID_SIZE)
-apple.move_away_from_snake(snake)
+apple.ensure_valid_position(snake)
 
 ##
 ## Main loop
