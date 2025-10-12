@@ -763,7 +763,9 @@ class Apple:
             self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
 
             head_free = not (self.x == snake.head.x and self.y == snake.head.y)
-            tail_free = all((self.x != seg.x or self.y != seg.y) for seg in snake.tail)
+            tail_free = all(
+                (self.x != seg[0] or self.y != seg[1]) for seg in snake.tail
+            )
             obstacle_free = all(
                 (self.x != obs.x or self.y != obs.y) for obs in obstacles
             )
