@@ -75,6 +75,7 @@ SETTINGS = {
     "max_speed": 20.0,  # current speed clamp at apple pickup
     "death_sound": True,  # toggle death sound playback
     "background_music": True,  # toggle background music playback
+    "eat_sound": True,  # toggle eat sound playback
 }
 
 # Declarative menu fields.
@@ -105,12 +106,14 @@ MENU_FIELDS = [
     },
     {"key": "death_sound", "label": "Death Sound", "type": "bool"},
     {"key": "background_music", "label": "Background Music", "type": "bool"},
+    {"key": "eat_sound", "label": "Eat Sound", "type": "bool"},  # novo campo
 ]
 
 # Effective runtime values (hydrated by apply_settings).
 MAX_SPEED = SETTINGS["max_speed"]
 DEATH_SOUND_ON = SETTINGS["death_sound"]
 MUSIC_ON = SETTINGS["background_music"]
+EAT_SOUND_ON = SETTINGS["eat_sound"]  # novo valor global
 
 
 def _clamp(v, lo, hi):
@@ -236,7 +239,7 @@ def run_settings_menu() -> None:
 ## Apply SETTINGS to globals; resize surface/fonts if grid size changed.
 def apply_settings(reset_objects: bool = False) -> None:
     global GRID_SIZE, WIDTH, HEIGHT, arena, BIG_FONT, SMALL_FONT
-    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, MUSIC_ON
+    global CLOCK_TICKS, MAX_SPEED, DEATH_SOUND_ON, MUSIC_ON, EAT_SOUND_ON
 
     old_grid = GRID_SIZE
 
@@ -251,6 +254,7 @@ def apply_settings(reset_objects: bool = False) -> None:
     MAX_SPEED = float(SETTINGS["max_speed"])
     DEATH_SOUND_ON = bool(SETTINGS["death_sound"])
     MUSIC_ON = bool(SETTINGS["background_music"])
+    EAT_SOUND_ON = bool(SETTINGS["eat_sound"])  # hidrata valor
 
     # Control background music playback based on setting
     if MUSIC_ON:
@@ -699,7 +703,9 @@ while True:
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
         # snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        eat_sound.play()  # Play the sound
+        if EAT_SOUND_ON:
+            eat_sound.play()  # Play the sound
+        
         snake.got_apple = True
         snake.speed = min(snake.speed * 1.1, MAX_SPEED)  # Increase speed
         # print(f"[APPLE] Speed increased to: {snake.speed:.2f}")
