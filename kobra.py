@@ -46,8 +46,12 @@ pygame.init()
 # Inicializa o mixer de áudio
 pygame.mixer.init()
 
+# Define paths for music files
+BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
+DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
+
 # Carrega e toca a música de fundo (loop infinito)
-pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+pygame.mixer.music.load(BACKGROUND_MUSIC_PATH)
 pygame.mixer.music.set_volume(0.2)  # volume de 0.0 a 1.0
 pygame.mixer.music.play(-1)  # -1 significa repetir para sempre
 
@@ -61,7 +65,7 @@ except pygame.error as e:
     speaker_on_sprite = None
     speaker_muted_sprite = None
 
-# Load gameover sound
+# Load gameover sound effect (short sound played once when snake dies)
 gameover_sound = pygame.mixer.Sound("assets/sound/gameover.wav")
 
 # Get the current display's resolution from the system.
@@ -388,9 +392,12 @@ def game_over_handler(state: GameState) -> None:
     Args:
         state: GameState instance
     """
-    # Play death sound immediately when snake dies
+    # Play death sound effect and switch to death song
     if DEATH_SOUND_ON and MUSIC_ON:
-        gameover_sound.play()
+        gameover_sound.play()  # Play death sound effect once
+        pygame.mixer.music.stop()  # Stop current music
+        pygame.mixer.music.load(DEATH_MUSIC_PATH)  # Load death song
+        pygame.mixer.music.play(-1)  # Play death song in loop
     
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
@@ -400,6 +407,13 @@ def game_over_handler(state: GameState) -> None:
         state, "Game Over", "Press Enter/Space to restart  •  Q to exit"
     )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
+    
+    # Switch back to background music
+    if DEATH_SOUND_ON and MUSIC_ON:
+        pygame.mixer.music.stop()  # Stop death song
+        pygame.mixer.music.load(BACKGROUND_MUSIC_PATH)  # Load background music
+        pygame.mixer.music.play(-1)  # Resume background music in loop
+    
     if key == pygame.K_q:
         pygame.quit()
         sys.exit()
