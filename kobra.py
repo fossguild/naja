@@ -138,7 +138,7 @@ MENU_FIELDS = [
         "key": "background_color",
         "label": "Background Color",
         "type": "select",
-        "options": ["Gray", "Black", "Blue", "Pink", "Purple", "Orange", "Brown"],
+        "options": ["Gray", "Black", "Blue", "Pink", "Orange", "Brown"],
     },
     {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
 ]
@@ -295,7 +295,6 @@ def _define_arena_color(ascii_color):
         "Yellow": "#ffff57",
         "White": "#ffffff",
         "Pink": "#ff5aee",
-        "Purple": "#a81cff",
         "Orange": "#ffab2e",
         "Brown": "#734a31",
     }
