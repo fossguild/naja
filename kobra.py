@@ -767,7 +767,7 @@ class Apple:
             obstacle_free = all(
                 (self.x != obs.x or self.y != obs.y) for obs in obstacles
             )
-            if head_free and tail_free:
+            if head_free and tail_free and obstacle_free:
                 break
 
     # This function is called each iteration of the game loop
