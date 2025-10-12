@@ -388,6 +388,10 @@ def game_over_handler(state: GameState) -> None:
     Args:
         state: GameState instance
     """
+    # Play death sound immediately when snake dies
+    if DEATH_SOUND_ON and MUSIC_ON:
+        gameover_sound.play()
+    
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
     pygame.display.update()
@@ -542,7 +546,6 @@ def main():
     ## Main loop
     ##
     while True:
-        died = False
         dt = state.clock.tick_busy_loop(0)
         for event in pygame.event.get():  # Wait for events
             # App terminated
@@ -601,13 +604,9 @@ def main():
                 and state.snake.target_y == state.snake.head.y
             ):
                 if state.snake.xmov or state.snake.ymov:
-                    died = state.snake.update(
+                    state.snake.update(
                         state.apple, state.obstacles, lambda: game_over_handler(state)
                     )
-
-                    # Play death sound if snake died
-            if died and DEATH_SOUND_ON and MUSIC_ON:
-                gameover_sound.play()
 
             # Advance interpolation toward the current target grid cell (if any)
             if (
