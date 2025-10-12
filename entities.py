@@ -89,7 +89,7 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(
-        self, apple: Apple, obstacles: list[Obstacle], game_over_func: Callable
+        self, apples: list[Apple], obstacles: list[Obstacle], game_over_func: Callable
     ) -> bool:
         """Update snake position and check for collisions.
 
@@ -161,8 +161,14 @@ class Snake:
             self.prev_head_x = self.x
             self.prev_head_y = self.y
 
-            # Reposition the apple
-            apple.ensure_valid_position(self, obstacles)
+            # Reposition all apples ensuring no overlap
+            for i, apple in enumerate(apples):
+                apple.ensure_valid_position(self, obstacles)
+                # Ensure this apple doesn't overlap with previously repositioned apples
+                while any(
+                    apple.x == apples[j].x and apple.y == apples[j].y for j in range(i)
+                ):
+                    apple.ensure_valid_position(self, obstacles)
 
         return died
 
