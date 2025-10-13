@@ -227,6 +227,16 @@ def apply_settings(
             state.apples.append(apple)
 
 
+# Load speaker sprites
+try:
+    speaker_on_sprite = pygame.image.load("assets/sprites/speaker-on.png")
+    speaker_muted_sprite = pygame.image.load("assets/sprites/speaker-muted.png")
+except pygame.error as e:
+    print(f"Warning: Could not load speaker sprites: {e}")
+    speaker_on_sprite = None
+    speaker_muted_sprite = None
+
+
 ##
 ## Center message + simple key wait helpers
 ##
@@ -758,6 +768,14 @@ def main():
                 state.snake.speed = min(
                     state.snake.speed * 1.1, max_speed
                 )  # Increase speed
+
+                # Plays the eating sound if enabled in the settings
+                if (
+                    settings.get("eat_sound")
+                    and hasattr(assets, "eat_sound")
+                    and assets.eat_sound
+                ):
+                    assets.eat_sound.play()
 
                 # Remove eaten apple and spawn a new one
                 state.apples.remove(apple)
