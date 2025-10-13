@@ -22,8 +22,8 @@
 
 import sys
 import pygame
-from entities import Snake, Apple, Obstacle
-from constants import (
+from src.entities import Snake, Apple, Obstacle
+from src.constants import (
     HEAD_COLOR,
     DEAD_HEAD_COLOR,
     TAIL_COLOR,
@@ -33,10 +33,10 @@ from constants import (
     MESSAGE_COLOR,
     WINDOW_TITLE,
 )
-from state import GameState
-from assets import GameAssets
-from config import GameConfig
-from settings import GameSettings
+from src.state import GameState
+from src.assets import GameAssets
+from src.config import GameConfig
+from src.settings import GameSettings
 
 ##
 ## Game initialization
