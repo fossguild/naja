@@ -24,7 +24,7 @@ including the game arena, entities (snake, apples, obstacles), and game flow con
 
 import random
 import pygame
-from entities import Snake, Apple, Obstacle
+from .entities import Snake, Apple, Obstacle
 
 
 class GameState:

@@ -27,7 +27,7 @@ import random
 from typing import Callable
 import pygame
 
-from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
+from .constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 
 ##
