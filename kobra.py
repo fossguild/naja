@@ -89,7 +89,7 @@ def _draw_settings_menu(
         text = assets.render_custom(
             f"{f['label']}: {formatted_val}",
             SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
-            int(state.width / 30)
+            int(state.width / 30),
         )
         rect = text.get_rect()
         rect.left = int(state.width * 0.12)
