@@ -18,8 +18,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Game state configuration.
-This module contains the GameState class that holds all mutable game state variables.
+This module contains the GameState class that encapsulates all mutable game state,
+including the game arena, entities (snake, apples, obstacles), and game flow control.
 """
 
 import random
@@ -242,3 +242,150 @@ class GameState:
 
         # If we check all neighbors and none of them become traps, the placement is safe.
         return False
+
+    # Public properties for safe dimension access
+
+    @property
+    def width(self) -> int:
+        """Get current game window width.
+
+        Returns:
+            Window width in pixels
+        """
+        return self._width
+
+    @property
+    def height(self) -> int:
+        """Get current game window height.
+
+        Returns:
+            Window height in pixels
+        """
+        return self._height
+
+    @property
+    def grid_size(self) -> int:
+        """Get current grid cell size.
+
+        Returns:
+            Grid cell size in pixels
+        """
+        return self._grid_size
+
+    @property
+    def cells_per_side(self) -> int:
+        """Get number of cells per side of the square grid.
+
+        Returns:
+            Number of cells per side
+        """
+        return self._width // self._grid_size
+
+    @property
+    def total_cells(self) -> int:
+        """Get total number of cells in the grid.
+
+        Returns:
+            Total number of cells
+        """
+        return (self._width // self._grid_size) * (self._height // self._grid_size)
+
+    @property
+    def is_paused(self) -> bool:
+        """Check if game is paused.
+
+        Returns:
+            True if paused, False if running
+        """
+        return self.game_on == 0
+
+    @property
+    def is_running(self) -> bool:
+        """Check if game is running.
+
+        Returns:
+            True if running, False if paused
+        """
+        return self.game_on == 1
+
+    # Public utility methods
+
+    def pause(self) -> None:
+        """Pause the game."""
+        self.game_on = 0
+
+    def resume(self) -> None:
+        """Resume the game."""
+        self.game_on = 1
+
+    def toggle_pause(self) -> None:
+        """Toggle game pause state."""
+        self.game_on = 1 - self.game_on
+
+    def reset_snake(self) -> None:
+        """Reset snake to initial position and state."""
+        self.snake = Snake(self._width, self._height, self._grid_size)
+
+    def clear_obstacles(self) -> None:
+        """Remove all obstacles from the game."""
+        self.obstacles = []
+
+    def clear_apples(self) -> None:
+        """Remove all apples from the game."""
+        self.apples = []
+
+    def add_apple(self) -> Apple | None:
+        """Add a new apple to the game at a valid position.
+
+        Returns:
+            The newly created apple, or None if no valid position available
+        """
+        apple = Apple(self._width, self._height, self._grid_size)
+        if apple.ensure_valid_position(self.snake, self.obstacles):
+            self.apples.append(apple)
+            return apple
+        return None
+
+    def remove_apple(self, apple: Apple) -> None:
+        """Remove a specific apple from the game.
+
+        Args:
+            apple: The apple instance to remove
+        """
+        if apple in self.apples:
+            self.apples.remove(apple)
+
+    def get_free_cells_count(self) -> int:
+        """Calculate number of free (unoccupied) cells in the grid.
+
+        Returns:
+            Number of free cells
+        """
+        occupied = len(self.obstacles) + len(self.snake.tail) + 1  # +1 for head
+        return self.total_cells - occupied
+
+    def recreate_arena(self) -> None:
+        """Recreate the pygame display surface with current dimensions."""
+        self.arena = pygame.display.set_mode(
+            (self._width, self._height), pygame.SCALED, vsync=1
+        )
+
+    def get_state_summary(self) -> dict:
+        """Get a summary of the current game state.
+
+        Returns:
+            Dictionary containing state information
+        """
+        return {
+            "width": self._width,
+            "height": self._height,
+            "grid_size": self._grid_size,
+            "cells_per_side": self.cells_per_side,
+            "total_cells": self.total_cells,
+            "free_cells": self.get_free_cells_count(),
+            "snake_length": len(self.snake.tail),
+            "apple_count": len(self.apples),
+            "obstacle_count": len(self.obstacles),
+            "is_running": self.is_running,
+            "is_paused": self.is_paused,
+        }
