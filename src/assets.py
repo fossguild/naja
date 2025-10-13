@@ -27,6 +27,7 @@ class GameAssets:
     BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
     DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
     GAMEOVER_SOUND_PATH = "assets/sound/gameover.wav"
+    EAT_SOUND = "assets/sound/eat.flac"
     SPEAKER_ON_SPRITE_PATH = "assets/sprites/speaker-on.png"
     SPEAKER_MUTED_SPRITE_PATH = "assets/sprites/speaker-muted.png"
     FONT_PATH = "assets/font/GetVoIP-Grotesque.ttf"
@@ -49,6 +50,7 @@ class GameAssets:
 
         # Sound assets
         self.gameover_sound = None
+        self.eat_sound = None
 
         # Load all assets
         self.load_all()
@@ -95,6 +97,12 @@ class GameAssets:
         except pygame.error as e:
             print(f"Warning: Could not load gameover sound: {e}")
             self.gameover_sound = None
+
+        try:
+            self.eat_sound = pygame.mixer.Sound(self.EAT_SOUND)
+        except pygame.error as e:
+            print(f"Warning: Could not load eat sound: {e}")
+            self.eat_sound = None
 
     def reload_fonts(self, new_window_width: int) -> None:
         """Reload fonts with new window width.

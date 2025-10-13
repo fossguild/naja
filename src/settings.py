@@ -33,6 +33,7 @@ class GameSettings:
         "number_of_apples": 1,
         "background_music": True,
         "reset_game_on_apply": False,
+        "eat_sound": True,
     }
 
     # Declarative menu field definitions
@@ -78,6 +79,12 @@ class GameSettings:
         },
         {"key": "background_music", "label": "Background Music", "type": "bool"},
         {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
+        {
+            "key": "eat_sound",
+            "label": "eat sound",
+            "type": "bool",
+            "default": True,
+        },
     ]
 
     def __init__(self, initial_width: int, grid_size: int):

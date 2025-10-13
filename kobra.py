@@ -758,6 +758,14 @@ def main():
                     state.snake.speed * 1.1, max_speed
                 )  # Increase speed
 
+                # Plays the eating sound if enabled in the settings
+                if (
+                    settings.get("eat_sound")
+                    and hasattr(assets, "eat_sound")
+                    and assets.eat_sound
+                ):
+                    assets.eat_sound.play()
+
                 # Remove eaten apple and spawn a new one
                 state.apples.remove(apple)
 
