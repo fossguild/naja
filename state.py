@@ -1,4 +1,3 @@
-
 """
 This module contains the GameState class that encapsulates all mutable game state,
 including the game arena, entities (snake, apples, obstacles), and game flow control.
