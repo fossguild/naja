@@ -76,8 +76,22 @@ class GameSettings:
             "max": 30,
             "step": 1,
         },
-        {"key": "background_music", "label": "Background Music", "type": "bool"},
-        {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
+        {
+            "key": "background_music", 
+            "label": "Background Music", 
+            "type": "bool"
+        },
+        {
+            "key": "reset_game_on_apply", 
+            "label": "Reset Game on Apply", 
+            "type": "bool"
+        },
+        {
+            "key": "eat_sound",
+            "label": "Som de Comer",
+            "type": "bool",
+            "default": True,
+        },      
     ]
 
     def __init__(self, initial_width: int, grid_size: int):

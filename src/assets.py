@@ -49,6 +49,7 @@ class GameAssets:
 
         # Sound assets
         self.gameover_sound = None
+        self.eat_sound = None
 
         # Load all assets
         self.load_all()
@@ -95,6 +96,12 @@ class GameAssets:
         except pygame.error as e:
             print(f"Warning: Could not load gameover sound: {e}")
             self.gameover_sound = None
+
+        try:
+            self.eat_sound = pygame.mixer.Sound("assets/eat.flac")
+        except pygame.error as e:
+            print(f"Warning: Could not load eat sound: {e}")
+            self.eat_sound = None
 
     def reload_fonts(self, new_window_width: int) -> None:
         """Reload fonts with new window width.
