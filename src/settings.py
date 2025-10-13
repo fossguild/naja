@@ -33,6 +33,7 @@ class GameSettings:
         "number_of_apples": 1,
         "background_music": True,
         "reset_game_on_apply": False,
+        "eat_sound": True,
     }
 
     # Declarative menu field definitions
@@ -88,7 +89,7 @@ class GameSettings:
         },
         {
             "key": "eat_sound",
-            "label": "Som de Comer",
+            "label": "eat sound",
             "type": "bool",
             "default": True,
         },      

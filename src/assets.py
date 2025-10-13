@@ -27,6 +27,7 @@ class GameAssets:
     BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
     DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
     GAMEOVER_SOUND_PATH = "assets/sound/gameover.wav"
+    EAT_SOUND = "assets/sound/eat.flac"
     SPEAKER_ON_SPRITE_PATH = "assets/sprites/speaker-on.png"
     SPEAKER_MUTED_SPRITE_PATH = "assets/sprites/speaker-muted.png"
     FONT_PATH = "assets/font/GetVoIP-Grotesque.ttf"
@@ -98,7 +99,7 @@ class GameAssets:
             self.gameover_sound = None
 
         try:
-            self.eat_sound = pygame.mixer.Sound("assets/eat.flac")
+            self.eat_sound = pygame.mixer.Sound(self.EAT_SOUND)
         except pygame.error as e:
             print(f"Warning: Could not load eat sound: {e}")
             self.eat_sound = None
