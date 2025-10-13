@@ -67,7 +67,7 @@ def _draw_settings_menu(
     """
     state.arena.fill(ARENA_COLOR)
 
-    title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 10))
+    title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 15))
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
