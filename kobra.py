@@ -200,8 +200,8 @@ def apply_settings(
 
         # Force reset_objects when grid size changes to prevent misalignment
         reset_objects = True
-    
-     # Recreate moving objects to reflect new geometry/speed
+
+    # Recreate moving objects to reflect new geometry/speed
     if reset_objects:
         # Get current dimensions from state
         width = state.width
@@ -224,7 +224,7 @@ def apply_settings(
             while any(apple.x == a.x and apple.y == a.y for a in state.apples):
                 apple.ensure_valid_position(state.snake, state.obstacles)
             state.apples.append(apple)
-         
+
 
 # Load speaker sprites
 try:
@@ -234,7 +234,7 @@ except pygame.error as e:
     print(f"Warning: Could not load speaker sprites: {e}")
     speaker_on_sprite = None
     speaker_muted_sprite = None
-    
+
 
 ##
 ## Center message + simple key wait helpers
