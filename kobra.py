@@ -129,7 +129,7 @@ def run_settings_menu(
 
             key = event.key
 
-            if key in (pygame.K_ESCAPE, pygame.K_RETURN):
+            if key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_x):
                 return  # exit menu
 
             if key in (pygame.K_DOWN, pygame.K_s):
@@ -382,7 +382,7 @@ def start_menu(
         settings: GameSettings instance
     """
     selected = 0
-    items = ["Start Game", "Settings"]
+    items = ["Start Game", "Settings", "Exit"]
 
     while True:
         state.arena.fill(ARENA_COLOR)
@@ -416,7 +416,7 @@ def start_menu(
                     selected = (selected - 1) % len(items)
                 elif key in (pygame.K_DOWN, pygame.K_s):
                     selected = (selected + 1) % len(items)
-                elif key in (pygame.K_RETURN, pygame.K_SPACE):
+                elif key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
                     if items[selected] == "Start Game":
                         return  # proceed to game
                     elif items[selected] == "Settings":
@@ -424,12 +424,104 @@ def start_menu(
                         apply_settings(
                             state, assets, config, settings, reset_objects=False
                         )
+                    elif items[selected] == "Exit":
+                        pygame.quit()
+                        sys.exit()
                 elif key == pygame.K_m:
                     run_settings_menu(state, assets, settings)
                     apply_settings(state, assets, config, settings, reset_objects=False)
                 elif key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # Simple click detection
+                mx, my = event.pos
+                for i, text_label in enumerate(items):
+                    rect = assets.render_small(text_label, MESSAGE_COLOR).get_rect(
+                        center=(
+                            state.width / 2,
+                            state.height / 2 + i * (state.height * 0.12),
+                        )
+                    )
+                    if rect.collidepoint(mx, my):
+                        if text_label == "Start Game":
+                            return
+                        elif text_label == "Settings":
+                            run_settings_menu(state, assets, settings)
+                            apply_settings(
+                                state, assets, config, settings, reset_objects=False
+                            )
+
+
+##
+## Pause menu (Resume/Settings)
+##
+
+
+def pause_menu(
+    state: GameState,
+    assets: GameAssets,
+    config: GameConfig,
+    settings: GameSettings,
+) -> None:
+    """Pause menu shown upon pausing the game.
+
+    Args:
+        state: GameState instance
+        assets: GameAssets instance
+        config: GameConfig instance
+        settings: GameSettings instance
+    """
+    selected = 0
+    items = ["Resume", "Settings", "Exit"]
+
+    while True:
+        state.arena.fill(ARENA_COLOR)
+
+        # Title
+        title = assets.render_big(WINDOW_TITLE, MESSAGE_COLOR)
+        state.arena.blit(
+            title, title.get_rect(center=(state.width / 2, state.height / 4))
+        )
+
+        # Draw buttons
+        for i, text_label in enumerate(items):
+            color = SCORE_COLOR if i == selected else MESSAGE_COLOR
+            text = assets.render_small(text_label, color)
+            rect = text.get_rect(
+                center=(state.width / 2, state.height / 2 + i * (state.height * 0.12))
+            )
+            state.arena.blit(text, rect)
+
+        pygame.display.update()
+
+        # Input handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                key = event.key
+                if key in (pygame.K_UP, pygame.K_w):
+                    selected = (selected - 1) % len(items)
+                elif key in (pygame.K_DOWN, pygame.K_s):
+                    selected = (selected + 1) % len(items)
+                elif key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
+                    if items[selected] == "Resume":
+                        return  # proceed to game
+                    elif items[selected] == "Settings":
+                        run_settings_menu(state, assets, settings)
+                        apply_settings(
+                            state, assets, config, settings, reset_objects=False
+                        )
+                    elif items[selected] == "Exit":
+                        pygame.quit()
+                        sys.exit()
+                elif key == pygame.K_m:
+                    run_settings_menu(state, assets, settings)
+                    apply_settings(state, assets, config, settings, reset_objects=False)
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # Simple click detection
@@ -610,9 +702,11 @@ def main():
                 elif event.key == pygame.K_q:
                     pygame.quit()
                     sys.exit()
-                elif event.key == pygame.K_p:  # P : pause game
-                    state.toggle_pause()
-                elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
+                elif event.key in (
+                    pygame.K_m,
+                    pygame.K_p,
+                    pygame.K_ESCAPE,
+                ):  # M, P or ESC: open pause menu
                     was_running = state.game_on
                     state.pause()
 
@@ -623,7 +717,7 @@ def main():
                     old_num_apples = settings.get("number_of_apples")
                     old_electric_walls = settings.get("electric_walls")
 
-                    run_settings_menu(state, assets, settings)
+                    pause_menu(state, assets, config, settings)
 
                     # Check if critical settings changed (require reset)
                     needs_reset = (
