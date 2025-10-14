@@ -41,6 +41,10 @@ MESSAGE_COLOR   = "#808080"  # Color of the game-over message.
 WINDOW_TITLE    = "KobraPy"  # Window title.
 
 CLOCK_TICKS     = 7         # How fast the snake moves.
+# Apple step cadence (in game ticks). Lower = faster apple movement.
+APPLE_MOVE_INTERVAL = 2
+# Apple placement modes
+APPLE_MODES = ["vertical", "horizontal", "ambos"]
 
 ##
 ## Game implementation.
@@ -64,6 +68,11 @@ SMALL_FONT = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", int(WIDTH/20)
 pygame.display.set_caption(WINDOW_TITLE)
 
 game_on = 1
+apple_mode = "ambos"  # default; will be overwritten by pre-game menu
+last_apple_region = None  # track last spawn quadrant
+last_vertical_col = None   # track last column used in vertical mode spawns
+last_horizontal_row = None # track last row used in horizontal mode spawns
+last_ambos_signature = None # track last (dx,dy) used in ambos spawns
 
 ## This function is called when the snake dies.
 
@@ -93,6 +102,59 @@ def center_prompt(title, subtitle):
         pygame.quit()
         sys.exit()
 
+
+# New: pre-game centered menu to select apple mode
+def select_apple_mode_menu():
+    idx = APPLE_MODES.index(apple_mode) if apple_mode in APPLE_MODES else 2
+    while True:
+        arena.fill(ARENA_COLOR)
+        draw_grid()
+
+        # Vertical layout based on font metrics (keeps consistent spacing)
+        title_surf = BIG_FONT.render(WINDOW_TITLE, True, MESSAGE_COLOR)
+        small_h = SMALL_FONT.get_height()
+        y0 = HEIGHT // 2
+
+        # Title
+        title_rect = title_surf.get_rect(center=(WIDTH/2, y0 - int(2.2 * small_h)))
+        arena.blit(title_surf, title_rect)
+
+        # Subtitle
+        subtitle_surf = SMALL_FONT.render("Escolha o modo da maçã", True, MESSAGE_COLOR)
+        subtitle_rect = subtitle_surf.get_rect(center=(WIDTH/2, y0 - int(0.8 * small_h)))
+        arena.blit(subtitle_surf, subtitle_rect)
+
+        # Mode selector
+        mode_label = APPLE_MODES[idx].capitalize()
+        mode_text = SMALL_FONT.render(f"[ {mode_label} ]   ←   →   para alterar", True, MESSAGE_COLOR)
+        mode_rect = mode_text.get_rect(center=(WIDTH/2, y0 + int(0.3 * small_h)))
+        arena.blit(mode_text, mode_rect)
+
+        # Prompts split in two lines to avoid clipping
+        prompt1 = SMALL_FONT.render("Enter/Espaço para iniciar", True, MESSAGE_COLOR)
+        prompt1_rect = prompt1.get_rect(center=(WIDTH/2, y0 + int(1.5 * small_h)))
+        arena.blit(prompt1, prompt1_rect)
+
+        prompt2 = SMALL_FONT.render("Q para sair", True, MESSAGE_COLOR)
+        prompt2_rect = prompt2.get_rect(center=(WIDTH/2, y0 + int(2.4 * small_h)))
+        arena.blit(prompt2, prompt2_rect)
+
+        pygame.display.update()
+
+        event = pygame.event.wait()
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                idx = (idx - 1) % len(APPLE_MODES)
+            elif event.key == pygame.K_RIGHT:
+                idx = (idx + 1) % len(APPLE_MODES)
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                return APPLE_MODES[idx]
+            elif event.key == pygame.K_q:
+                pygame.quit()
+                sys.exit()
 
 ##
 ## Snake class
@@ -128,6 +190,7 @@ class Snake:
 
     def update(self):
         global apple
+        global apple_mode
 
         # Compute the head's next position (where it will be after movement)
         next_x = self.head.x + self.xmov * GRID_SIZE
@@ -173,8 +236,13 @@ class Snake:
             self.alive = True
             self.got_apple = False
 
-            # Drop an apple
-            apple = Apple()
+            # Drop an apple (avoid spawning on snake cells)
+            forbidden_cells = {(self.head.x // GRID_SIZE, self.head.y // GRID_SIZE)}
+            apple = Apple(
+                mode=apple_mode,
+                align=(self.head.x, self.head.y),
+                forbidden=forbidden_cells
+            )
 
 
         # Move the snake.
@@ -200,18 +268,124 @@ class Snake:
 ##
 
 class Apple:
-    def __init__(self):
+    def __init__(self, mode="ambos", align=None, forbidden=None):
+        global last_apple_region, last_vertical_col, last_horizontal_row, last_ambos_signature
 
-        # Pick a random position within the game arena
-        self.x = int(random.randint(0, WIDTH)/GRID_SIZE) * GRID_SIZE
-        self.y = int(random.randint(0, HEIGHT)/GRID_SIZE) * GRID_SIZE
+        # Work in grid coordinates to guarantee valid, aligned positions
+        cols = WIDTH // GRID_SIZE
+        rows = HEIGHT // GRID_SIZE
+
+        # Normalize forbidden input to a set of (col,row)
+        if forbidden is None:
+            forbidden_set = set()
+        elif isinstance(forbidden, set):
+            forbidden_set = set(forbidden)
+        else:
+            forbidden_set = {forbidden}
+
+        def region_quadrant(c, r):
+            # 4 quadrants split at the middle column/row
+            left = c < (cols // 2)
+            top = r < (rows // 2)
+            return (0 if left else 1) + (0 if top else 2)
+
+        attempts = 0
+        max_attempts = 200
+        chosen = None
+
+        while attempts < max_attempts:
+            # Random starting cell
+            col = random.randrange(cols)
+            row = random.randrange(rows)
+
+            # Direction per mode (grid steps)
+            if mode == "vertical":
+                dx, dy = 0, random.choice([-1, 1])
+            elif mode == "horizontal":
+                dx, dy = random.choice([-1, 1]), 0
+            else:  # "ambos" -> move in both axes
+                dx = random.choice([-1, 1])
+                dy = random.choice([-1, 1])
+
+            reg = region_quadrant(col, row)
+            ok_forbidden = (col, row) not in forbidden_set
+            ok_region = (last_apple_region is None) or (reg != last_apple_region)
+            ok_lane = True
+            if mode == "vertical" and last_vertical_col is not None:
+                ok_lane = (col != last_vertical_col) or (attempts > 50)
+            if mode == "horizontal" and last_horizontal_row is not None:
+                ok_lane = (row != last_horizontal_row) or (attempts > 50)
+            ok_signature = True
+            if mode == "ambos" and last_ambos_signature is not None:
+                ok_signature = ((dx, dy) != last_ambos_signature) or (attempts > 50)
+
+            # Relax region constraint after many attempts to avoid deadlock
+            if ok_forbidden and ok_lane and ok_signature and (ok_region or attempts > 100):
+                chosen = (col, row, dx, dy, reg)
+                break
+
+            attempts += 1
+
+        # Fallback (should rarely happen)
+        if chosen is None:
+            col, row = 0, 0
+            dx, dy = (0, 1) if mode == "vertical" else ((1, 0) if mode == "horizontal" else (1, 1))
+            reg = region_quadrant(col, row)
+        else:
+            col, row, dx, dy, reg = chosen
+
+        # Remember constraints for next time
+        last_apple_region = reg
+        if mode == "vertical":
+            last_vertical_col = col
+        elif mode == "horizontal":
+            last_horizontal_row = row
+        else:
+            last_ambos_signature = (dx, dy)
+
+        # Movement setup
+        self.mode = mode
+        self.cols = cols
+        self.rows = rows
+        self.col = col
+        self.row = row
+        self.dx = dx
+        self.dy = dy
+
+        self.move_interval = APPLE_MOVE_INTERVAL
+        self._ticks = 0
 
         # Create an apple at that location
+        self.x = self.col * GRID_SIZE
+        self.y = self.row * GRID_SIZE
         self.rect = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
 
     # This function is called each interation of the game loop
 
     def update(self):
+        # Move with cadence
+        self._ticks += 1
+        if self._ticks % self.move_interval == 0:
+            # Horizontal movement (only if enabled by mode)
+            if self.dx != 0:
+                ncol = self.col + self.dx
+                if ncol < 0 or ncol >= self.cols:
+                    self.dx *= -1
+                    ncol = self.col + self.dx
+                self.col = ncol
+
+            # Vertical movement (only if enabled by mode)
+            if self.dy != 0:
+                nrow = self.row + self.dy
+                if nrow < 0 or nrow >= self.rows:
+                    self.dy *= -1
+                    nrow = self.row + self.dy
+                self.row = nrow
+
+            # Sync pixel position and rect
+            self.x = self.col * GRID_SIZE
+            self.y = self.row * GRID_SIZE
+            self.rect.topleft = (self.x, self.y)
 
         # Drop the apple
         pygame.draw.rect(arena, APPLE_COLOR, self.rect)
@@ -234,9 +408,16 @@ draw_grid()
 
 snake = Snake()    # The snake
 
-apple = Apple()    # An apple
-
-center_prompt(WINDOW_TITLE, "Press to start")
+# New: show centered menu before starting and select apple mode
+apple_mode = select_apple_mode_menu()
+# Avoid spawning on snake cells (head + tail)
+forbidden_cells = {(snake.head.x // GRID_SIZE, snake.head.y // GRID_SIZE)}
+forbidden_cells |= {(s.x // GRID_SIZE, s.y // GRID_SIZE) for s in snake.tail}
+apple = Apple(
+    mode=apple_mode,
+    align=(snake.head.x, snake.head.y),
+    forbidden=forbidden_cells
+)
 
 ##
 ## Main loop
@@ -295,9 +476,15 @@ while True:
 
     # If the head pass over an apple, lengthen the snake and drop another apple
     if snake.head.x == apple.x and snake.head.y == apple.y:
-        #snake.tail.append(pygame.Rect(snake.head.x, snake.head.y, GRID_SIZE, GRID_SIZE))
-        snake.got_apple = True;
-        apple = Apple()
+        snake.got_apple = True
+        # Avoid spawning on snake cells (head + tail)
+        forbidden_cells = {(snake.head.x // GRID_SIZE, snake.head.y // GRID_SIZE)}
+        forbidden_cells |= {(s.x // GRID_SIZE, s.y // GRID_SIZE) for s in snake.tail}
+        apple = Apple(
+            mode=apple_mode,
+            align=(snake.head.x, snake.head.y),
+            forbidden=forbidden_cells
+        )
 
 
     # Update display and move clock.
