@@ -81,7 +81,7 @@ class GameSettings:
         {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
         {
             "key": "eat_sound",
-            "label": "eat sound",
+            "label": "Eat sound",
             "type": "bool",
             "default": True,
         },
