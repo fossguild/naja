@@ -344,12 +344,17 @@ def game_over_handler(
     if settings.get("background_music"):
         GameAssets.play_death_music()
 
-    # Tell the bad news
+    if len(state.snake.tail) = state.max_possible_score:
+        title_message = "YOU WIN!"
+    else:
+        title_message = "GAME OVER"
+
+    # Tell the bad(or good) news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
     pygame.display.update()
     # Game-over prompt: only Space/Enter restart; Q quits.
     _draw_center_message(
-        state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
+        state, assets, title_message, "Press Enter/Space to restart  •  Q to exit"
     )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
 
