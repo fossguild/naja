@@ -20,6 +20,7 @@
 import sys
 import random
 import pygame
+from collections import deque
 
 ##
 ## Game customization.
@@ -428,6 +429,7 @@ class Snake:
         # ymov :  -1 up       0 still,   1 dows
         self.xmov = 1
         self.ymov = 0
+        self.direction = "r"
 
         # The snake has a head segement,
         self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
@@ -443,6 +445,36 @@ class Snake:
 
         # Initial speed
         self.speed = CLOCK_TICKS
+
+    # This function is an auxiliar to update the snake's movement direction in memory
+
+    def change_position(self, new_direction):
+        # Saving the new direction (if permited)
+        if not (
+            (self.direction == "l")
+            and (new_direction == "r")
+            or (self.direction == "r")
+            and (new_direction == "l")
+            or (self.direction == "u")
+            and (new_direction == "d")
+            or (self.direction == "d")
+            and (new_direction == "u")
+        ):
+            self.direction = new_direction
+
+        # Updating snake's position
+        if self.direction == "l":
+            self.ymov = 0
+            self.xmov = -1
+        elif self.direction == "r":
+            self.ymov = 0
+            self.xmov = 1
+        elif self.direction == "u":
+            self.ymov = -1
+            self.xmov = 0
+        elif self.direction == "d":
+            self.ymov = 1
+            self.xmov = 0
 
     # This function is called at each loop interation.
 
@@ -478,6 +510,7 @@ class Snake:
             # Respan the head
             self.x, self.y = GRID_SIZE, GRID_SIZE
             self.head = pygame.Rect(self.x, self.y, GRID_SIZE, GRID_SIZE)
+            self.direction = "r"
 
             # Respan the initial tail
             self.tail = []
@@ -557,6 +590,7 @@ def draw_grid():
 start_menu()  # blocks until user picks "Start Game"
 snake = Snake()  # create with the final, chosen GRID_SIZE
 apple = Apple(snake)
+input_buffer = deque(maxlen=3)  # Buffer to save the snake's movements inputs
 
 ##
 ## Main loop
@@ -572,28 +606,18 @@ while True:
         # Key pressed
         if event.type == pygame.KEYDOWN:
             # Down arrow (or S): move down
-            if (
-                event.key
-                in (
-                    pygame.K_DOWN,
-                    pygame.K_s,
-                )
-                and snake.ymov != -1
-            ):
-                snake.ymov = 1
-                snake.xmov = 0
+            if event.key in (pygame.K_DOWN, pygame.K_s) and snake.ymov != -1:
+                input_buffer.append("d")
             # Up arrow (or W): move up
             elif event.key in (pygame.K_UP, pygame.K_w) and snake.ymov != 1:
-                snake.ymov = -1
-                snake.xmov = 0
+                input_buffer.append("u")
             # Right arrow (or D): move right
             elif event.key in (pygame.K_RIGHT, pygame.K_d) and snake.xmov != -1:
-                snake.ymov = 0
-                snake.xmov = 1
+                input_buffer.append("r")
             # Left arrow (or A): move left
             elif event.key in (pygame.K_LEFT, pygame.K_a) and snake.xmov != 1:
-                snake.ymov = 0
-                snake.xmov = -1
+                input_buffer.append("l")
+
             # Q : quit game
             elif event.key == pygame.K_q:
                 pygame.quit()
@@ -607,6 +631,11 @@ while True:
                 apply_settings(reset_objects=True)
                 game_on = was_running
     ## Update the game
+
+    # Change the snake position
+    if input_buffer:
+        new_direction = input_buffer.popleft()
+        snake.change_position(new_direction)
 
     if game_on:
         snake.update()
