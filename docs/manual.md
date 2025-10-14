@@ -51,8 +51,11 @@ But there’s a catch: the snake lengthens each time it eats an apple.
 Controls
 ------------------------------
 
-  * `arrow keys`: move the snake up, down, left, right
-  * `Q / q`: quit the game at any time
+  * `arrow keys or WASD`: move the snake up, down, left, right
+  * `Q`: quit the game at any time
+  * `P`: pause the game at any time
+  * `ESC / M`: open menu
+  * `N`: mute the music
 
 When the game ends, press any key to restart or 'q' to quit.
 
