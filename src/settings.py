@@ -19,6 +19,8 @@
 
 """Dynamic game settings and menu configuration."""
 
+from src.constants import SNAKE_COLOR_PALETTES
+
 
 class GameSettings:
     """Manages game configuration settings and menu fields."""
@@ -35,6 +37,7 @@ class GameSettings:
         "reset_game_on_apply": False,
         "eat_sound": True,
         "electric_walls": True,
+        "snake_color_palette": "Classic Green",  # New setting
     }
 
     # Declarative menu field definitions
@@ -89,6 +92,12 @@ class GameSettings:
             "key": "electric_walls",
             "label": "Electric walls (needs reset)",
             "type": "bool",
+        },
+        {
+            "key": "snake_color_palette",
+            "label": "Snake Color",
+            "type": "select",
+            "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
         },
     ]
 
@@ -241,3 +250,24 @@ class GameSettings:
             if field["key"] == key:
                 return field
         return None
+
+    def get_snake_colors(self):
+        """Get current snake colors based on selected palette.
+
+        Returns:
+            dict: Dictionary with 'head', 'tail', and 'name' keys
+        """
+        from .constants import get_snake_colors_by_name
+
+        palette_name = self.settings.get("snake_color_palette", "Classic Green")
+        return get_snake_colors_by_name(palette_name)
+
+    def randomize_snake_colors(self):
+        """Randomize snake colors to a random palette.
+
+        This method can be called when the user wants to randomize colors.
+        """
+        from .constants import get_random_snake_colors
+
+        random_palette = get_random_snake_colors()
+        self.settings["snake_color_palette"] = random_palette["name"]
