@@ -49,7 +49,7 @@ pygame.init()
 audio_device_exists = True
 try:
     pygame.mixer.init()
-except:
+except pygame.error:
     audio_device_exists = False
 
 
@@ -638,7 +638,8 @@ def main():
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
                     settings.set(
-                        "background_music", not settings.get("background_music") and audio_device_exists
+                        "background_music",
+                        not settings.get("background_music") and audio_device_exists,
                     )
                     apply_settings(state, assets, config, settings, reset_objects=False)
 
