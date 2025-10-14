@@ -383,6 +383,12 @@ def start_menu(
     """
     selected = 0
     items = ["Start Game", "Settings"]
+    controls = [
+        "Down arrow: Move down",
+        "Up arrow: Move up",
+        "Right arrow: move right",
+        "Left arrow: Move left",
+    ]
 
     while True:
         state.arena.fill(ARENA_COLOR)
@@ -399,6 +405,18 @@ def start_menu(
             text = assets.render_small(text_label, color)
             rect = text.get_rect(
                 center=(state.width / 2, state.height / 2 + i * (state.height * 0.12))
+            )
+            state.arena.blit(text, rect)
+
+        # draw controls
+        for i, text_label in enumerate(controls):
+            color = MESSAGE_COLOR
+            text = assets.render_small(text_label, color)
+            rect = text.get_rect(
+                center=(
+                    state.width / 2,
+                    state.height * 0.74 + i * (state.height * 0.05),
+                )
             )
             state.arena.blit(text, rect)
 
