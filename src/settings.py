@@ -34,6 +34,7 @@ class GameSettings:
         "background_music": True,
         "reset_game_on_apply": False,
         "eat_sound": True,
+        "electric_walls": True,
     }
 
     # Declarative menu field definitions
@@ -83,7 +84,11 @@ class GameSettings:
             "key": "eat_sound",
             "label": "Eat sound",
             "type": "bool",
-            "default": True,
+        },
+        {
+            "key": "electric_walls",
+            "label": "Electric walls (needs reset)",
+            "type": "bool",
         },
     ]
 
