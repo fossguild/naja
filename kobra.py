@@ -55,50 +55,83 @@ pygame.mixer.init()
 def _draw_settings_menu(
     state: GameState, assets: GameAssets, settings: GameSettings, selected_index: int
 ) -> None:
-    """Draw the settings menu screen.
-
-    Args:
-        state: GameState instance
-        assets: GameAssets instance
-        settings: GameSettings instance
-        selected_index: Currently selected menu item index
-    """
+    """Draw the settings menu screen (with auto font scaling)."""
     state.arena.fill(ARENA_COLOR)
 
+    # Title
     title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 10))
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
-    # Spacing and scroll parameters
-    visible_rows = int(state.height * 0.75 // (state.height * 0.07))
-    top_index = max(0, selected_index - visible_rows + 3)
-    padding_y = int(state.height * 0.20)
-    row_h = int(state.height * 0.07)
+    # Background panel 
+    panel_width = int(state.width * 0.78)
+    panel_height = int(state.height * 0.68)
+    panel_x = (state.width - panel_width) // 2
+    panel_y = int(state.height * 0.18)
+    panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
 
-    # Draw visible rows
+    # Shadows and borders
+    shadow_rect = panel_rect.copy().move(5, 5)
+    pygame.draw.rect(state.arena, (15, 15, 15), shadow_rect, border_radius=14)
+    pygame.draw.rect(state.arena, (50, 50, 50), panel_rect, border_radius=14)
+    pygame.draw.rect(state.arena, (210, 210, 210), panel_rect, 3, border_radius=14)
+
+    padding_x = 40
+    padding_y = int(panel_y + state.height * 0.06)
+    row_h = int(state.height * 0.07)
+    visible_rows = int((panel_height - state.height * 0.1) // row_h)
+    top_index = max(0, selected_index - visible_rows + 3)
+
     for draw_i, field_i in enumerate(range(top_index, len(settings.MENU_FIELDS))):
         if draw_i >= visible_rows:
             break
+
         f = settings.MENU_FIELDS[field_i]
         val = settings.get(f["key"])
         formatted_val = settings.format_setting_value(
             f, val, state.width, state.grid_size
         )
-        text = assets.render_small(
-            f"{f['label']}: {formatted_val}",
-            SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
-        )
-        rect = text.get_rect()
-        rect.left = int(state.width * 0.12)
-        rect.top = padding_y + draw_i * row_h
-        state.arena.blit(text, rect)
 
-    # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back [C] random colors"
-    hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 40))
-    state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
+        
+        label_text = f"{f['label']}: {formatted_val}"
+
+        max_text_width = panel_width - 2 * padding_x
+        font_size = int(state.width / 45)
+
+    
+        while True:
+            text_surface = assets.render_custom(label_text, (255, 255, 255), font_size)
+            if text_surface.get_width() <= max_text_width or font_size < 10:
+                break
+            font_size -= 1
+
+        
+        if field_i == selected_index:
+            highlight_rect = pygame.Rect(
+                panel_x + 20,
+                padding_y + draw_i * row_h - 6,
+                panel_width - 40,
+                row_h + 10,
+            )
+    
+            pygame.draw.rect(state.arena, (255, 255, 255), highlight_rect, 2, border_radius=10)
+
+        
+        text_color = (255, 255, 255) if field_i == selected_index else (200, 200, 200)
+        text_surface = assets.render_custom(label_text, text_color, font_size)
+        text_rect = text_surface.get_rect()
+        text_rect.left = panel_x + padding_x
+        text_rect.centery = padding_y + draw_i * row_h + row_h // 3
+        state.arena.blit(text_surface, text_rect)
+
+    # Hint footer
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
+    hint = assets.render_custom(hint_text, (180, 180, 180), int(state.width / 48))
+    hint_rect = hint.get_rect(center=(state.width / 2, state.height * 0.94))
+    state.arena.blit(hint, hint_rect)
 
     pygame.display.update()
+
 
 
 def run_settings_menu(
