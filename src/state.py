@@ -291,6 +291,17 @@ class GameState:
         return (self._width // self._grid_size) * (self._height // self._grid_size)
 
     @property
+    def max_possible_score(self) -> int:
+        """
+        Get the maximum possible score (snake length) by counting total free cells.
+
+        Returns:
+            Maximum snake length achievable on the current board (total cells - obstacles).
+        """
+        # Max length = Total grid cells - Obstacle cells
+        return self.total_cells - len(self.obstacles) - 1
+
+    @property
     def is_paused(self) -> bool:
         """Check if game is paused.
 
@@ -363,7 +374,7 @@ class GameState:
         """
         occupied = (
             len(self.obstacles) + len(self.snake.tail) + len(self.apples) + 1
-        )  # +1 for head
+        )  # +1 for head 
         return self.total_cells - occupied
 
     def recreate_arena(self) -> None:
