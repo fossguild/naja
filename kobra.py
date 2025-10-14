@@ -45,8 +45,12 @@ from src.settings import GameSettings
 # Initialize Pygame to access display info.
 pygame.init()
 
-# Initialize the audio mixer
-pygame.mixer.init()
+# Tries to initialize the audio mixer, but if fails, it will be disabled
+audio_device_exists = True
+try:
+    pygame.mixer.init()
+except:
+    audio_device_exists = False
 
 
 ##
@@ -181,7 +185,7 @@ def apply_settings(
     num_apples = settings.validate_apples_count(new_width, new_grid_size, new_height)
 
     # Control background music playback based on setting
-    if settings.get("background_music"):
+    if settings.get("background_music") and audio_device_exists:
         pygame.mixer.music.unpause()
     else:
         pygame.mixer.music.pause()
@@ -337,11 +341,11 @@ def game_over_handler(
         settings: GameSettings instance
     """
     # Play death sound effect (if enabled)
-    if settings.get("death_sound") and assets.gameover_sound:
+    if settings.get("death_sound") and assets.gameover_sound and audio_device_exists:
         assets.gameover_sound.play()
 
     # Switch to death music (if music is enabled)
-    if settings.get("background_music"):
+    if settings.get("background_music") and audio_device_exists:
         GameAssets.play_death_music()
 
     # Tell the bad news
@@ -354,7 +358,7 @@ def game_over_handler(
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
 
     # Switch back to background music (if music is enabled)
-    if settings.get("background_music"):
+    if settings.get("background_music") and audio_device_exists:
         GameAssets.play_background_music()
 
     if key == pygame.K_q:
@@ -483,7 +487,7 @@ def draw_music_indicator(
         assets: GameAssets instance
         settings: GameSettings instance
     """
-    music_on = settings.get("background_music")
+    music_on = settings.get("background_music") and audio_device_exists
 
     # Define dimensions and spacing using proportional padding
     padding_x = int(state.width * 0.02)
@@ -535,7 +539,8 @@ def main():
     assets = GameAssets(config.initial_width)
 
     # Initialize and start background music
-    GameAssets.init_music(volume=0.2, start_playing=True)
+    if audio_device_exists:
+        GameAssets.init_music(volume=0.2, start_playing=True)
 
     # Initialize game state
     state = GameState(
@@ -633,7 +638,7 @@ def main():
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
                     settings.set(
-                        "background_music", not settings.get("background_music")
+                        "background_music", not settings.get("background_music") and audio_device_exists
                     )
                     apply_settings(state, assets, config, settings, reset_objects=False)
 
@@ -773,6 +778,7 @@ def main():
                     settings.get("eat_sound")
                     and hasattr(assets, "eat_sound")
                     and assets.eat_sound
+                    and audio_device_exists
                 ):
                     assets.eat_sound.play()
 
