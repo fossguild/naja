@@ -210,3 +210,5 @@ __marimo__/
 
 # Temp files
 *~
+.DS_Store
+**/.DS_Store

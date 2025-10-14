@@ -1,7 +1,3 @@
-[build-system]
-requires = ["uv>=0.2"]
-build-backend = "uv.build"
-
 [project]
 name = "naja"
 version = "0.1.0"
