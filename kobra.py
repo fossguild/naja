@@ -24,9 +24,7 @@ import sys
 import pygame
 from src.entities import Snake, Apple, Obstacle
 from src.constants import (
-    HEAD_COLOR,
     DEAD_HEAD_COLOR,
-    TAIL_COLOR,
     ARENA_COLOR,
     GRID_COLOR,
     SCORE_COLOR,
@@ -96,7 +94,7 @@ def _draw_settings_menu(
         state.arena.blit(text, rect)
 
     # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back [C] random colors"
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 40))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
@@ -650,6 +648,9 @@ def main():
                     )
                     apply_settings(state, assets, config, settings, reset_objects=False)
 
+                elif event.key == pygame.K_c:  # C : randomize snake colors
+                    settings.randomize_snake_colors()
+
         ## Update the game
         if state.game_on:
             # Only update snake position when it has reached its current target
@@ -753,6 +754,10 @@ def main():
 
         electric_walls = settings.get("electric_walls")
 
+        snake_colors = settings.get_snake_colors()
+        current_head_color = snake_colors["head"]
+        current_tail_color = snake_colors["tail"]
+
         # Draw the tail with smooth interpolation
         for i, (tx, ty) in enumerate(state.snake.tail):
             draw_tx = tx
@@ -791,7 +796,7 @@ def main():
 
             pygame.draw.rect(
                 state.arena,
-                TAIL_COLOR,
+                current_tail_color,
                 pygame.Rect(
                     round(draw_tx), round(draw_ty), state.grid_size, state.grid_size
                 ),
@@ -800,7 +805,7 @@ def main():
         # Draw head (use int coords for Rect)
         pygame.draw.rect(
             state.arena,
-            HEAD_COLOR,
+            current_head_color,
             pygame.Rect(
                 round(state.snake.draw_x),
                 round(state.snake.draw_y),
