@@ -344,7 +344,7 @@ def game_over_handler(
     if settings.get("background_music"):
         GameAssets.play_death_music()
 
-    if len(state.snake.tail) = state.max_possible_score:
+    if len(state.snake.tail) == state.max_possible_score:
         title_message = "YOU WIN!"
     else:
         title_message = "GAME OVER"
