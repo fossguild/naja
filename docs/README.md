@@ -26,4 +26,4 @@ The [`assignment/`](assignment/) directory contains historical documentation fro
 - **[`assignment/issues.md`](assignment/issues.md)** - Known bugs and feature suggestions
 - **[`assignment/conventions.md`](assignment/conventions.md)** - Template conventions (reference)
 
-These files are preserved for students working on the KobraPy programming exercise but are not actively maintained for the main project.
+These files are preserved for students working on the Naja programming exercise but are not actively maintained for the main project.

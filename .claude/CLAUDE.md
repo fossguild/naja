@@ -10,13 +10,13 @@ This document provides comprehensive information about the Naja project to help 
 - **Language**: Python 3.12+
 - **Main Framework**: Pygame 2.6.1+
 - **License**: GPL-3.0-or-later
-- **Architecture**: Single-file application (`kobra.py`)
+- **Architecture**: Single-file application (`naja.py`)
 - **Repository**: https://github.com/fossguild/naja
 
 ## Project Structure
 
 ```
-├── kobra.py              # Main game file (all game logic)
+├── naja.py              # Main game file (all game logic)
 ├── pyproject.toml        # Python project configuration
 ├── uv.lock              # UV lock file for dependencies
 ├── Makefile             # Build automation
@@ -38,7 +38,7 @@ This document provides comprehensive information about the Naja project to help 
 
 ### Main Components
 
-The game is implemented in a single file (`kobra.py`) with the following structure:
+The game is implemented in a single file (`naja.py`) with the following structure:
 
 1. **Game Configuration** (lines 24-103)
    - Display settings (grid size, window dimensions)
@@ -122,8 +122,8 @@ uv sync --group dev
 pre-commit install
 
 # Run the game
-./kobra.py  # Linux/MacOS
-python kobra.py  # Windows
+./naja.py  # Linux/MacOS
+python naja.py  # Windows
 ```
 
 ## Known Issues and TODOs
@@ -216,7 +216,7 @@ ARENA_COLOR = "#202020"     # Background color
 
 ### When Making Changes
 
-1. **Understand the context**: Read relevant sections of kobra.py
+1. **Understand the context**: Read relevant sections of naja.py
 2. **Check existing patterns**: Follow established code style
 3. **Test manually**: Game must run without errors
 4. **Update documentation**: If adding features, update docs/manual.md

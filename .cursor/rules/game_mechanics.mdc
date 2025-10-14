@@ -1,7 +1,7 @@
 ---
 description: Game mechanics, logic, and behavior rules for Naja
 globs:
-  - "kobra.py"
+  - "naja.py"
 alwaysApply: false
 ---
 

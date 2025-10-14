@@ -1,16 +1,16 @@
-KobraPy Manual
+Naja Manual
 ==============================
 
-KobraPy is a programming exercise inspired by the classic 1980s snake game.
+Naja is a programming exercise inspired by the classic 1980s snake game.
 
 Implemented in Python, it provides a minimal yet functional codebase designed
-for progressive extension by learners. KobraPy was originally conceived as an
+for progressive extension by learners. Naja was originally conceived as an
 instructional resource to introduce undergraduate computer science students to
 open-source development practices and project management methodologies. Beyond
 this original scope, the project may also serve as a complementary resource
 within formal training programs or as a framework for independent study.
 
-KobraPy is free software and may be distributed under the GNU General Public
+Naja is free software and may be distributed under the GNU General Public
 License version 3 or any later version.
 
 Requirements

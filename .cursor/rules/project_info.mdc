@@ -18,7 +18,7 @@ alwaysApply: true
 - **Main Dependency**: Pygame 2.6.1+
 
 ## Architecture Overview
-- **Single-file application**: All game logic in `kobra.py`
+- **Single-file application**: All game logic in `naja.py`
 - **Main components**:
   - Game configuration (lines 24-103)
   - Settings system with declarative menus (lines 105-263)
@@ -27,7 +27,7 @@ alwaysApply: true
   - Main game loop (lines 557-642)
 
 ## Key Files
-- `kobra.py`: Main game executable
+- `naja.py`: Main game executable
 - `pyproject.toml`: Project metadata and dependencies
 - `docs/manual.md`: User documentation
 - `docs/CONTRIBUTING.md`: Contribution guidelines

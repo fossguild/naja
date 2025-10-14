@@ -1,6 +1,6 @@
 Copyright 2023 Monaco F. J. <monaco@usp.br>
 
-KobraPy is free software and distributed under the terms of the GNU General
+Naja is free software and distributed under the terms of the GNU General
 Public License 3.0.
 
 Naja - Snake Game Programming Exercise
@@ -9,7 +9,7 @@ Naja - Snake Game Programming Exercise
 Naja (formerly KobraPy) is a programming exercise inspired by the classic 1980s snake game.
 
 Implemented in Python, it provides a minimal yet functional codebase designed
-for progressive extension by learners. KobraPy was originally conceived as an
+for progressive extension by learners. Naja was originally conceived as an
 instructional resource to introduce undergraduate computer science students to
 open-source development practices and project management methodologies. Beyond
 this initial purpose, the project can also serve as a complementary resource
@@ -32,7 +32,7 @@ Quick Start
 1. **Run the game** (dependencies are installed automatically):
    ```bash
    make run
-   # Or directly: uv run python kobra.py
+   # Or directly: uv run python naja.py
    ```
 
 ### For Contributors

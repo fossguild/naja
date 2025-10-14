@@ -127,7 +127,7 @@ WIP                          (not descriptive)
    ```bash
    black .
    ruff check .
-   python kobra.py  # Manual test
+   python naja.py  # Manual test
    ```
 4. **Update documentation**: If adding features, update relevant docs
 5. **Review your own changes**: Check diff for unintended changes
@@ -237,10 +237,10 @@ Add your copyright notice when you:
 
 ### Derivative Work Notice
 
-If copying from KobraPy, add:
+If copying from Naja, add:
 ```python
-# This file is a derivative work of KobraPy
-# Original: https://github.com/fossguild/kobrapy
+# This file is a derivative work of Naja
+# Original: https://github.com/fossguild/naja
 ```
 
 ### License Header

@@ -2,9 +2,9 @@
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
 #
-#   This file is part of KobraPy.
+#   This file is part of Naja.
 #
-#   KobraPy is free software: you can redistribute it and/or modify
+#   Naja is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.

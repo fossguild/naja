@@ -1,13 +1,13 @@
-Contributing to KobraPy ==============================
+Contributing to Naja ==============================
 
-KobraPy is open source, and you are welcome and encouraged to contribute.
+Naja is open source, and you are welcome and encouraged to contribute.
 
 The following guidelines outline how to get started.
 
 Contribution Workflow
 ------------------------------
 
-The official KobraPy repository is at https://github.com/fossguild/naja
+The official Naja repository is at https://github.com/fossguild/naja
 
 Before contributing, make sure you have read the essential documentation:
 
@@ -23,7 +23,7 @@ to address.
    contribution procedure:
 
 * fork the project on GitHub * create a branch for the issue * make your changes
-in that branch * create a pull request for KobraPy
+in that branch * create a pull request for Naja
 
 * Make sure your changes follow the project's standard linting and formatting, as it will
 be required for merging (specified in manual.md)
@@ -93,7 +93,7 @@ your name added to the copyright notice [1] and to the `AUTHORS` file, if you
 wish.
 
 By submitting your contribution, you agree it will be available under the same
-license as KobraPy (GNU GPL v3 or later).
+license as Naja (GNU GPL v3 or later).
 
 Branch Naming
 ------------------------------

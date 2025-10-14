@@ -1,5 +1,5 @@
 """
-This file is for defining constants for the kobra.py game.
+This file is for defining constants for the naja.py game.
 This file is only for objects/constants whose values are known
 before runtime and never changed
 """
@@ -14,5 +14,5 @@ GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
-WINDOW_TITLE = "KobraPy"  # Window title.
+WINDOW_TITLE = "Naja"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
