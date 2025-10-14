@@ -662,7 +662,7 @@ def main():
                         state.apples,
                         state.obstacles,
                         lambda: game_over_handler(state, assets, settings),
-                        settings.get("electric_walls")
+                        settings.get("electric_walls"),
                     )
 
             # Advance interpolation toward the current target grid cell (if any)
@@ -679,12 +679,13 @@ def main():
                 electric_walls = settings.get("electric_walls")
 
                 # We multiply by xmov (respectively, ymov) so that the snake
-                # keeps moving in the direction it was moving earlier 
-                if not electric_walls and _will_wrap_around(state, state.snake.head.x, state.snake.target_x, state.snake.width):
+                # keeps moving in the direction it was moving earlier
+                if not electric_walls and _will_wrap_around(
+                    state, state.snake.head.x, state.snake.target_x, state.snake.width
+                ):
                     state.snake.draw_x = (
                         state.snake.head.x
-                        + state.snake.xmov
-                        * state.grid_size * state.snake.move_progress
+                        + state.snake.xmov * state.grid_size * state.snake.move_progress
                     )
                 else:
                     state.snake.draw_x = (
@@ -693,11 +694,12 @@ def main():
                         * state.snake.move_progress
                     )
 
-                if not electric_walls and _will_wrap_around(state, state.snake.head.y, state.snake.target_y, state.snake.height):
+                if not electric_walls and _will_wrap_around(
+                    state, state.snake.head.y, state.snake.target_y, state.snake.height
+                ):
                     state.snake.draw_y = (
                         state.snake.head.y
-                        + state.snake.ymov
-                        * state.grid_size * state.snake.move_progress
+                        + state.snake.ymov * state.grid_size * state.snake.move_progress
                     )
                 else:
                     state.snake.draw_y = (
@@ -763,15 +765,29 @@ def main():
                 prev_tx, prev_ty = state.snake.tail[i - 1]
 
             if state.snake.move_progress > 0.0:
-                if not electric_walls and _will_wrap_around(state, prev_tx, tx, state.snake.width):
-                    draw_tx = prev_tx + state.snake.xmov * state.grid_size * state.snake.move_progress
+                if not electric_walls and _will_wrap_around(
+                    state, prev_tx, tx, state.snake.width
+                ):
+                    draw_tx = (
+                        prev_tx
+                        + state.snake.xmov * state.grid_size * state.snake.move_progress
+                    )
                 else:
-                    draw_tx = prev_tx + (tx - prev_tx) * (1.0 - state.snake.move_progress)
+                    draw_tx = prev_tx + (tx - prev_tx) * (
+                        1.0 - state.snake.move_progress
+                    )
 
-                if not electric_walls and _will_wrap_around(state, prev_ty, ty, state.snake.height):
-                    draw_ty = prev_ty + state.snake.ymov * state.grid_size * state.snake.move_progress
+                if not electric_walls and _will_wrap_around(
+                    state, prev_ty, ty, state.snake.height
+                ):
+                    draw_ty = (
+                        prev_ty
+                        + state.snake.ymov * state.grid_size * state.snake.move_progress
+                    )
                 else:
-                    draw_ty = prev_ty + (ty - prev_ty) * (1.0 - state.snake.move_progress)
+                    draw_ty = prev_ty + (ty - prev_ty) * (
+                        1.0 - state.snake.move_progress
+                    )
 
             pygame.draw.rect(
                 state.arena,

@@ -89,7 +89,11 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(
-        self, apples: list[Apple], obstacles: list[Obstacle], game_over_func: Callable, electric_walls: bool
+        self,
+        apples: list[Apple],
+        obstacles: list[Obstacle],
+        game_over_func: Callable,
+        electric_walls: bool,
     ) -> bool:
         """Update snake position and check for collisions.
 
@@ -106,8 +110,8 @@ class Snake:
         if self.xmov or self.ymov:
             # Check for border crash.
             if electric_walls and (
-                next_x not in range(0, self.width) or
-                next_y not in range(0, self.height)
+                next_x not in range(0, self.width)
+                or next_y not in range(0, self.height)
             ):
                 self.alive = False
                 died = True
