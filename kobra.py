@@ -449,6 +449,7 @@ def start_menu(
                                 state, assets, config, settings, reset_objects=False
                             )
 
+
 ##
 ## Draw the arena
 ##
@@ -515,6 +516,7 @@ def draw_music_indicator(
     hint_rect.top = icon_y + icon_size + gap
     state.arena.blit(hint_surf, hint_rect)
 
+
 def draw_pause_screen(state: GameState, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
@@ -524,14 +526,17 @@ def draw_pause_screen(state: GameState, assets: GameAssets):
 
     # Mostra o texto "Paused"
     paused_title = assets.render_big("Paused", MESSAGE_COLOR)
-    paused_title_rect = paused_title.get_rect(center=(state.width / 2, state.height / 2))
+    paused_title_rect = paused_title.get_rect(
+        center=(state.width / 2, state.height / 2)
+    )
     state.arena.blit(paused_title, paused_title_rect)
 
     paused_subtitle = assets.render_small("Press P to continue", MESSAGE_COLOR)
     paused_subtitle_rect = paused_subtitle.get_rect(
         center=(state.width / 2, state.height * 2 / 3)
-    )    
+    )
     state.arena.blit(paused_subtitle, paused_subtitle_rect)
+
 
 def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> bool:
     """
