@@ -65,8 +65,15 @@ def _draw_settings_menu(
     """
     state.arena.fill(ARENA_COLOR)
 
+    flags = state.arena.get_flags()
+    start_x, start_y = (
+        _get_fullscreen_offset(state) if flags & pygame.FULLSCREEN else (0, 0)
+    )
+
     title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 10))
-    title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
+    title_rect = title.get_rect(
+        center=(start_x + state.width / 2, start_y + state.height / 10)
+    )
     state.arena.blit(title, title_rect)
 
     # Spacing and scroll parameters
@@ -89,14 +96,19 @@ def _draw_settings_menu(
             SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
         )
         rect = text.get_rect()
-        rect.left = int(state.width * 0.12)
-        rect.top = padding_y + draw_i * row_h
+        rect.left = int(start_x + state.width * 0.12)
+        rect.top = start_y + padding_y + draw_i * row_h
         state.arena.blit(text, rect)
 
     # Hint footer (smaller)
     hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back [C] random colors"
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 40))
-    state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
+    state.arena.blit(
+        hint,
+        hint.get_rect(
+            center=(start_x + state.width / 2, start_y + state.height * 0.95)
+        ),
+    )
 
     pygame.display.update()
 
@@ -169,6 +181,18 @@ def apply_settings(
     desired_cells = max(10, int(settings.get("cells_per_side")))
     new_grid_size = config.get_optimal_grid_size(desired_cells)
 
+    fullscreen = settings.get("fullscreen")
+    flags = state.arena.get_flags()
+
+    if fullscreen and not (flags & pygame.FULLSCREEN):
+        # Resizes the window
+        state.arena = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+
+    elif not fullscreen and (flags & pygame.FULLSCREEN) and new_grid_size == old_grid:
+        # Resizes back
+        old_width, old_height = config.calculate_window_size(old_grid)
+        state.arena = pygame.display.set_mode((old_width, old_height))
+
     # Calculate obstacles from difficulty
     new_width, new_height = config.calculate_window_size(new_grid_size)
     num_obstacles = Obstacle.calculate_obstacles_from_difficulty(
@@ -187,7 +211,8 @@ def apply_settings(
     # Recompute window and recreate surface/fonts if grid changed
     if new_grid_size != old_grid:
         new_width, new_height = config.calculate_window_size(new_grid_size)
-        state.arena = pygame.display.set_mode((new_width, new_height))
+        if not fullscreen:
+            state.arena = pygame.display.set_mode((new_width, new_height))
         pygame.display.set_caption(WINDOW_TITLE)
 
         # Update state's dimensions to match new grid size
@@ -270,7 +295,12 @@ def _render_text_fit(
 
 
 def _draw_center_message(
-    state: GameState, assets: GameAssets, title: str, subtitle: str
+    state: GameState,
+    assets: GameAssets,
+    title: str,
+    subtitle: str,
+    start_x: int,
+    start_y: int,
 ) -> None:
     """Draw a centered message with title and subtitle.
 
@@ -292,7 +322,10 @@ def _draw_center_message(
         window_width=state.width,
     )
     state.arena.blit(
-        title_surf, title_surf.get_rect(center=(state.width / 2, state.height / 2.6))
+        title_surf,
+        title_surf.get_rect(
+            center=(start_x + state.width / 2, start_y + state.height / 2.6)
+        ),
     )
 
     # Subtitle ~ up to 90% of width, start from SMALL font size.
@@ -305,7 +338,10 @@ def _draw_center_message(
         window_width=state.width,
     )
     state.arena.blit(
-        sub_surf, sub_surf.get_rect(center=(state.width / 2, state.height / 1.8))
+        sub_surf,
+        sub_surf.get_rect(
+            center=(start_x + state.width / 2, start_y + state.height / 1.8)
+        ),
     )
 
     pygame.display.update()
@@ -342,12 +378,22 @@ def game_over_handler(
     if settings.get("background_music"):
         GameAssets.play_death_music()
 
+    # Fullscreen Offsets
+    start_x, start_y = (
+        _get_fullscreen_offset(state) if settings.get("fullscreen") else (0, 0)
+    )
+
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
     pygame.display.update()
     # Game-over prompt: only Space/Enter restart; Q quits.
     _draw_center_message(
-        state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
+        state,
+        assets,
+        "Game Over",
+        "Press Enter/Space to restart  •  Q to exit",
+        start_x,
+        start_y,
     )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
 
@@ -384,11 +430,17 @@ def start_menu(
 
     while True:
         state.arena.fill(ARENA_COLOR)
+        start_x, start_y = (
+            _get_fullscreen_offset(state) if settings.get("fullscreen") else (0, 0)
+        )
 
         # Title
         title = assets.render_big(WINDOW_TITLE, MESSAGE_COLOR)
         state.arena.blit(
-            title, title.get_rect(center=(state.width / 2, state.height / 4))
+            title,
+            title.get_rect(
+                center=(start_x + state.width / 2, start_y + state.height / 4)
+            ),
         )
 
         # Draw buttons
@@ -396,7 +448,10 @@ def start_menu(
             color = SCORE_COLOR if i == selected else MESSAGE_COLOR
             text = assets.render_small(text_label, color)
             rect = text.get_rect(
-                center=(state.width / 2, state.height / 2 + i * (state.height * 0.12))
+                center=(
+                    start_x + state.width / 2,
+                    start_y + state.height / 2 + i * (state.height * 0.12),
+                )
             )
             state.arena.blit(text, rect)
 
@@ -425,6 +480,10 @@ def start_menu(
                 elif key == pygame.K_m:
                     run_settings_menu(state, assets, settings)
                     apply_settings(state, assets, config, settings, reset_objects=False)
+                elif event.key == pygame.K_F11:
+                    settings.set("fullscreen", not settings.get("fullscreen"))
+                    apply_settings(state, assets, config, settings, reset_objects=False)
+
                 elif key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
@@ -435,8 +494,8 @@ def start_menu(
                 for i, text_label in enumerate(items):
                     rect = assets.render_small(text_label, MESSAGE_COLOR).get_rect(
                         center=(
-                            state.width / 2,
-                            state.height / 2 + i * (state.height * 0.12),
+                            start_x + state.width / 2,
+                            start_y + state.height / 2 + i * (state.height * 0.12),
                         )
                     )
                     if rect.collidepoint(mx, my):
@@ -454,7 +513,23 @@ def start_menu(
 ##
 
 
-def draw_grid(state: GameState) -> None:
+def _get_fullscreen_offset(state: GameState) -> tuple:
+    """Get the fullscreen new offsets
+
+    Args:
+        state: GameState instance
+    """
+    # Get the actual screen/window size
+    screen_width, screen_height = state.arena.get_size()
+
+    # Set the new offsets
+    start_x = int((screen_width - state.width) / 2)
+    start_y = int((screen_height - state.height) / 2)
+
+    return start_x, start_y
+
+
+def draw_grid(state: GameState, start_x: int, start_y: int) -> None:
     """Draw the game grid.
 
     Args:
@@ -462,7 +537,9 @@ def draw_grid(state: GameState) -> None:
     """
     for x in range(0, state.width, state.grid_size):
         for y in range(0, state.height, state.grid_size):
-            rect = pygame.Rect(x, y, state.grid_size, state.grid_size)
+            rect = pygame.Rect(
+                start_x + x, start_y + y, state.grid_size, state.grid_size
+            )
             pygame.draw.rect(state.arena, GRID_COLOR, rect, 1)
 
 
@@ -472,7 +549,11 @@ def draw_grid(state: GameState) -> None:
 
 
 def draw_music_indicator(
-    state: GameState, assets: GameAssets, settings: GameSettings
+    state: GameState,
+    assets: GameAssets,
+    settings: GameSettings,
+    start_x: int,
+    start_y: int,
 ) -> None:
     """Draw a subtle music status indicator in the bottom-right corner.
 
@@ -502,8 +583,8 @@ def draw_music_indicator(
     sprite = assets.speaker_on_sprite if music_on else assets.speaker_muted_sprite
 
     # Calculate positions
-    icon_x = state.width - padding_x - icon_size
-    icon_y = state.height - padding_y - total_widget_height
+    icon_x = state.width + start_x - padding_x - icon_size
+    icon_y = state.height + start_y - padding_y - total_widget_height
 
     # Scale and draw sprite
     if sprite is not None:
@@ -651,6 +732,10 @@ def main():
                 elif event.key == pygame.K_c:  # C : randomize snake colors
                     settings.randomize_snake_colors()
 
+                elif event.key == pygame.K_F11:  # F11: toggle fullscreen
+                    settings.set("fullscreen", not settings.get("fullscreen"))
+                    apply_settings(state, assets, config, settings, reset_objects=False)
+
         ## Update the game
         if state.game_on:
             # Only update snake position when it has reached its current target
@@ -742,7 +827,12 @@ def main():
                 state.snake.draw_y = float(state.snake.head.y)
 
         state.arena.fill(ARENA_COLOR)
-        draw_grid(state)
+
+        start_x, start_y = 0, 0
+        if settings.get("fullscreen"):
+            start_x, start_y = _get_fullscreen_offset(state)
+
+        draw_grid(state, start_x, start_y)
 
         # Draw obstacles
         for obstacle in state.obstacles:
@@ -750,7 +840,7 @@ def main():
 
         # Draw all apples
         for apple in state.apples:
-            apple.update(state.arena)
+            apple.update(state.arena, start_x, start_y)
 
         electric_walls = settings.get("electric_walls")
 
@@ -798,7 +888,10 @@ def main():
                 state.arena,
                 current_tail_color,
                 pygame.Rect(
-                    round(draw_tx), round(draw_ty), state.grid_size, state.grid_size
+                    round(start_x + draw_tx),
+                    round(start_y + draw_ty),
+                    state.grid_size,
+                    state.grid_size,
                 ),
             )
 
@@ -807,8 +900,8 @@ def main():
             state.arena,
             current_head_color,
             pygame.Rect(
-                round(state.snake.draw_x),
-                round(state.snake.draw_y),
+                round(start_x + state.snake.draw_x),
+                round(start_y + state.snake.draw_y),
                 state.grid_size,
                 state.grid_size,
             ),
@@ -817,11 +910,13 @@ def main():
         # Show score (snake length = head + tail)
         score = assets.render_big(f"{len(state.snake.tail)}", SCORE_COLOR)
         score.set_alpha(75)  # opacity
-        score_rect = score.get_rect(center=(state.width / 2, state.height / 12))
+        score_rect = score.get_rect(
+            center=(start_x + state.width / 2, start_y + state.height / 12)
+        )
         state.arena.blit(score, score_rect)
 
         # Draw music status indicator
-        draw_music_indicator(state, assets, settings)
+        draw_music_indicator(state, assets, settings, start_x, start_y)
 
         # Check collision with all apples and maintain N apples in arena
         for apple in state.apples[:]:  # Use slice to iterate over copy
