@@ -23,14 +23,19 @@ to address.
 2. If you would like to resolve your issue (or someone else’s), follow the usual
    contribution procedure:
 
-* fork the project on GitHub * create a branch for the issue * make your changes
-in that branch * create a pull request for Naja
+   * Fork the project on GitHub;
 
-* Make sure your changes follow the project's standard linting and formatting, as it will
-be required for merging (specified in manual.md)
+   * Create a branch for the issue;
 
-Do not submit a PR/MR unrelated to an open issue. Ensure your contribution
-complies with the project’s conventions (see below).
+   * Make your changes in that branch;
+
+   * Create a pull request for Naja;
+
+   * Make sure your changes follow the project's standard linting and formatting, as it will
+   be required for merging (specified in manual.md);
+
+   * Do not submit a PR/MR unrelated to an open issue. Ensure your contribution
+   complies with the project’s conventions (see below).
 
 3. Go have a treat—you’ve earned it.
 
