@@ -1,0 +1,45 @@
+---
+description: Core project information and architecture for the Naja snake game
+globs:
+  - "**/*.py"
+  - "**/*.md"
+  - "**/*.toml"
+alwaysApply: true
+---
+
+# Naja Project - Core Information
+
+## Project Identity
+- **Name**: Naja (formerly KobraPy)
+- **Type**: Classic snake game in Python using Pygame
+- **Purpose**: Educational project for learning open-source development practices
+- **License**: GPL-3.0-or-later
+- **Python Version**: 3.12+
+- **Main Dependency**: Pygame 2.6.1+
+
+## Architecture Overview
+- **Single-file application**: All game logic in `naja.py`
+- **Main components**:
+  - Game configuration (lines 24-103)
+  - Settings system with declarative menus (lines 105-263)
+  - UI helpers and modal dialogs (lines 265-413)
+  - Game classes: Snake and Apple (lines 420-540)
+  - Main game loop (lines 557-642)
+
+## Key Files
+- `naja.py`: Main game executable
+- `pyproject.toml`: Project metadata and dependencies
+- `docs/manual.md`: User documentation
+- `docs/CONTRIBUTING.md`: Contribution guidelines
+- `docs/issues.md`: Known bugs and feature requests
+- `assets/font/`: GetVoIP Grotesque font files
+- `assets/sound/`: Game sound effects
+
+## Development Standards
+- **Formatter**: Black
+- **Linter**: Ruff
+- **Pre-commit hooks**: Enabled (format + lint)
+- **Branch strategy**: GitFlow (main, dev, feat/*, hot/*)
+- **Commit format**: `tag: imperative description`
+  - Tags: code, doc, build, repo, minor, other
+- **All contributions must relate to a GitHub issue**

@@ -16,17 +16,19 @@ License version 3 or any later version.
 Requirements
 ------------------------------
 
-* Python 3
-* Pygame engine (https://www.pygame.org)
+* **Python 3.12+**
+* **Pygame 2.6.1+** (https://www.pygame.org)
+* **uv package manager** (https://docs.astral.sh/uv/getting-started/installation/)
 
 ## Development Requirements
 
-* (optional) uv (https://docs.astral.sh/uv/)
-* ruff
-* black
+If you want to contribute to the project, you'll also need:
 
-Ruff and black are, respectively, the standard linter and formatter,
-and compliance is required before merging pull requests.
+* **pre-commit 3.0.0+**
+* **black 24.0.0+**
+* **ruff 0.6.0+**
+
+These are automatically installed when you run `make dev`. Ruff and Black are the standard linter and formatter, and compliance is required before merging pull requests.
 
 The Game
 ------------------------------
@@ -54,14 +56,21 @@ Controls
 
 When the game ends, press any key to restart or 'q' to quit.
 
-Programming Exercise
+Getting Started
 ------------------------------
 
 To get started with the project:
 
-a) Try the game yourself
+a) **Set up and try the game:**
 
-   * Linux/MacOS: `./naja.py`
-   * Windows: `python naja.py`
+   Run the game (dependencies are installed automatically): `make run`
 
-b) Read the directions for the exercise in `docs/exercise.md`
+b) **For development:**
+
+   1. Set up development environment: `make dev`
+   2. Run quality checks: `make`
+   3. See all available commands: `make help`
+
+c) **For the programming exercise:**
+
+   Read the directions for the exercise in `docs/assignment/exercise.md`

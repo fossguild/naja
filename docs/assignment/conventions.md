@@ -1,13 +1,13 @@
-Contributing to <Name> ==============================
+Contributing to Naja ==============================
 
-<Name> is open source, and you are welcome and encouraged to contribute.
+Naja is open source, and you are welcome and encouraged to contribute.
 
 The following guidelines outline how to get started.
 
 Contribution Workflow
 ------------------------------
 
-The official <Name> repository is at https://github.com/<proj_repo>
+The official Naja repository is at https://github.com/fossguild/naja
 
 Before contributing, make sure you have read the essential documentation:
 
@@ -23,7 +23,7 @@ to address.
    contribution procedure:
 
 * fork the project on GitHub * create a branch for the issue * make your changes
-in that branch * create a pull request for <Name>
+in that branch * create a pull request for Naja
 
 * Make sure your changes follow the project's standard linting and formatting, as it will
 be required for merging (specified in manual.md)
@@ -73,12 +73,12 @@ To contribute to this project, you'll need to set up the development environment
 
 1. Install development dependencies:
    ```bash
-   uv sync --group dev
+   uv sync --dev
    ```
 
 2. Install pre-commit hooks:
    ```bash
-   pre-commit install
+   uv run pre-commit install
    ```
 
 This will ensure your code is automatically formatted and linted before each commit.
@@ -93,7 +93,7 @@ your name added to the copyright notice [1] and to the `AUTHORS` file, if you
 wish.
 
 By submitting your contribution, you agree it will be available under the same
-license as <Name> (GNU GPL v3 or later).
+license as Naja (GNU GPL v3 or later).
 
 Branch Naming
 ------------------------------
@@ -111,7 +111,7 @@ The repository contains two GitFlow permanent branches:
 
 When creating a temporary branch, use the following keywords to indicate which branch your PR targets:
 
-- `feat`: advance nornal development  (merge into dev)
+- `feat`: advance normal development  (merge into dev)
 - `hot` : hot fix for the main branch (merge into main)
 - `wip` : work-in-progress branch (will be feat or hot)
 - `rel` : release preparation (GitFlow `release`)
