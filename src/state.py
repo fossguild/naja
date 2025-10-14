@@ -374,7 +374,7 @@ class GameState:
         """
         occupied = (
             len(self.obstacles) + len(self.snake.tail) + len(self.apples) + 1
-        )  # +1 for head 
+        )  # +1 for head
         return self.total_cells - occupied
 
     def recreate_arena(self) -> None:
