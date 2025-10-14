@@ -27,7 +27,7 @@ import random
 from typing import Callable
 import pygame
 
-from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
+from .constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 
 ##
@@ -36,7 +36,6 @@ from constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 
 class Snake:
-
     def __init__(self, width: int, height: int, grid_size: int):
         """Initialize the Snake.
 
@@ -89,7 +88,11 @@ class Snake:
     # This function is called at each loop interation.
 
     def update(
-        self, apple: Apple, obstacles: list[Obstacle], game_over_func: Callable
+        self,
+        apples: list[Apple],
+        obstacles: list[Obstacle],
+        game_over_func: Callable,
+        electric_walls: bool,
     ) -> bool:
         """Update snake position and check for collisions.
 
@@ -105,11 +108,15 @@ class Snake:
         # Only check collisions if the snake is currently moving
         if self.xmov or self.ymov:
             # Check for border crash.
-            if next_x not in range(0, self.width) or next_y not in range(
-                0, self.height
+            if electric_walls and (
+                next_x not in range(0, self.width)
+                or next_y not in range(0, self.height)
             ):
                 self.alive = False
                 died = True
+            else:
+                next_x %= self.width
+                next_y %= self.height
 
             # Check for self-bite.
             for square in self.tail:
@@ -161,8 +168,14 @@ class Snake:
             self.prev_head_x = self.x
             self.prev_head_y = self.y
 
-            # Reposition the apple
-            apple.ensure_valid_position(self, obstacles)
+            # Reposition all apples ensuring no overlap
+            for i, apple in enumerate(apples):
+                apple.ensure_valid_position(self, obstacles)
+                # Ensure this apple doesn't overlap with previously repositioned apples
+                while any(
+                    apple.x == apples[j].x and apple.y == apples[j].y for j in range(i)
+                ):
+                    apple.ensure_valid_position(self, obstacles)
 
         return died
 
