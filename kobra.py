@@ -608,8 +608,20 @@ def main():
                 elif event.key == pygame.K_q:
                     pygame.quit()
                     sys.exit()
-                elif event.key == pygame.K_p:  # P : pause game
-                    state.toggle_pause()
+                elif event.key == pygame.K_p:  # P         : pause game
+                    if state.game_on:
+                        state.game_on = not state.game_on
+                        _draw_center_message(
+                            state, "Pause", "Press P to continue  •  Q to exit"
+                        )
+                        key = _wait_for_keys({pygame.K_p, pygame.K_q})
+
+                        if key == pygame.K_q:
+                            pygame.quit()
+                            sys.exit()
+                        else:
+                            state.game_on = 1
+
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.pause()
