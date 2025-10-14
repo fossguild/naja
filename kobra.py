@@ -313,19 +313,6 @@ def _draw_center_message(
     pygame.display.update()
 
 
-def _wait_for_keys(allowed_keys: set[int]) -> int:
-    """Block until a KEYDOWN for one of allowed_keys (or quit). Return the key."""
-    while True:
-        event = pygame.event.wait()
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.KEYDOWN and (
-            not allowed_keys or event.key in allowed_keys
-        ):
-            return event.key
-
-
 def game_over_handler(
     state: GameState, assets: GameAssets, settings: GameSettings
 ) -> None:
@@ -347,17 +334,32 @@ def game_over_handler(
     # Tell the bad news
     pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
     pygame.display.update()
-    # Game-over prompt: only Space/Enter restart; Q quits.
-    _draw_center_message(
-        state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
-    )
-    key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
+
+    # Loop rendering until key is pressed
+    allowed_keys = {pygame.K_RETURN, pygame.K_SPACE, pygame.K_q}
+    key_pressed = None
+
+    while key_pressed is None:
+        # Consume events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key in allowed_keys:
+                key_pressed = event.key  # Store the key and exit loop
+
+        # Render Game Over Screen
+        _draw_center_message(
+            state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
+        )
+
+        state.clock.tick_busy_loop(0)
 
     # Switch back to background music (if music is enabled)
     if settings.get("background_music"):
         GameAssets.play_background_music()
 
-    if key == pygame.K_q:
+    if key_pressed == pygame.K_q:
         pygame.quit()
         sys.exit()
 
