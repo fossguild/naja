@@ -381,7 +381,7 @@ def start_menu(
     """
     selected = 0
     items = ["Start Game", "Settings"]
-    #Background image for start menu
+    # Background image for start menu
     background = pygame.image.load("assets/backgroundMenu.png")
     background = pygame.transform.scale(background, (state.width, state.height))
 
