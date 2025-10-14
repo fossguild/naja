@@ -116,6 +116,10 @@ def run_settings_menu(
     while True:
         _draw_settings_menu(state, assets, settings, selected)
 
+        # Change the key repeat setting of pygame so the
+        # values can be moved by holding the key.
+        pygame.key.set_repeat(600, 80)
+
         for event in pygame.event.get():
             # Guard clauses keep nesting shallow.
             if event.type == pygame.QUIT:
@@ -128,6 +132,9 @@ def run_settings_menu(
             key = event.key
 
             if key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                # Turn off the key repeat so it doesn't affect the
+                # rest of the game.
+                pygame.key.set_repeat()
                 return  # exit menu
 
             if key in (pygame.K_DOWN, pygame.K_s):
