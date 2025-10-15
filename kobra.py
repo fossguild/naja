@@ -187,7 +187,7 @@ def apply_settings(
     # Control background music playback based on setting
     if settings.get("background_music") and audio_device_exists:
         pygame.mixer.music.unpause()
-    else:
+    elif not settings.get("background_music") and audio_device_exists:
         pygame.mixer.music.pause()
 
     # Recompute window and recreate surface/fonts if grid changed
