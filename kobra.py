@@ -86,7 +86,9 @@ def load_game_state(state: GameState, settings: GameSettings) -> bool:
             data = json.load(f)
 
         # Dimensões/grade
-        state.update_dimensions(int(data["width"]), int(data["height"]), int(data["grid_size"]))
+        state.update_dimensions(
+            int(data["width"]), int(data["height"]), int(data["grid_size"])
+        )
         state.arena = pygame.display.set_mode((state.width, state.height))
 
         # Snake
@@ -112,20 +114,25 @@ def load_game_state(state: GameState, settings: GameSettings) -> bool:
 
         # Obstáculos
         state.obstacles = []
-        for (ox, oy) in data.get("obstacles", []):
+        for ox, oy in data.get("obstacles", []):
             o = Obstacle(state.width, state.height, state.grid_size)
             o.x, o.y = int(ox), int(oy)
             state.obstacles.append(o)
 
         # Maçãs
         state.apples = []
-        for (ax, ay) in data.get("apples", []):
+        for ax, ay in data.get("apples", []):
             a = Apple(state.width, state.height, state.grid_size)
             a.x, a.y = int(ax), int(ay)
             state.apples.append(a)
 
         # Garante a quantidade mínima de maçãs (caso save esteja vazio/corrompido)
-        desired = int(data.get("number_of_apples", max(1, getattr(settings, "DEFAULTS", {}).get("number_of_apples", 1))))
+        desired = int(
+            data.get(
+                "number_of_apples",
+                max(1, getattr(settings, "DEFAULTS", {}).get("number_of_apples", 1)),
+            )
+        )
         while len(state.apples) < desired:
             a = Apple(state.width, state.height, state.grid_size)
             a.ensure_valid_position(state.snake, state.obstacles)
@@ -148,6 +155,8 @@ def delete_save_file() -> None:
             os.remove(SAVE_FILE)
         except OSError:
             pass
+
+
 # -----------------------------------------------------------
 
 
