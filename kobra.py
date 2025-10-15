@@ -580,7 +580,7 @@ def main():
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
 
     # Schedule the first periodic attempt a few seconds after starting the game
-    state.powerups_next_try_ms = pygame.time.get_ticks() + (POWERUP_SPAWN_INTERVAL_MS / 2)  # 3s delay
+    state.powerups_next_try_ms = pygame.time.get_ticks() + (POWERUP_SPAWN_INTERVAL_MS // 2)  # delay
 
     ##
     ## Main loop
