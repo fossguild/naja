@@ -30,11 +30,22 @@ from src.constants import (
     SCORE_COLOR,
     MESSAGE_COLOR,
     WINDOW_TITLE,
+    POWERUP_SPAWN_INTERVAL_MS,
+    POWERUP_SPAWN_CHANCE,
 )
 from src.state import GameState
 from src.assets import GameAssets
 from src.config import GameConfig
 from src.settings import GameSettings
+from src.power_ups import (
+    powerups_init,
+    powerups_draw_all,
+    powerups_draw_overlay_on_head,
+    powerups_handle_collisions,
+    powerups_death_guard,
+    powerups_draw_timer,
+    powerups_try_periodic_spawn,
+)
 
 ##
 ## Game initialization
@@ -233,7 +244,6 @@ except pygame.error as e:
     speaker_on_sprite = None
     speaker_muted_sprite = None
 
-
 ##
 ## Center message + simple key wait helpers
 ##
@@ -428,6 +438,7 @@ def start_menu(
                 elif key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # Simple click detection
                 mx, my = event.pos
@@ -515,27 +526,6 @@ def draw_music_indicator(
     state.arena.blit(hint_surf, hint_rect)
 
 
-def draw_pause_screen(state: GameState, assets: GameAssets):
-    """Desenha uma sobreposição semi-transparente e o texto de pausa."""
-    # Cria uma superfície para a sobreposição com transparência alfa
-    overlay = pygame.Surface((state.width, state.height), pygame.SRCALPHA)
-    overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
-    state.arena.blit(overlay, (0, 0))
-
-    # Mostra o texto "Paused"
-    paused_title = assets.render_big("Paused", MESSAGE_COLOR)
-    paused_title_rect = paused_title.get_rect(
-        center=(state.width / 2, state.height / 2)
-    )
-    state.arena.blit(paused_title, paused_title_rect)
-
-    paused_subtitle = assets.render_small("Press P to continue", MESSAGE_COLOR)
-    paused_subtitle_rect = paused_subtitle.get_rect(
-        center=(state.width / 2, state.height * 2 / 3)
-    )
-    state.arena.blit(paused_subtitle, paused_subtitle_rect)
-
-
 def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> bool:
     """
     Checks if an object on the game's grid will wrap around by moving in a
@@ -571,6 +561,9 @@ def main():
         config.initial_width, config.initial_height, config.initial_grid_size
     )
 
+    # Initialize power ups
+    powerups_init(state)
+
     # Apply default settings with state
     apply_settings(state, assets, config, settings, reset_objects=False)
 
@@ -586,8 +579,8 @@ def main():
     ##
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
 
-    show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
-    previous_tail_length = 0
+    # Schedule the first periodic attempt a few seconds after starting the game
+    state.powerups_next_try_ms = pygame.time.get_ticks() + (POWERUP_SPAWN_INTERVAL_MS / 2)  # 3s delay
 
     ##
     ## Main loop
@@ -633,8 +626,6 @@ def main():
                     sys.exit()
                 elif event.key == pygame.K_p:  # P : pause game
                     state.toggle_pause()
-                    if state.game_on:
-                        show_pause_hint_end_time = pygame.time.get_ticks() + 2000
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.pause()
@@ -678,20 +669,21 @@ def main():
 
         ## Update the game
         if state.game_on:
-            if len(state.snake.tail) == 0 and previous_tail_length > 0:
-                show_pause_hint_end_time = pygame.time.get_ticks() + 2000
-            previous_tail_length = len(state.snake.tail)
             # Only update snake position when it has reached its current target
             if (
                 state.snake.target_x == state.snake.head.x
                 and state.snake.target_y == state.snake.head.y
             ):
                 if state.snake.xmov or state.snake.ymov:
+                    # While invincible, walls behave as wrap-around (ignore electric walls)
+                    is_invincible = pygame.time.get_ticks() < getattr(state, "invincible_until_ms", 0)
+                    effective_electric_walls = settings.get("electric_walls") and not is_invincible
+
                     state.snake.update(
                         state.apples,
                         state.obstacles,
-                        lambda: game_over_handler(state, assets, settings),
-                        settings.get("electric_walls"),
+                        powerups_death_guard(state, lambda: game_over_handler(state, assets, settings)),
+                        effective_electric_walls,
                     )
 
             # Advance interpolation toward the current target grid cell (if any)
@@ -705,7 +697,9 @@ def main():
                 if state.snake.move_progress > 1.0:
                     state.snake.move_progress = 1.0
 
-                electric_walls = settings.get("electric_walls")
+                # While invincible, allow wrap-around instead of electric walls
+                is_invincible = pygame.time.get_ticks() < getattr(state, "invincible_until_ms", 0)
+                electric_walls = settings.get("electric_walls") and not is_invincible
 
                 # We multiply by xmov (respectively, ymov) so that the snake
                 # keeps moving in the direction it was moving earlier
@@ -780,6 +774,9 @@ def main():
         for apple in state.apples:
             apple.update(state.arena)
 
+        # Draw all power-ups
+        powerups_draw_all(state, state.arena)
+
         electric_walls = settings.get("electric_walls")
 
         snake_colors = settings.get_snake_colors()
@@ -842,11 +839,16 @@ def main():
             ),
         )
 
+        powerups_draw_overlay_on_head(state, state.arena)
+
         # Show score (snake length = head + tail)
         score = assets.render_big(f"{len(state.snake.tail)}", SCORE_COLOR)
         score.set_alpha(75)  # opacity
         score_rect = score.get_rect(center=(state.width / 2, state.height / 12))
         state.arena.blit(score, score_rect)
+
+        # Draw the shield timer HUD (icon + remaining time) when invincibility is active
+        powerups_draw_timer(state, state.arena, assets)
 
         # Draw music status indicator
         draw_music_indicator(state, assets, settings)
@@ -887,15 +889,11 @@ def main():
 
                 break  # Only eat one apple per frame
 
-        if pygame.time.get_ticks() < show_pause_hint_end_time and state.game_on:
-            hint_surf = assets.render_small("Press P to pause", MESSAGE_COLOR)
-            hint_surf.set_alpha(180)  # Deixa o texto semi-transparente
-            hint_rect = hint_surf.get_rect(center=(state.width / 2, state.height - 40))
-            state.arena.blit(hint_surf, hint_rect)
+        # Check collision with power-ups + effects
+        powerups_handle_collisions(state)
 
-        # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
-        if not state.game_on:
-            draw_pause_screen(state, assets)
+        # Periodically attempt to spawn a shield if none exists (gameplay loop)
+        powerups_try_periodic_spawn(state, interval_ms=POWERUP_SPAWN_INTERVAL_MS, chance=POWERUP_SPAWN_CHANCE)
 
         # Update display
         pygame.display.update()
