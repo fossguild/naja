@@ -208,6 +208,22 @@ def powerups_handle_collisions(state) -> None:
             break
 
 
+def powerups_pause_begin(state) -> None:
+    """Mark the moment we entered a paused state (to freeze timers)."""
+    state._powerups_pause_start_ms = pygame.time.get_ticks()
+
+
+def powerups_pause_end(state) -> None:
+    """Shift timers by the paused duration so they don't elapse while paused."""
+    start = getattr(state, "_powerups_pause_start_ms", None)
+    if start is None:
+        return
+    delta = pygame.time.get_ticks() - start
+    state.invincible_until_ms = getattr(state, "invincible_until_ms", 0) + delta
+    state.powerups_next_try_ms = getattr(state, "powerups_next_try_ms", 0) + delta
+    state._powerups_pause_start_ms = None
+
+
 def powerups_death_guard(state, on_die: Callable[[], None]) -> Callable[[], None]:
     """Wrap the death callback to ignore death while invincible (or others in future)."""
 
@@ -227,7 +243,12 @@ def powerups_death_guard(state, on_die: Callable[[], None]) -> Callable[[], None
 
 def powerups_draw_timer(state, arena: pygame.Surface, assets) -> None:
     """Draw a bottom-left HUD slot for time-limited effects (invincibility)."""
-    now = pygame.time.get_ticks()
+    # Freeze the visual countdown while paused by using the pause-start timestamp
+    if not getattr(state, "game_on", False):
+        now = getattr(state, "_powerups_pause_start_ms", pygame.time.get_ticks())
+    else:
+        now = pygame.time.get_ticks()
+
     remaining_ms = getattr(state, "invincible_until_ms", 0) - now
     if remaining_ms <= 0:
         return

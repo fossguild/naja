@@ -45,6 +45,8 @@ from src.power_ups import (
     powerups_death_guard,
     powerups_draw_timer,
     powerups_try_periodic_spawn,
+    powerups_pause_begin,
+    powerups_pause_end,
 )
 
 ##
@@ -526,6 +528,27 @@ def draw_music_indicator(
     state.arena.blit(hint_surf, hint_rect)
 
 
+def draw_pause_screen(state: GameState, assets: GameAssets):
+    """Desenha uma sobreposição semi-transparente e o texto de pausa."""
+    # Cria uma superfície para a sobreposição com transparência alfa
+    overlay = pygame.Surface((state.width, state.height), pygame.SRCALPHA)
+    overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
+    state.arena.blit(overlay, (0, 0))
+
+    # Mostra o texto "Paused"
+    paused_title = assets.render_big("Paused", MESSAGE_COLOR)
+    paused_title_rect = paused_title.get_rect(
+        center=(state.width / 2, state.height / 2)
+    )
+    state.arena.blit(paused_title, paused_title_rect)
+
+    paused_subtitle = assets.render_small("Press P to continue", MESSAGE_COLOR)
+    paused_subtitle_rect = paused_subtitle.get_rect(
+        center=(state.width / 2, state.height * 2 / 3)
+    )
+    state.arena.blit(paused_subtitle, paused_subtitle_rect)
+
+
 def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> bool:
     """
     Checks if an object on the game's grid will wrap around by moving in a
@@ -627,10 +650,19 @@ def main():
                     pygame.quit()
                     sys.exit()
                 elif event.key == pygame.K_p:  # P : pause game
+                    prev = state.game_on
                     state.toggle_pause()
+                    # Bridge power-ups timers with the pause state
+                    if prev and not state.game_on:
+                        powerups_pause_begin(state)  # just entered pause
+                    elif not prev and state.game_on:
+                        powerups_pause_end(state)  # just resumed
+                    if state.game_on:
+                        show_pause_hint_end_time = pygame.time.get_ticks() + 2000
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.pause()
+                    powerups_pause_begin(state)  # freeze power-up timers during menu
 
                     # Store old values of critical settings
                     old_cells = settings.get("cells_per_side")
@@ -659,6 +691,8 @@ def main():
                         reset_objects=needs_reset
                         or settings.get("reset_game_on_apply"),
                     )
+                    if was_running:
+                        powerups_pause_end(state)
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
                     settings.set(
@@ -900,12 +934,20 @@ def main():
                 break  # Only eat one apple per frame
 
         # Check collision with power-ups + effects
-        powerups_handle_collisions(state)
+        if state.game_on:
+            # Check collision with power-ups + effects
+            powerups_handle_collisions(state)
 
-        # Periodically attempt to spawn a shield if none exists (gameplay loop)
-        powerups_try_periodic_spawn(
-            state, interval_ms=POWERUP_SPAWN_INTERVAL_MS, chance=POWERUP_SPAWN_CHANCE
-        )
+        if not state.game_on:
+            draw_pause_screen(state, assets)
+
+        if state.game_on:
+            # Periodically attempt to spawn a shield if none exists (gameplay loop)
+            powerups_try_periodic_spawn(
+                state,
+                interval_ms=POWERUP_SPAWN_INTERVAL_MS,
+                chance=POWERUP_SPAWN_CHANCE,
+            )
 
         # Update display
         pygame.display.update()
