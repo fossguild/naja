@@ -657,8 +657,6 @@ def main():
                         powerups_pause_begin(state)  # just entered pause
                     elif not prev and state.game_on:
                         powerups_pause_end(state)  # just resumed
-                    if state.game_on:
-                        show_pause_hint_end_time = pygame.time.get_ticks() + 2000
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.pause()
