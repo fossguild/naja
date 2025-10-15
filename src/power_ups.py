@@ -51,8 +51,10 @@ from src.constants import (
 # Types
 # ---------------------------------------------------------------------------
 
+
 class PowerUp(TypedDict, total=False):
     """Runtime representation of a power-up placed on the arena."""
+
     type: str
     x: int
     y: int
@@ -62,6 +64,7 @@ class PowerUp(TypedDict, total=False):
 
 class PowerUpSpec(TypedDict, total=False):
     """Static behavior/asset spec registered for a power-up type."""
+
     sprite: Optional[pygame.Surface]
     on_collect: Callable[[object, PowerUp], None]
     draw_world: Optional[Callable[[object, pygame.Surface, PowerUp], None]]
@@ -76,6 +79,7 @@ _REGISTRY: Dict[str, PowerUpSpec] = {}
 # Sprite helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_sprite(path: str) -> Optional[pygame.Surface]:
     """Load a sprite from disk, returning None on failure (with warning)."""
     try:
@@ -88,6 +92,7 @@ def _load_sprite(path: str) -> Optional[pygame.Surface]:
 # ---------------------------------------------------------------------------
 # Public lifecycle API
 # ---------------------------------------------------------------------------
+
 
 def powerups_init(state) -> None:
     """Attach power-up runtime fields and register built-in power-ups.
@@ -113,6 +118,7 @@ def powerups_reset(state) -> None:
 # ---------------------------------------------------------------------------
 # Generic spawn/draw/collect pipeline
 # ---------------------------------------------------------------------------
+
 
 def powerups_spawn(state, type_name: str, **props) -> None:
     """Spawn a power-up of type `type_name` at a free cell.
@@ -164,7 +170,9 @@ def powerups_draw_all(state, arena: pygame.Surface) -> None:
             sprite = spec.get("sprite")
             rect = pygame.Rect(p["x"], p["y"], state.grid_size, state.grid_size)
             if sprite:
-                scaled = pygame.transform.scale(sprite, (state.grid_size, state.grid_size))
+                scaled = pygame.transform.scale(
+                    sprite, (state.grid_size, state.grid_size)
+                )
                 arena.blit(scaled, rect)
             else:
                 pygame.draw.rect(arena, (200, 200, 200), rect, 2)
@@ -202,17 +210,20 @@ def powerups_handle_collisions(state) -> None:
 
 def powerups_death_guard(state, on_die: Callable[[], None]) -> Callable[[], None]:
     """Wrap the death callback to ignore death while invincible (or others in future)."""
+
     def _guard():
         # Extend this condition when adding defensive power-ups
         if pygame.time.get_ticks() < getattr(state, "invincible_until_ms", 0):
             return
         on_die()
+
     return _guard
 
 
 # ---------------------------------------------------------------------------
 # HUD helpers (timers/indicators)
 # ---------------------------------------------------------------------------
+
 
 def powerups_draw_timer(state, arena: pygame.Surface, assets) -> None:
     """Draw a bottom-left HUD slot for time-limited effects (invincibility)."""
@@ -249,6 +260,7 @@ def powerups_draw_timer(state, arena: pygame.Surface, assets) -> None:
 # ---------------------------------------------------------------------------
 # Periodic spawn scheduler
 # ---------------------------------------------------------------------------
+
 
 def powerups_try_periodic_spawn(
     state,
@@ -302,6 +314,7 @@ def powerups_try_periodic_spawn(
 # Backward-compatible convenience wrappers (used by main)
 # ---------------------------------------------------------------------------
 
+
 def powerups_spawn_invincibility(state) -> None:
     """Compatibility wrapper to spawn 'invincibility' via the generic API."""
     powerups_spawn(state, "invincibility")
@@ -312,9 +325,11 @@ def powerups_maybe_spawn_invincibility(state, chance: float = 0.35) -> None:
     if random.random() < max(0.0, min(1.0, chance)):
         powerups_spawn_invincibility(state)
 
+
 # ---------------------------------------------------------------------------
 # Built-in power-up: invincibility
 # ---------------------------------------------------------------------------
+
 
 def _register_invincibility() -> None:
     """Register the 'invincibility' power-up in the global registry."""
@@ -330,7 +345,9 @@ def _register_invincibility() -> None:
         """Draw the pickup on the grid (sprite fallback to outline)."""
         rect = pygame.Rect(p["x"], p["y"], state.grid_size, state.grid_size)
         if sprite:
-            arena.blit(pygame.transform.scale(sprite, (state.grid_size, state.grid_size)), rect)
+            arena.blit(
+                pygame.transform.scale(sprite, (state.grid_size, state.grid_size)), rect
+            )
         else:
             pygame.draw.rect(arena, (200, 200, 200), rect, 2)
 
@@ -346,7 +363,10 @@ def _register_invincibility() -> None:
             state.grid_size,
             state.grid_size,
         )
-        arena.blit(pygame.transform.scale(sprite, (state.grid_size, state.grid_size)), head_rect)
+        arena.blit(
+            pygame.transform.scale(sprite, (state.grid_size, state.grid_size)),
+            head_rect,
+        )
 
     _REGISTRY["invincibility"] = PowerUpSpec(
         sprite=sprite,

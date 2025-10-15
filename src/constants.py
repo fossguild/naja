@@ -20,9 +20,9 @@ MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
 
-POWERUP_SPAWN_INTERVAL_MS = 8000   # How often to attempt a spawn when none exists
-POWERUP_SPAWN_CHANCE = 0.35   # Probability [0..1] on each attempt
-INVINCIBILITY_DURATION_MS = 3000   # How long the invincibility lasts per pickup (ms)
+POWERUP_SPAWN_INTERVAL_MS = 8000  # How often to attempt a spawn when none exists
+POWERUP_SPAWN_CHANCE = 0.35  # Probability [0..1] on each attempt
+INVINCIBILITY_DURATION_MS = 3000  # How long the invincibility lasts per pickup (ms)
 
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [

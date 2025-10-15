@@ -580,7 +580,9 @@ def main():
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
 
     # Schedule the first periodic attempt a few seconds after starting the game
-    state.powerups_next_try_ms = pygame.time.get_ticks() + (POWERUP_SPAWN_INTERVAL_MS // 2)  # delay
+    state.powerups_next_try_ms = pygame.time.get_ticks() + (
+        POWERUP_SPAWN_INTERVAL_MS // 2
+    )  # delay
 
     ##
     ## Main loop
@@ -676,13 +678,19 @@ def main():
             ):
                 if state.snake.xmov or state.snake.ymov:
                     # While invincible, walls behave as wrap-around (ignore electric walls)
-                    is_invincible = pygame.time.get_ticks() < getattr(state, "invincible_until_ms", 0)
-                    effective_electric_walls = settings.get("electric_walls") and not is_invincible
+                    is_invincible = pygame.time.get_ticks() < getattr(
+                        state, "invincible_until_ms", 0
+                    )
+                    effective_electric_walls = (
+                        settings.get("electric_walls") and not is_invincible
+                    )
 
                     state.snake.update(
                         state.apples,
                         state.obstacles,
-                        powerups_death_guard(state, lambda: game_over_handler(state, assets, settings)),
+                        powerups_death_guard(
+                            state, lambda: game_over_handler(state, assets, settings)
+                        ),
                         effective_electric_walls,
                     )
 
@@ -698,7 +706,9 @@ def main():
                     state.snake.move_progress = 1.0
 
                 # While invincible, allow wrap-around instead of electric walls
-                is_invincible = pygame.time.get_ticks() < getattr(state, "invincible_until_ms", 0)
+                is_invincible = pygame.time.get_ticks() < getattr(
+                    state, "invincible_until_ms", 0
+                )
                 electric_walls = settings.get("electric_walls") and not is_invincible
 
                 # We multiply by xmov (respectively, ymov) so that the snake
@@ -893,7 +903,9 @@ def main():
         powerups_handle_collisions(state)
 
         # Periodically attempt to spawn a shield if none exists (gameplay loop)
-        powerups_try_periodic_spawn(state, interval_ms=POWERUP_SPAWN_INTERVAL_MS, chance=POWERUP_SPAWN_CHANCE)
+        powerups_try_periodic_spawn(
+            state, interval_ms=POWERUP_SPAWN_INTERVAL_MS, chance=POWERUP_SPAWN_CHANCE
+        )
 
         # Update display
         pygame.display.update()
