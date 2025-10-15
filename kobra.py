@@ -63,7 +63,7 @@ def _draw_settings_menu(
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
-    # Background panel 
+    # Background panel
     panel_width = int(state.width * 0.78)
     panel_height = int(state.height * 0.68)
     panel_x = (state.width - panel_width) // 2
@@ -92,20 +92,17 @@ def _draw_settings_menu(
             f, val, state.width, state.grid_size
         )
 
-        
         label_text = f"{f['label']}: {formatted_val}"
 
         max_text_width = panel_width - 2 * padding_x
         font_size = int(state.width / 45)
 
-    
         while True:
             text_surface = assets.render_custom(label_text, (255, 255, 255), font_size)
             if text_surface.get_width() <= max_text_width or font_size < 10:
                 break
             font_size -= 1
 
-        
         if field_i == selected_index:
             highlight_rect = pygame.Rect(
                 panel_x + 20,
@@ -113,10 +110,11 @@ def _draw_settings_menu(
                 panel_width - 40,
                 row_h + 10,
             )
-    
-            pygame.draw.rect(state.arena, (255, 255, 255), highlight_rect, 2, border_radius=10)
 
-        
+            pygame.draw.rect(
+                state.arena, (255, 255, 255), highlight_rect, 2, border_radius=10
+            )
+
         text_color = (255, 255, 255) if field_i == selected_index else (200, 200, 200)
         text_surface = assets.render_custom(label_text, text_color, font_size)
         text_rect = text_surface.get_rect()
@@ -131,7 +129,6 @@ def _draw_settings_menu(
     state.arena.blit(hint, hint_rect)
 
     pygame.display.update()
-
 
 
 def run_settings_menu(
