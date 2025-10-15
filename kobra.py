@@ -21,6 +21,8 @@
 # Pygame uses dynamic imports that pylint doesn't understand
 
 import sys
+import os
+import json
 import pygame
 from src.entities import Snake, Apple, Obstacle
 from src.constants import (
@@ -45,6 +47,108 @@ pygame.init()
 
 # Initialize the audio mixer
 pygame.mixer.init()
+
+# ------------------- AUTOSAVE / CONTINUE -------------------
+SAVE_FILE = "saves/last_session.json"
+_SHOULD_CONTINUE = False
+
+
+def save_game_state(state: GameState, settings: GameSettings) -> None:
+    data = {
+        "snake": {
+            "x": int(state.snake.head.x),
+            "y": int(state.snake.head.y),
+            "tail": [(int(tx), int(ty)) for (tx, ty) in state.snake.tail],
+            "speed": float(state.snake.speed),
+            "xmov": int(state.snake.xmov),
+            "ymov": int(state.snake.ymov),
+            "target_x": int(state.snake.target_x),
+            "target_y": int(state.snake.target_y),
+        },
+        "apples": [(int(a.x), int(a.y)) for a in state.apples],
+        "obstacles": [(int(o.x), int(o.y)) for o in state.obstacles],
+        "grid_size": int(state.grid_size),
+        "width": int(state.width),
+        "height": int(state.height),
+        "electric_walls": bool(settings.get("electric_walls")),
+        "number_of_apples": int(settings.get("number_of_apples")),
+    }
+    os.makedirs(os.path.dirname(SAVE_FILE), exist_ok=True)
+    with open(SAVE_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
+def load_game_state(state: GameState, settings: GameSettings) -> bool:
+    if not os.path.exists(SAVE_FILE):
+        return False
+    try:
+        with open(SAVE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Dimensões/grade
+        state.update_dimensions(int(data["width"]), int(data["height"]), int(data["grid_size"]))
+        state.arena = pygame.display.set_mode((state.width, state.height))
+
+        # Snake
+        state.snake = Snake(state.width, state.height, state.grid_size)
+        state.snake.head.x = int(data["snake"]["x"])
+        state.snake.head.y = int(data["snake"]["y"])
+        state.snake.x = state.snake.head.x
+        state.snake.y = state.snake.head.y
+        state.snake.tail = [(int(tx), int(ty)) for (tx, ty) in data["snake"]["tail"]]
+        state.snake.speed = float(data["snake"]["speed"])
+        state.snake.xmov = int(data["snake"]["xmov"])
+        state.snake.ymov = int(data["snake"]["ymov"])
+        state.snake.target_x = int(data["snake"]["target_x"])
+        state.snake.target_y = int(data["snake"]["target_y"])
+
+        # Reset de campos transitórios para evitar “meio-movimento”
+        state.snake.move_progress = 0.0
+        state.snake.draw_x = float(state.snake.head.x)
+        state.snake.draw_y = float(state.snake.head.y)
+        state.snake.prev_head_x = state.snake.head.x
+        state.snake.prev_head_y = state.snake.head.y
+        state.snake.got_apple = False
+
+        # Obstáculos
+        state.obstacles = []
+        for (ox, oy) in data.get("obstacles", []):
+            o = Obstacle(state.width, state.height, state.grid_size)
+            o.x, o.y = int(ox), int(oy)
+            state.obstacles.append(o)
+
+        # Maçãs
+        state.apples = []
+        for (ax, ay) in data.get("apples", []):
+            a = Apple(state.width, state.height, state.grid_size)
+            a.x, a.y = int(ax), int(ay)
+            state.apples.append(a)
+
+        # Garante a quantidade mínima de maçãs (caso save esteja vazio/corrompido)
+        desired = int(data.get("number_of_apples", max(1, getattr(settings, "DEFAULTS", {}).get("number_of_apples", 1))))
+        while len(state.apples) < desired:
+            a = Apple(state.width, state.height, state.grid_size)
+            a.ensure_valid_position(state.snake, state.obstacles)
+            while any(a.x == other.x and a.y == other.y for other in state.apples):
+                a.ensure_valid_position(state.snake, state.obstacles)
+            state.apples.append(a)
+
+        # Aplica flags de jogo
+        if "electric_walls" in data:
+            settings.set("electric_walls", bool(data["electric_walls"]))
+
+        return True
+    except Exception:
+        return False
+
+
+def delete_save_file() -> None:
+    if os.path.exists(SAVE_FILE):
+        try:
+            os.remove(SAVE_FILE)
+        except OSError:
+            pass
+# -----------------------------------------------------------
 
 
 ##
@@ -379,8 +483,12 @@ def start_menu(
         config: GameConfig instance
         settings: GameSettings instance
     """
+    global _SHOULD_CONTINUE
     selected = 0
     items = ["Start Game", "Settings"]
+
+    if os.path.exists(SAVE_FILE):
+        items.insert(1, "Continue Game")
 
     while True:
         state.arena.fill(ARENA_COLOR)
@@ -416,7 +524,12 @@ def start_menu(
                     selected = (selected + 1) % len(items)
                 elif key in (pygame.K_RETURN, pygame.K_SPACE):
                     if items[selected] == "Start Game":
+                        _SHOULD_CONTINUE = False
+                        delete_save_file()
                         return  # proceed to game
+                    elif items[selected] == "Continue Game":
+                        _SHOULD_CONTINUE = True
+                        return
                     elif items[selected] == "Settings":
                         run_settings_menu(state, assets, settings)
                         apply_settings(
@@ -440,6 +553,11 @@ def start_menu(
                     )
                     if rect.collidepoint(mx, my):
                         if text_label == "Start Game":
+                            _SHOULD_CONTINUE = False
+                            delete_save_file()
+                            return
+                        elif text_label == "Continue Game":
+                            _SHOULD_CONTINUE = True
                             return
                         elif text_label == "Settings":
                             run_settings_menu(state, assets, settings)
@@ -584,7 +702,12 @@ def main():
     ##
     ## Start flow
     ##
-    start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
+    start_menu(state, assets, config, settings)  # blocks until user picks option
+
+    if _SHOULD_CONTINUE:
+        loaded = load_game_state(state, settings)
+        if not loaded:
+            pass
 
     show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
     previous_tail_length = 0
@@ -597,6 +720,10 @@ def main():
         for event in pygame.event.get():  # Wait for events
             # App terminated
             if event.type == pygame.QUIT:
+                try:
+                    save_game_state(state, settings)
+                except Exception:
+                    pass
                 pygame.quit()
                 sys.exit()
 
@@ -629,12 +756,21 @@ def main():
                     state.snake.xmov = -1
                 # Q : quit game
                 elif event.key == pygame.K_q:
+                    try:
+                        save_game_state(state, settings)
+                    except Exception:
+                        pass
                     pygame.quit()
                     sys.exit()
                 elif event.key == pygame.K_p:  # P : pause game
                     state.toggle_pause()
                     if state.game_on:
                         show_pause_hint_end_time = pygame.time.get_ticks() + 2000
+                    else:
+                        try:
+                            save_game_state(state, settings)
+                        except Exception:
+                            pass
                 elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
                     was_running = state.game_on
                     state.pause()
