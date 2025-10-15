@@ -822,7 +822,7 @@ def main():
                         1.0 - state.snake.move_progress
                     )
 
-            tail_size = state.grid_size
+            tail_size = state.grid_size * (0.95 ** i)
             tail_diff = (state.grid_size - tail_size)/2
 
             pygame.draw.rect(
