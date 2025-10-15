@@ -24,9 +24,7 @@ import sys
 import pygame
 from src.entities import Snake, Apple, Obstacle
 from src.constants import (
-    HEAD_COLOR,
     DEAD_HEAD_COLOR,
-    TAIL_COLOR,
     ARENA_COLOR,
     GRID_COLOR,
     SCORE_COLOR,
@@ -96,7 +94,7 @@ def _draw_settings_menu(
         state.arena.blit(text, rect)
 
     # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back [C] random colors"
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 40))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
@@ -433,7 +431,6 @@ def start_menu(
                 elif key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # Simple click detection
                 mx, my = event.pos
@@ -610,6 +607,27 @@ def draw_music_indicator(
     state.arena.blit(hint_surf, hint_rect)
 
 
+def draw_pause_screen(state: GameState, assets: GameAssets):
+    """Desenha uma sobreposição semi-transparente e o texto de pausa."""
+    # Cria uma superfície para a sobreposição com transparência alfa
+    overlay = pygame.Surface((state.width, state.height), pygame.SRCALPHA)
+    overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
+    state.arena.blit(overlay, (0, 0))
+
+    # Mostra o texto "Paused"
+    paused_title = assets.render_big("Paused", MESSAGE_COLOR)
+    paused_title_rect = paused_title.get_rect(
+        center=(state.width / 2, state.height / 2)
+    )
+    state.arena.blit(paused_title, paused_title_rect)
+
+    paused_subtitle = assets.render_small("Press P to continue", MESSAGE_COLOR)
+    paused_subtitle_rect = paused_subtitle.get_rect(
+        center=(state.width / 2, state.height * 2 / 3)
+    )
+    state.arena.blit(paused_subtitle, paused_subtitle_rect)
+
+
 def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> bool:
     """
     Checks if an object on the game's grid will wrap around by moving in a
@@ -659,6 +677,9 @@ def main():
     ## Start flow
     ##
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
+
+    show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
+    previous_tail_length = 0
 
     ##
     ## Main loop
@@ -744,8 +765,14 @@ def main():
                     )
                     apply_settings(state, assets, config, settings, reset_objects=False)
 
+                elif event.key == pygame.K_c:  # C : randomize snake colors
+                    settings.randomize_snake_colors()
+
         ## Update the game
         if state.game_on:
+            if len(state.snake.tail) == 0 and previous_tail_length > 0:
+                show_pause_hint_end_time = pygame.time.get_ticks() + 2000
+            previous_tail_length = len(state.snake.tail)
             # Only update snake position when it has reached its current target
             if (
                 state.snake.target_x == state.snake.head.x
@@ -847,6 +874,10 @@ def main():
 
         electric_walls = settings.get("electric_walls")
 
+        snake_colors = settings.get_snake_colors()
+        current_head_color = snake_colors["head"]
+        current_tail_color = snake_colors["tail"]
+
         # Draw the tail with smooth interpolation
         for i, (tx, ty) in enumerate(state.snake.tail):
             draw_tx = tx
@@ -885,7 +916,7 @@ def main():
 
             pygame.draw.rect(
                 state.arena,
-                TAIL_COLOR,
+                current_tail_color,
                 pygame.Rect(
                     round(draw_tx), round(draw_ty), state.grid_size, state.grid_size
                 ),
@@ -894,7 +925,7 @@ def main():
         # Draw head (use int coords for Rect)
         pygame.draw.rect(
             state.arena,
-            HEAD_COLOR,
+            current_head_color,
             pygame.Rect(
                 round(state.snake.draw_x),
                 round(state.snake.draw_y),
@@ -947,6 +978,16 @@ def main():
                     state.apples.append(new_apple)
 
                 break  # Only eat one apple per frame
+
+        if pygame.time.get_ticks() < show_pause_hint_end_time and state.game_on:
+            hint_surf = assets.render_small("Press P to pause", MESSAGE_COLOR)
+            hint_surf.set_alpha(180)  # Deixa o texto semi-transparente
+            hint_rect = hint_surf.get_rect(center=(state.width / 2, state.height - 40))
+            state.arena.blit(hint_surf, hint_rect)
+
+        # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
+        if not state.game_on:
+            draw_pause_screen(state, assets)
 
         # Update display
         pygame.display.update()
