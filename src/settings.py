@@ -27,6 +27,7 @@ class GameSettings:
 
     # Default settings values
     DEFAULT_SETTINGS = {
+        "fullscreen": False,
         "cells_per_side": 16,  # Will be calculated from screen size
         "initial_speed": 4.0,
         "max_speed": 20.0,
@@ -42,6 +43,11 @@ class GameSettings:
 
     # Declarative menu field definitions
     MENU_FIELDS = [
+        {
+            "key": "fullscreen",
+            "label": "Fullscreen",
+            "type": "bool",
+        },
         {
             "key": "cells_per_side",
             "label": "Cells per side (needs reset)",

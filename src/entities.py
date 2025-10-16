@@ -232,9 +232,12 @@ class Apple:
                 break
 
     # This function is called each iteration of the game loop
-    def update(self, arena: pygame.Surface):
+    def update(self, arena: pygame.Surface, start_x: int, start_y: int):
         """Draw the apple."""
-        pygame.draw.rect(arena, APPLE_COLOR, self.rect)
+        rect = pygame.Rect(
+            self.rect.x + start_x, self.rect.y + start_y, self.grid_size, self.grid_size
+        )
+        pygame.draw.rect(arena, APPLE_COLOR, rect)
 
 
 class Obstacle:
