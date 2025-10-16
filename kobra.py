@@ -29,6 +29,8 @@ from src.constants import (
     GRID_COLOR,
     SCORE_COLOR,
     MESSAGE_COLOR,
+    BORDER_COLOR,
+    BORDER_WIDTH,
     WINDOW_TITLE,
 )
 from src.state import GameState
@@ -453,6 +455,21 @@ def start_menu(
 ##
 
 
+# Function to draw the textured background
+def draw_background(state: GameState, assets: GameAssets):
+    tex_w, tex_h = assets.background_texture_sprite.get_size()
+    for x in range(0, state.width, tex_w):
+        for y in range(0, state.height, tex_h):
+            state.arena.blit(assets.background_texture_sprite, (x, y))
+
+
+# Function to draw the border
+def draw_border(state: GameState, assets: GameAssets) -> None:
+    pygame.draw.rect(
+        state.arena, BORDER_COLOR, (0, 0, state.width, state.height), BORDER_WIDTH
+    )
+
+
 def draw_grid(state: GameState) -> None:
     """Draw the game grid.
 
@@ -770,6 +787,8 @@ def main():
                 state.snake.draw_y = float(state.snake.head.y)
 
         state.arena.fill(ARENA_COLOR)
+        draw_background(state, assets)
+        draw_border(state, assets)
         draw_grid(state)
 
         # Draw obstacles

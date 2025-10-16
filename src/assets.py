@@ -24,6 +24,7 @@ class GameAssets:
     """Manages loading and reloading of game assets (sounds, sprites, fonts)."""
 
     # Asset file paths
+    BACKGROUND_TEXTURE_PATH = "assets/texture/terrain.png"
     BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
     DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
     GAMEOVER_SOUND_PATH = "assets/sound/gameover.wav"
@@ -45,6 +46,7 @@ class GameAssets:
         self.small_font = None
 
         # Sprite assets
+        self.background_texture_sprite = None
         self.speaker_on_sprite = None
         self.speaker_muted_sprite = None
 
@@ -89,6 +91,14 @@ class GameAssets:
         except pygame.error as e:
             print(f"Warning: Could not load speaker-muted sprite: {e}")
             self.speaker_muted_sprite = None
+
+        try:
+            self.background_texture_sprite = pygame.image.load(
+                self.BACKGROUND_TEXTURE_PATH
+            )
+        except pygame.error as e:
+            print(f"Warning: Could not load background texture sprite: {e}")
+            self.background_texture_sprite = None
 
     def load_sounds(self) -> None:
         """Load sound effects."""

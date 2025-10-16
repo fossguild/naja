@@ -16,6 +16,8 @@ ARENA_COLOR = "#202020"  # Color of the ground.
 GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
+BORDER_COLOR = "#cccccc"  # Color for the game arena border.
+BORDER_WIDTH = 2  # Width of the border in pixels.
 
 WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
