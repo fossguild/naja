@@ -514,9 +514,11 @@ def draw_music_indicator(
     hint_rect.top = icon_y + icon_size + gap
     state.arena.blit(hint_surf, hint_rect)
 
+
 ##
 ## Draws a speed bar that shows how close to the maximum speed the player currently is
 ##
+
 
 def draw_speed_bar(
     state: GameState, assets: GameAssets, settings: GameSettings
@@ -572,6 +574,7 @@ def draw_speed_bar(
     label_rect.midtop = (bar_x + bar_width // 2, bar_y + bar_height + gap)
 
     state.arena.blit(label_surf, label_rect)
+
 
 def draw_pause_screen(state: GameState, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
