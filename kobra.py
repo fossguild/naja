@@ -466,9 +466,12 @@ def start_menu(
     """
     selected = 0
     items = ["Start Game", "Settings"]
+    # Background image for start menu
+    background = pygame.image.load("assets/backgroundMenu.png")
+    background = pygame.transform.scale(background, (state.width, state.height))
 
     while True:
-        state.arena.fill(ARENA_COLOR)
+        state.arena.blit(background, (0, 0))
 
         # Title
         title = assets.render_big(WINDOW_TITLE, MESSAGE_COLOR)
@@ -478,7 +481,7 @@ def start_menu(
 
         # Draw buttons
         for i, text_label in enumerate(items):
-            color = SCORE_COLOR if i == selected else MESSAGE_COLOR
+            color = SCORE_COLOR if i == selected else "#000000"
             text = assets.render_small(text_label, color)
             rect = text.get_rect(
                 center=(state.width / 2, state.height / 2 + i * (state.height * 0.12))
