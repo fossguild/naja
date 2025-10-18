@@ -52,16 +52,68 @@ pygame.mixer.init()
 ##
 
 
+def _build_menu_items(settings: GameSettings) -> list:
+    """Build a flat list of menu items including section headers.
+
+    Returns:
+        List of tuples (item_type, data, original_field_index)
+        where item_type is 'section' or 'field'
+    """
+    # Define sections and which fields belong to each
+    sections = [
+        {
+            "name": "Game Modifiers",
+            "fields": [
+                "initial_speed",
+                "max_speed",
+                "cells_per_side",
+                "obstacle_difficulty",
+                "number_of_apples",
+                "electric_walls",
+            ],
+        },
+        {
+            "name": "Sound",
+            "fields": ["background_music", "death_sound", "eat_sound"],
+        },
+        {
+            "name": "Visual",
+            "fields": ["snake_color_palette"],
+        },
+        {
+            "name": "System",
+            "fields": ["reset_game_on_apply"],
+        },
+    ]
+
+    items = []
+    all_fields = settings.MENU_FIELDS
+
+    for section in sections:
+        # Add section header
+        items.append(("section", section["name"], None))
+
+        # Add fields in this section
+        for field_key in section["fields"]:
+            # Find the field in MENU_FIELDS
+            for field_index, field in enumerate(all_fields):
+                if field["key"] == field_key:
+                    items.append(("field", field, field_index))
+                    break
+
+    return items
+
+
 def _draw_settings_menu(
     state: GameState, assets: GameAssets, settings: GameSettings, selected_index: int
 ) -> None:
-    """Draw the settings menu screen.
+    """Draw the settings menu screen with organized sections.
 
     Args:
         state: GameState instance
         assets: GameAssets instance
         settings: GameSettings instance
-        selected_index: Currently selected menu item index
+        selected_index: Currently selected menu item index (only counts fields, not sections)
     """
     state.arena.fill(ARENA_COLOR)
 
@@ -69,30 +121,84 @@ def _draw_settings_menu(
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
-    # Spacing and scroll parameters - adjusted for smaller text
-    row_h = int(state.height * 0.06)
-    visible_rows = int(state.height * 0.70 // row_h)
-    top_index = max(0, selected_index - visible_rows + 3)
+    # Build menu items with sections
+    menu_items = _build_menu_items(settings)
+
+    # Spacing and scroll parameters
+    row_h = int(state.height * 0.055)
+    section_h = int(state.height * 0.07)
+    visible_height = state.height * 0.65
     padding_y = int(state.height * 0.22)
 
-    # Draw visible rows with smaller font
-    for draw_i, field_i in enumerate(range(top_index, len(settings.MENU_FIELDS))):
-        if draw_i >= visible_rows:
+    # Calculate scroll offset to keep selected item visible
+    current_y = 0
+    selected_y = 0
+    field_count = 0
+
+    for item_type, data, _ in menu_items:
+        if item_type == "section":
+            if field_count == selected_index:
+                selected_y = current_y
+            current_y += section_h
+        else:
+            if field_count == selected_index:
+                selected_y = current_y
+            current_y += row_h
+            field_count += 1
+
+    # Calculate scroll offset
+    scroll_offset = 0
+    if selected_y > visible_height * 0.6:
+        scroll_offset = selected_y - visible_height * 0.4
+
+    # Draw menu items
+    draw_y = padding_y - scroll_offset
+    field_index = 0
+
+    for item_type, data, _ in menu_items:
+        # Skip if item is not visible
+        if draw_y + row_h < padding_y - 20:
+            if item_type == "section":
+                draw_y += section_h
+            else:
+                draw_y += row_h
+                field_index += 1
+            continue
+
+        if draw_y > state.height * 0.87:
             break
-        f = settings.MENU_FIELDS[field_i]
-        val = settings.get(f["key"])
-        formatted_val = settings.format_setting_value(
-            f, val, state.width, state.grid_size
-        )
-        text = assets.render_custom(
-            f"{f['label']}: {formatted_val}",
-            SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
-            int(state.width / 30),
-        )
-        rect = text.get_rect()
-        rect.left = int(state.width * 0.10)
-        rect.top = padding_y + draw_i * row_h
-        state.arena.blit(text, rect)
+
+        if item_type == "section":
+            # Draw section header
+            section_text = assets.render_custom(
+                f"─── {data} ───", GRID_COLOR, int(state.width / 35)
+            )
+            section_rect = section_text.get_rect()
+            section_rect.centerx = state.width // 2
+            section_rect.top = int(draw_y)
+            state.arena.blit(section_text, section_rect)
+            draw_y += section_h
+        else:
+            # Draw field item
+            field = data
+            val = settings.get(field["key"])
+            formatted_val = settings.format_setting_value(
+                field, val, state.width, state.grid_size
+            )
+
+            is_selected = field_index == selected_index
+            text = assets.render_custom(
+                f"{field['label']}: {formatted_val}",
+                SCORE_COLOR if is_selected else MESSAGE_COLOR,
+                int(state.width / 30),
+            )
+            rect = text.get_rect()
+            rect.left = int(state.width * 0.15)
+            rect.top = int(draw_y)
+            state.arena.blit(text, rect)
+
+            draw_y += row_h
+            field_index += 1
 
     # Hint footer (smaller)
     hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
@@ -100,6 +206,20 @@ def _draw_settings_menu(
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
     pygame.display.update()
+
+
+def _get_field_by_display_index(settings: GameSettings, display_index: int):
+    """Get the actual field object from the display index in the sectioned menu."""
+    menu_items = _build_menu_items(settings)
+    field_count = 0
+
+    for item_type, data, field_index in menu_items:
+        if item_type == "field":
+            if field_count == display_index:
+                return data
+            field_count += 1
+
+    return None
 
 
 def run_settings_menu(
@@ -113,6 +233,10 @@ def run_settings_menu(
         settings: GameSettings instance
     """
     selected = 0
+
+    # Count total fields (not including section headers)
+    menu_items = _build_menu_items(settings)
+    total_fields = sum(1 for item_type, _, _ in menu_items if item_type == "field")
 
     while True:
         _draw_settings_menu(state, assets, settings, selected)
@@ -132,19 +256,23 @@ def run_settings_menu(
                 return  # exit menu
 
             if key in (pygame.K_DOWN, pygame.K_s):
-                selected = (selected + 1) % len(settings.MENU_FIELDS)
+                selected = (selected + 1) % total_fields
                 continue
 
             if key in (pygame.K_UP, pygame.K_w):
-                selected = (selected - 1) % len(settings.MENU_FIELDS)
+                selected = (selected - 1) % total_fields
                 continue
 
             if key in (pygame.K_LEFT, pygame.K_a):
-                settings.step_setting(settings.MENU_FIELDS[selected], -1)
+                field = _get_field_by_display_index(settings, selected)
+                if field:
+                    settings.step_setting(field, -1)
                 continue
 
             if key in (pygame.K_RIGHT, pygame.K_d):
-                settings.step_setting(settings.MENU_FIELDS[selected], +1)
+                field = _get_field_by_display_index(settings, selected)
+                if field:
+                    settings.step_setting(field, +1)
                 continue
 
 
