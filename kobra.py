@@ -65,17 +65,17 @@ def _draw_settings_menu(
     """
     state.arena.fill(ARENA_COLOR)
 
-    title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 10))
+    title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 12))
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
-    # Spacing and scroll parameters
-    visible_rows = int(state.height * 0.75 // (state.height * 0.07))
+    # Spacing and scroll parameters - adjusted for smaller text
+    row_h = int(state.height * 0.06)
+    visible_rows = int(state.height * 0.70 // row_h)
     top_index = max(0, selected_index - visible_rows + 3)
-    padding_y = int(state.height * 0.20)
-    row_h = int(state.height * 0.07)
+    padding_y = int(state.height * 0.22)
 
-    # Draw visible rows
+    # Draw visible rows with smaller font
     for draw_i, field_i in enumerate(range(top_index, len(settings.MENU_FIELDS))):
         if draw_i >= visible_rows:
             break
@@ -84,18 +84,19 @@ def _draw_settings_menu(
         formatted_val = settings.format_setting_value(
             f, val, state.width, state.grid_size
         )
-        text = assets.render_small(
+        text = assets.render_custom(
             f"{f['label']}: {formatted_val}",
             SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
+            int(state.width / 30)
         )
         rect = text.get_rect()
-        rect.left = int(state.width * 0.12)
+        rect.left = int(state.width * 0.10)
         rect.top = padding_y + draw_i * row_h
         state.arena.blit(text, rect)
 
     # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back [C] random colors"
-    hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 40))
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
+    hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 50))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
     pygame.display.update()
@@ -322,6 +323,88 @@ def _wait_for_keys(allowed_keys: set[int]) -> int:
             not allowed_keys or event.key in allowed_keys
         ):
             return event.key
+
+
+def _show_reset_warning_dialog(
+    state: GameState, assets: GameAssets
+) -> str:
+    """Show a warning dialog when critical settings changed.
+    
+    Returns:
+        'reset' - User wants to reset now
+        'cancel' - User wants to cancel changes
+    """
+    selected = 0
+    options = ["Reset Now", "Cancel Changes"]
+    
+    while True:
+        state.arena.fill(ARENA_COLOR)
+        
+        # Title - smaller size
+        title = assets.render_custom("Warning", MESSAGE_COLOR, int(state.width / 15))
+        title_rect = title.get_rect(center=(state.width / 2, state.height / 8))
+        state.arena.blit(title, title_rect)
+        
+        # Message text (multi-line) - smaller font and better fit
+        message_lines = [
+            "The changes you made require",
+            "a game reset to take effect.",
+            "",
+            "Reset the game now?",
+            "If not, changes will be reverted.",
+        ]
+        
+        y_offset = state.height / 3.2
+        line_height = int(state.height * 0.05)
+        for line in message_lines:
+            if line:  # Skip empty lines for spacing
+                msg_surf = assets.render_custom(line, MESSAGE_COLOR, int(state.width / 30))
+            else:
+                msg_surf = assets.render_custom(" ", MESSAGE_COLOR, int(state.width / 30))
+            msg_rect = msg_surf.get_rect(center=(state.width / 2, y_offset))
+            state.arena.blit(msg_surf, msg_rect)
+            y_offset += line_height
+        
+        # Draw option buttons - smaller font
+        button_y_start = state.height / 1.65
+        for i, option in enumerate(options):
+            color = SCORE_COLOR if i == selected else MESSAGE_COLOR
+            option_surf = assets.render_custom(option, color, int(state.width / 25))
+            option_rect = option_surf.get_rect(
+                center=(state.width / 2, button_y_start + i * (state.height * 0.09))
+            )
+            state.arena.blit(option_surf, option_rect)
+        
+        # Hint - smaller
+        hint = assets.render_custom(
+            "[W/S] select   [Enter] confirm",
+            GRID_COLOR,
+            int(state.width / 50)
+        )
+        state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.92)))
+        
+        pygame.display.update()
+        
+        # Input handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
+                key = event.key
+                
+                if key in (pygame.K_UP, pygame.K_w):
+                    selected = (selected - 1) % len(options)
+                elif key in (pygame.K_DOWN, pygame.K_s):
+                    selected = (selected + 1) % len(options)
+                elif key in (pygame.K_RETURN, pygame.K_SPACE):
+                    if options[selected] == "Reset Now":
+                        return "reset"
+                    else:  # Cancel Changes
+                        return "cancel"
+                elif key == pygame.K_ESCAPE:
+                    return "cancel"
 
 
 def game_over_handler(
@@ -657,14 +740,33 @@ def main():
                         or old_electric_walls != settings.get("electric_walls")
                     )
 
-                    # Force reset if critical settings changed, or use player preference
+                    # Determine if we should reset
+                    should_reset = False
+                    if needs_reset:
+                        # If "Reset Game on Apply" is enabled, reset automatically
+                        if settings.get("reset_game_on_apply"):
+                            should_reset = True
+                        else:
+                            # Show warning dialog and ask user
+                            user_choice = _show_reset_warning_dialog(state, assets)
+                            if user_choice == "reset":
+                                should_reset = True
+                            else:  # user_choice == "cancel"
+                                # Revert the critical settings changes
+                                settings.set("cells_per_side", old_cells)
+                                settings.set("obstacle_difficulty", old_obstacles)
+                                settings.set("initial_speed", old_initial_speed)
+                                settings.set("number_of_apples", old_num_apples)
+                                settings.set("electric_walls", old_electric_walls)
+                                should_reset = False
+
+                    # Apply settings with or without reset
                     apply_settings(
                         state,
                         assets,
                         config,
                         settings,
-                        reset_objects=needs_reset
-                        or settings.get("reset_game_on_apply"),
+                        reset_objects=should_reset,
                     )
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
@@ -843,7 +945,7 @@ def main():
         )
 
         # Show score (snake length = head + tail)
-        score = assets.render_big(f"{len(state.snake.tail)}", SCORE_COLOR)
+        score = assets.render_custom(f"{len(state.snake.tail)}", SCORE_COLOR, int(state.width / 10))
         score.set_alpha(75)  # opacity
         score_rect = score.get_rect(center=(state.width / 2, state.height / 12))
         state.arena.blit(score, score_rect)
@@ -888,7 +990,7 @@ def main():
                 break  # Only eat one apple per frame
 
         if pygame.time.get_ticks() < show_pause_hint_end_time and state.game_on:
-            hint_surf = assets.render_small("Press P to pause", MESSAGE_COLOR)
+            hint_surf = assets.render_custom("Press P to pause", MESSAGE_COLOR, int(state.width / 30))
             hint_surf.set_alpha(180)  # Deixa o texto semi-transparente
             hint_rect = hint_surf.get_rect(center=(state.width / 2, state.height - 40))
             state.arena.blit(hint_surf, hint_rect)
