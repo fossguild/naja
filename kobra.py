@@ -65,7 +65,7 @@ def _draw_settings_menu(
     """
     state.arena.fill(ARENA_COLOR)
 
-    title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 10))
+    title = assets.render_custom("Settings", MESSAGE_COLOR, int(state.width / 15))
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
@@ -84,9 +84,10 @@ def _draw_settings_menu(
         formatted_val = settings.format_setting_value(
             f, val, state.width, state.grid_size
         )
-        text = assets.render_small(
+        text = assets.render_custom(
             f"{f['label']}: {formatted_val}",
             SCORE_COLOR if field_i == selected_index else MESSAGE_COLOR,
+            int(state.width / 30),
         )
         rect = text.get_rect()
         rect.left = int(state.width * 0.12)
