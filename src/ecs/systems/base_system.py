@@ -18,14 +18,13 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
 from abc import ABC, abstractmethod
 from src.ecs.world import World
 
 
 class BaseSystem(ABC):
     """
-    Abstract base game system from which 
+    Abstract base game system from which
     other systems must inherit from and implement in a concrete way.
     """
 
@@ -37,4 +36,3 @@ class BaseSystem(ABC):
         Args:
             (world): Game world that will be updated accoding to a certain logic
         """
-        
