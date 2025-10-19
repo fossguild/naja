@@ -1,0 +1,338 @@
+---
+description: "Catálogo de sistemas e suas responsabilidades"
+globs: ["src/ecs/systems/**/*"]
+---
+
+# Systems Catalog
+
+All systems inherit from abstract `GameSystem` base class. Each system has a single, well-defined responsibility.
+
+## System Execution Order
+
+Systems run in a fixed order each tick. This order is defined in `gameplay.py` scene:
+
+1. **InputSystem** - read user input
+2. **MovementSystem** - update positions
+3. **CollisionSystem** - detect collisions, emit events
+4. **SpawnSystem** - create new entities
+5. **ScoringSystem** - update score from events
+6. **ObstacleGenerationSystem** - generate obstacles (on demand)
+7. **SettingsApplySystem** - apply runtime settings changes
+8. **ValidationSystem** - verify game state integrity
+9. **ResizeSystem** - handle window resize
+10. **InterpolationSystem** - calculate smooth positions
+11. **AudioSystem** - play sounds and music
+12. **RenderSystem** - draw everything
+13. **UISystem** - draw HUD and overlays
+
+## System Details
+
+### InputSystem
+**File**: `src/ecs/systems/input.py`
+**Responsibility**: Convert raw pygame events into component mutations and commands
+
+**Reads**: pygame events
+**Writes**: Velocity (direction changes), Flags (pause), Commands (quit, toggle_music)
+**Queries**: entities with Velocity component (for snake direction)
+
+**Behavior**:
+- Maps arrow keys and WASD to direction changes
+- Prevents 180-degree turns
+- Handles P for pause, Q for quit, N for music toggle
+- Handles M and ESC for menu
+- Handles C for palette randomization
+- Emits commands for actions that affect global state
+
+**Rules**:
+- Never applies movement directly, only updates Velocity component
+- Never pauses game loop itself, only sets pause flag
+- Direction change is enqueued if valid (no reverse)
+
+---
+
+### MovementSystem
+**File**: `src/ecs/systems/movement.py`
+**Responsibility**: Update entity positions based on velocity and grid rules
+
+**Reads**: Position, Velocity, Grid, Flags (paused)
+**Writes**: Position, SnakeBody (segments)
+**Queries**: entities with Position and Velocity
+
+**Behavior**:
+- Moves snake head by (dx, dy) each tick
+- Updates snake body segments (follow the leader)
+- Handles grid wrapping for non-electric walls
+- Respects pause flag (no movement when paused)
+- Maintains snake segment history for rendering
+
+**Rules**:
+- Only runs on fixed tick boundary, not every render frame
+- Movement is discrete (cell by cell), interpolation is separate
+- Wrapping happens at grid edges based on wall mode
+- Body segment at position N moves to position N-1's previous location
+
+---
+
+### CollisionSystem
+**File**: `src/ecs/systems/collision.py`
+**Responsibility**: Detect collisions and emit collision events
+
+**Reads**: Position, Collider, SnakeBody, Edible, WallTag, ObstacleTag
+**Writes**: Events (ate_apple, snake_died, need_spawn_apple)
+**Queries**: entities with Position and Collider
+
+**Behavior**:
+- Checks snake head against apples (edible)
+- Checks snake head against walls (electric mode)
+- Checks snake head against obstacles
+- Checks snake head against its own body
+- Emits events for each collision type
+
+**Rules**:
+- Only checks snake head, not body segments
+- Electric walls cause death, wrapping walls do not
+- Self-collision only happens if snake length > 1 and head hits body
+- Apple collision emits both ate_apple and need_spawn_apple events
+- Does not modify entities directly, only emits events
+
+---
+
+### SpawnSystem
+**File**: `src/ecs/systems/spawn.py`
+**Responsibility**: Create new entities in response to events
+
+**Reads**: Events (need_spawn_apple), Grid, Position (all occupied cells)
+**Writes**: New entities (Apple)
+**Queries**: entities with Position (to avoid spawning on occupied cells)
+
+**Behavior**:
+- Spawns apples at random free positions when needed
+- Verifies spawn position is not occupied by snake, obstacles, or walls
+- Retries up to N times if random position is occupied
+
+**Rules**:
+- Never spawns on top of existing entities
+- Uses deterministic random if seed is set (for testing)
+- Spawns exactly one apple per need_spawn_apple event
+- Does not spawn if no free cells available (game over condition)
+
+---
+
+### ObstacleGenerationSystem
+**File**: `src/ecs/systems/obstacle_generation.py`
+**Responsibility**: Generate obstacles with connectivity and anti-trap guarantees
+
+**Reads**: Grid, Difficulty, Position (existing entities)
+**Writes**: New entities (Obstacle)
+**Queries**: entities with ObstacleTag
+
+**Behavior**:
+- Generates obstacles based on difficulty level
+- Ensures grid remains connected (flood fill algorithm)
+- Prevents creating inescapable traps for the snake
+- Places obstacles at valid random positions
+
+**Rules**:
+- Only runs once at game start or after settings change
+- Uses constructive generation (adds one obstacle at a time, validates)
+- Verifies connectivity after each obstacle placement
+- Backtracks if obstacle would create trap or disconnect grid
+- Maintains minimum distance from snake starting position
+
+---
+
+### ScoringSystem
+**File**: `src/ecs/systems/scoring.py`
+**Responsibility**: Update score based on game events
+
+**Reads**: Events (ate_apple), Edible (points value)
+**Writes**: Score
+**Queries**: entities with Score component
+
+**Behavior**:
+- Increments score when ate_apple event occurs
+- Updates high score if current score exceeds it
+- Can apply score multipliers based on difficulty or combos
+
+**Rules**:
+- Score is never negative
+- High score persists across game restarts
+- Score is only updated by events, never by time
+
+---
+
+### AudioSystem
+**File**: `src/ecs/systems/audio.py`
+**Responsibility**: Play sound effects and background music
+
+**Reads**: AudioQueue, MusicState, assets (sound files)
+**Writes**: AudioQueue (clears after processing)
+**Queries**: entities with AudioQueue
+
+**Behavior**:
+- Processes SFX queue, plays sounds on available channels
+- Manages background music playback, pause, stop, next track
+- Handles multiple simultaneous SFX (pygame mixer channels)
+- Respects music enabled flag
+
+**Rules**:
+- SFX always play if queued (not affected by music toggle)
+- Music toggle only affects background music
+- Clears audio queue after processing to avoid replays
+- Never blocks on audio playback
+
+---
+
+### RenderSystem
+**File**: `src/ecs/systems/render.py`
+**Responsibility**: Draw all visual elements to screen
+
+**Reads**: Position, Renderable, SnakeBody, Grid, Palette, Interpolation
+**Writes**: None (read-only system)
+**Queries**: entities with Position and Renderable
+
+**Behavior**:
+- Clears screen with arena color
+- Draws grid lines
+- Draws obstacles as rectangles
+- Draws snake with smooth interpolation
+- Draws apples
+- Handles edge wrapping for smooth visual wrap-around
+
+**Rules**:
+- Never modifies game state or components
+- Uses interpolated positions for smooth animation between ticks
+- Respects layer order for draw ordering
+- Handles screen resize gracefully
+- Can cache rendering resources (fonts, surfaces) but must clear on settings change
+
+---
+
+### UISystem
+**File**: `src/ecs/systems/ui.py`
+**Responsibility**: Draw user interface overlays and handle UI interactions
+
+**Reads**: UiState, Score, MusicState, Flags, Palette
+**Writes**: UiState (update center messages, overlays)
+**Queries**: entities with UiState
+
+**Behavior**:
+- Draws score and high score in top-left corner
+- Draws music indicator when music is playing
+- Draws center messages (game start hint, game over)
+- Draws pause overlay with semi-transparent background
+- Draws hints for controls when enabled
+
+**Rules**:
+- UI elements are always drawn on top of game elements
+- UI respects palette colors for consistency
+- Center messages have title and subtitle
+- Pause overlay dims the game area
+
+---
+
+### InterpolationSystem
+**File**: `src/ecs/systems/interpolation.py`
+**Responsibility**: Calculate smooth positions for rendering between ticks
+
+**Reads**: Position, Velocity, Grid (for wrap detection)
+**Writes**: Interpolation
+**Queries**: entities with Position and Interpolation
+
+**Behavior**:
+- Calculates interpolation alpha based on time since last tick
+- Detects edge wrapping for special interpolation handling
+- Updates interpolated position for smooth rendering
+
+**Rules**:
+- Only affects rendering, never affects game logic
+- Alpha ranges from 0.0 (at tick) to 1.0 (just before next tick)
+- Special handling for wrapping to avoid visual jump across screen
+- Does not interpolate during pause
+
+---
+
+### SettingsApplySystem
+**File**: `src/ecs/systems/settings_apply.py`
+**Responsibility**: Apply runtime settings changes
+
+**Reads**: Settings (from config), Commands (apply_settings)
+**Writes**: Grid, Palette, Difficulty, recreates entities if needed
+**Queries**: all entities (may need to recreate)
+
+**Behavior**:
+- Detects settings changes that require game reset (grid size, difficulty)
+- Updates components to match new settings
+- Recreates snake, apples, obstacles if critical settings changed
+- Resizes window and recalculates cell size
+- Reloads fonts and assets if needed
+
+**Rules**:
+- Only runs when apply_settings command is received
+- Prompts user for confirmation if reset is required
+- Preserves score and high score across settings changes
+- Handles settings validation errors gracefully
+
+---
+
+### ValidationSystem
+**File**: `src/ecs/systems/validation.py`
+**Responsibility**: Verify game state integrity
+
+**Reads**: All components
+**Writes**: None (logs errors only)
+**Queries**: all entities
+
+**Behavior**:
+- Verifies exactly one apple exists
+- Verifies snake position is within grid bounds
+- Verifies no entity overlap except during collision frame
+- Verifies component data is valid (no negative scores, etc.)
+- Logs warnings for anomalies
+
+**Rules**:
+- Runs in debug mode only (can be expensive)
+- Never fixes problems, only reports them
+- Does not affect game flow
+- Useful for debugging and testing
+
+---
+
+### ResizeSystem
+**File**: `src/ecs/systems/resize.py`
+**Responsibility**: Handle dynamic window resize
+
+**Reads**: pygame window events, Grid, Settings
+**Writes**: Grid (cell_size), window surface
+**Queries**: entities with Grid
+
+**Behavior**:
+- Detects window resize events
+- Recalculates optimal cell size for new window dimensions
+- Updates grid component with new cell size
+- Triggers asset reload if cell size changed significantly
+
+**Rules**:
+- Maintains aspect ratio constraints
+- Ensures minimum cell size for readability
+- Does not change grid dimensions (cols, rows), only cell size
+- Only runs when window resize event occurs
+
+## System Design Rules
+
+1. **Single responsibility**: Each system does one thing well
+2. **Read-write separation**: Clearly document what is read vs. written
+3. **No direct system coupling**: Systems communicate through components and events
+4. **Inherit from GameSystem**: All systems inherit the base class for consistency
+5. **Order matters**: System execution order is explicit and documented
+6. **Idempotent when possible**: Systems should handle being called multiple times safely
+
+## Adding New Systems
+
+When adding a new system:
+1. Inherit from `GameSystem` abstract base
+2. Override `update(dt_ms)` method
+3. Document reads, writes, and queries clearly
+4. Add to system execution order in `gameplay.py`
+5. Write unit tests with mock components
+6. Update this catalog
