@@ -17,4 +17,83 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Entity registry, component storage, and system manager."""
+"""World composition class containing game state components."""
+
+import pygame
+
+from src.ecs.entity_registry import EntityRegistry
+from src.ecs.board import Board
+
+__all__ = ["World"]
+
+
+class World:
+    """Container for core game state components.
+    
+    Composed of:
+    - EntityRegistry: Manages entities and their IDs
+    - Board: 2D grid for spatial indexing and collision detection
+    - Clock: Pygame clock for frame timing
+    
+    Access components via properties:
+    - world.registry: Entity management
+    - world.board: Spatial grid
+    - world.clock: Frame timing
+    
+    Example:
+        board = Board(20, 20)
+        world = World(board)
+        
+        # Add entity via registry
+        entity_id = world.registry.add(snake)
+        
+        # Query entities
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        
+        # Access board for collision
+        tile = world.board.get_tile(5, 5)
+        
+        # Control frame rate
+        world.clock.tick(60)
+    """
+
+    _registry: EntityRegistry
+    _board: Board
+    _clock: pygame.time.Clock
+
+    def __init__(self, board: Board) -> None:
+        """Initialize world with required components.
+        
+        Args:
+            board: Board instance for spatial indexing and collision detection
+        """
+        self._registry = EntityRegistry()
+        self._board = board
+        self._clock = pygame.time.Clock()
+
+    @property
+    def registry(self) -> EntityRegistry:
+        """Get the entity registry for entity management.
+        
+        Returns:
+            EntityRegistry: The entity registry instance
+        """
+        return self._registry
+
+    @property
+    def board(self) -> Board:
+        """Get the board for spatial indexing and collision detection.
+        
+        Returns:
+            Board: The board instance
+        """
+        return self._board
+
+    @property
+    def clock(self) -> pygame.time.Clock:
+        """Get the pygame clock for frame timing.
+        
+        Returns:
+            pygame.time.Clock: The clock instance
+        """
+        return self._clock

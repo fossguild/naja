@@ -18,3 +18,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Core engine module."""
+
+from src.core.board import Board, Tile, BoardOutOfBoundsError
+
+__all__ = ["Board", "Tile", "BoardOutOfBoundsError"]
