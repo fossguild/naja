@@ -46,6 +46,19 @@ pygame.init()
 # Initialize the audio mixer
 pygame.mixer.init()
 
+# --- Fullscreen helpers ---
+DISPLAY_FLAGS = pygame.SCALED  # windowed scaled by default
+IS_FULLSCREEN = False
+
+
+def set_fullscreen(state: GameState, enable: bool) -> None:
+    """Switch fullscreen on/off while keeping logical resolution."""
+    global DISPLAY_FLAGS, IS_FULLSCREEN
+    IS_FULLSCREEN = enable
+    DISPLAY_FLAGS = (pygame.SCALED | pygame.FULLSCREEN) if enable else pygame.SCALED
+    state.arena = pygame.display.set_mode((state.width, state.height), DISPLAY_FLAGS)
+    pygame.display.set_caption(WINDOW_TITLE)
+
 
 ##
 ## Settings Menu Functions
@@ -95,7 +108,7 @@ def _draw_settings_menu(
         state.arena.blit(text, rect)
 
     # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors   [F11/Alt+Enter/F] fullscreen"
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 50))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
@@ -127,6 +140,15 @@ def run_settings_menu(
                 continue
 
             key = event.key
+
+            # Fullscreen toggles also work inside the settings menu
+            if (
+                key == pygame.K_F11
+                or (key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT))
+                or key == pygame.K_f
+            ):
+                set_fullscreen(state, not IS_FULLSCREEN)
+                continue
 
             if key in (pygame.K_ESCAPE, pygame.K_RETURN):
                 return  # exit menu
@@ -188,7 +210,8 @@ def apply_settings(
     # Recompute window and recreate surface/fonts if grid changed
     if new_grid_size != old_grid:
         new_width, new_height = config.calculate_window_size(new_grid_size)
-        state.arena = pygame.display.set_mode((new_width, new_height))
+        # Use the current display flags (fullscreen/windowed)
+        state.arena = pygame.display.set_mode((new_width, new_height), DISPLAY_FLAGS)
         pygame.display.set_caption(WINDOW_TITLE)
 
         # Update state's dimensions to match new grid size
@@ -495,6 +518,16 @@ def start_menu(
 
             if event.type == pygame.KEYDOWN:
                 key = event.key
+
+                # Allow fullscreen toggle in the start menu as well
+                if (
+                    key == pygame.K_F11
+                    or (key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT))
+                    or key == pygame.K_f
+                ):
+                    set_fullscreen(state, not IS_FULLSCREEN)
+                    continue
+
                 if key in (pygame.K_UP, pygame.K_w):
                     selected = (selected - 1) % len(items)
                 elif key in (pygame.K_DOWN, pygame.K_s):
@@ -666,6 +699,9 @@ def main():
     state.create_obstacles_constructively(num_obstacles)
     pygame.display.set_caption(WINDOW_TITLE)
 
+    # Force fullscreen at startup (remove or set to False if you prefer windowed)
+    set_fullscreen(state, True)
+
     ##
     ## Start flow
     ##
@@ -779,6 +815,12 @@ def main():
 
                 elif event.key == pygame.K_c:  # C : randomize snake colors
                     settings.randomize_snake_colors()
+                elif (
+                    event.key == pygame.K_F11
+                    or (event.key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT))
+                    or event.key == pygame.K_f
+                ):
+                    set_fullscreen(state, not IS_FULLSCREEN)
 
         ## Update the game
         if state.game_on:
