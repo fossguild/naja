@@ -144,7 +144,9 @@ def run_settings_menu(
             # Fullscreen toggles also work inside the settings menu
             if (
                 key == pygame.K_F11
-                or (key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT))
+                or (
+                    key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT)
+                )
                 or key == pygame.K_f
             ):
                 set_fullscreen(state, not IS_FULLSCREEN)
@@ -522,7 +524,10 @@ def start_menu(
                 # Allow fullscreen toggle in the start menu as well
                 if (
                     key == pygame.K_F11
-                    or (key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT))
+                    or (
+                        key == pygame.K_RETURN
+                        and (pygame.key.get_mods() & pygame.KMOD_ALT)
+                    )
                     or key == pygame.K_f
                 ):
                     set_fullscreen(state, not IS_FULLSCREEN)
@@ -817,7 +822,10 @@ def main():
                     settings.randomize_snake_colors()
                 elif (
                     event.key == pygame.K_F11
-                    or (event.key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT))
+                    or (
+                        event.key == pygame.K_RETURN
+                        and (pygame.key.get_mods() & pygame.KMOD_ALT)
+                    )
                     or event.key == pygame.K_f
                 ):
                     set_fullscreen(state, not IS_FULLSCREEN)
