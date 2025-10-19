@@ -18,3 +18,14 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Obstacle component."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class ObstacleTag:
+    """Marker component for obstacle entities.
+    
+    Tag-only component with no data fields.
+    Used by: Obstacle
+    """

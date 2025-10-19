@@ -18,3 +18,17 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Apple (edible) component."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Edible:
+    """Marks an entity as edible by the snake.
+    
+    Contains properties for scoring and growth when consumed.
+    Used by: Apple
+    """
+
+    points: int = 10
+    growth: int = 1  # how many segments to add to snake
