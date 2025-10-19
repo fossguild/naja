@@ -389,9 +389,13 @@ def _draw_race_hud(state: GameState, assets: GameAssets) -> None:
     state.arena.blit(surf, rect)
 
 
-def _handle_time_up(state: GameState, assets: GameAssets, settings: GameSettings) -> None:
+def _handle_time_up(
+    state: GameState, assets: GameAssets, settings: GameSettings
+) -> None:
     """Show 'Time's Up' and wait for restart/quit."""
-    _draw_center_message(state, assets, "Time's Up", "Press Enter/Space to restart  •  Q to exit")
+    _draw_center_message(
+        state, assets, "Time's Up", "Press Enter/Space to restart  •  Q to exit"
+    )
     key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
     if key == pygame.K_q:
         pygame.quit()
@@ -425,7 +429,9 @@ def _is_race_enabled(settings: GameSettings) -> bool:
     return False
 
 
-def _race_enabled_from_state_or_settings(state: GameState, settings: GameSettings) -> bool:
+def _race_enabled_from_state_or_settings(
+    state: GameState, settings: GameSettings
+) -> bool:
     """Prefer a transient selection stored on GameState; fallback to settings."""
     pref = getattr(state, "race_mode_pref", None)
     if isinstance(pref, bool):
@@ -1155,9 +1161,7 @@ def main():
                     int(state.width / 30),
                 )
                 hint.set_alpha(180)
-                hint_rect = hint.get_rect(
-                    center=(state.width / 2, state.height - 70)
-                )
+                hint_rect = hint.get_rect(center=(state.width / 2, state.height - 70))
                 state.arena.blit(hint, hint_rect)
 
         # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
