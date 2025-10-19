@@ -1,0 +1,233 @@
+---
+description: "Catálogo de entidades e componentes no Naja ECS"
+globs: ["src/ecs/components/**/*", "src/ecs/prefabs/**/*"]
+---
+
+# Entities and Components Catalog
+
+## Entity Types
+
+Entities are just IDs. These are the logical groupings based on component combinations:
+
+### Snake Entity
+**Purpose**: Player-controlled snake with segmented body
+**Components**: Position, Velocity, SnakeBody, Collider, Renderable, Interpolation
+**Created by**: `prefabs.create_snake()`
+
+### Apple Entity
+**Purpose**: Collectible food that increases score and snake length
+**Components**: Position, Edible, Renderable
+**Created by**: `prefabs.create_apple()`
+
+### Obstacle Entity
+**Purpose**: Static obstacles that block movement
+**Components**: Position, ObstacleTag, Collider, Renderable
+**Created by**: `prefabs.create_obstacle()`
+
+### Wall Entity
+**Purpose**: Arena boundaries (can be electric or wrapping)
+**Components**: Position, WallTag, Collider, Renderable
+**Created by**: `prefabs.create_wall()`
+
+### Game Entity (Singleton)
+**Purpose**: Global game state
+**Components**: Score, Grid, Flags, Difficulty, Palette, MusicState
+**Created by**: `prefabs.create_game()`
+
+### HUD Entity
+**Purpose**: UI overlay elements
+**Components**: UiState, Renderable
+**Created by**: `prefabs.create_hud()`
+
+### AudioBus Entity (Singleton)
+**Purpose**: Audio playback queue
+**Components**: AudioQueue
+**Created by**: `prefabs.create_audio_bus()`
+
+## Component Catalog
+
+All components are pure data classes. No methods except simple property getters.
+
+### Position Component
+```
+Location in grid space or screen space
+Fields: x (float), y (float), space (enum: GRID or SCREEN)
+Used by: Snake, Apple, Obstacle, Wall
+```
+
+### Velocity Component
+```
+Movement direction and speed
+Fields: dx (int), dy (int), cells_per_tick (float)
+Used by: Snake
+```
+
+### SnakeBody Component
+```
+Snake segments and growth queue
+Fields: 
+  - segments: list[(x, y)] - body segment positions
+  - length: int - current length
+  - growth_queue: int - pending growth from eating apples
+  - last_tail_pos: (x, y) - for rendering during growth
+Used by: Snake
+```
+
+### Collider Component
+```
+Collision detection boundaries
+Fields: 
+  - shape (enum: RECT, CIRCLE, SEGMENTS)
+  - bounds: shape-specific data
+  - layer (enum: SNAKE, OBSTACLE, WALL, APPLE)
+Used by: Snake, Obstacle, Wall
+```
+
+### Renderable Component
+```
+Visual representation data
+Fields:
+  - color: (r, g, b)
+  - shape (enum: RECT, CIRCLE, SPRITE)
+  - layer (int) - draw order
+  - visible (bool)
+Used by: Snake, Apple, Obstacle, Wall, HUD
+```
+
+### Edible Component
+```
+Can be eaten by snake
+Fields: 
+  - points (int) - score value
+  - growth (int) - how many segments to add
+Used by: Apple
+```
+
+### ObstacleTag Component
+```
+Marker for obstacle entities
+Fields: none (tag-only component)
+Used by: Obstacle
+```
+
+### WallTag Component
+```
+Marker for wall entities
+Fields: 
+  - electric (bool) - causes death on collision
+Used by: Wall
+```
+
+### Score Component
+```
+Current game score
+Fields: 
+  - value (int)
+  - high_score (int)
+Used by: Game
+```
+
+### Grid Component
+```
+Game grid dimensions and cell size
+Fields:
+  - cols (int)
+  - rows (int)
+  - cell_size (int)
+  - margin (int)
+Used by: Game
+```
+
+### Flags Component
+```
+Game state flags
+Fields:
+  - paused (bool)
+  - game_over (bool)
+  - show_hints (bool)
+  - debug_mode (bool)
+Used by: Game
+```
+
+### Difficulty Component
+```
+Difficulty settings
+Fields:
+  - level (enum: EASY, MEDIUM, HARD)
+  - obstacle_count (int)
+  - snake_speed (float)
+Used by: Game
+```
+
+### Palette Component
+```
+Current color scheme
+Fields:
+  - arena_color (r, g, b)
+  - grid_color (r, g, b)
+  - snake_head_color (r, g, b)
+  - snake_body_color (r, g, b)
+  - apple_color (r, g, b)
+  - obstacle_color (r, g, b)
+Used by: Game
+```
+
+### Interpolation Component
+```
+Smooth rendering between ticks
+Fields:
+  - last_position: (x, y)
+  - current_position: (x, y)
+  - alpha (float) - interpolation factor [0, 1]
+  - wrapped (bool) - did entity wrap around screen
+Used by: Snake
+```
+
+### AudioQueue Component
+```
+Pending audio events
+Fields:
+  - sfx_queue: list[str] - sound effect names to play
+  - music_command: Optional[str] - play, pause, stop, next
+Used by: AudioBus
+```
+
+### MusicState Component
+```
+Background music state
+Fields:
+  - enabled (bool)
+  - current_track (str)
+  - volume (float)
+Used by: Game
+```
+
+### UiState Component
+```
+UI overlay state
+Fields:
+  - show_score (bool)
+  - show_music_indicator (bool)
+  - center_message: Optional[(title, subtitle)]
+  - pause_overlay (bool)
+Used by: HUD
+```
+
+## Component Design Rules
+
+1. **No logic in components**: Components are data classes only
+2. **Immutability where possible**: Prefer frozen dataclasses when data doesn't change
+3. **Small and focused**: Each component represents one aspect of an entity
+4. **Composition over inheritance**: No component inheritance hierarchies
+5. **No cross-references**: Components don't store entity IDs or references to other components
+6. **Serializable**: All component data should be JSON-serializable for save/load
+
+## Adding New Components
+
+When adding a new component:
+1. Create file in `src/ecs/components/`
+2. Use `@dataclass` decorator
+3. Document purpose and which entities use it
+4. Add to appropriate prefabs
+5. Update relevant systems to query for it
+6. Add tests in `tests/ecs/test_components.py`

@@ -29,7 +29,7 @@ alwaysApply: true
 - Branch from: `dev`
 - Merge into: `dev`
 - Purpose: New features or enhancements
-- Example: `feat/42/add-high-score-system`
+- Example: `feat/42/add-collision-system`, `feat/15/implement-snake-prefab`
 
 **Hotfix branches** (`hot/<issue-number>/<description>`)
 - Branch from: `main`
@@ -59,11 +59,12 @@ alwaysApply: true
 
 **Correct**:
 ```
-feat/15/settings-menu
-hot/23/apple-spawn-bug
-wip/8/difficulty-levels
+feat/15/add-movement-system
+feat/42/implement-render-system
+hot/23/fix-apple-spawn-collision
+wip/8/experiment-with-particle-effects
 rel/1.0.0
-aux/update-readme
+aux/update-ecs-documentation
 ```
 
 **Incorrect**:
@@ -97,16 +98,21 @@ Explain the "why" behind the change, not the "what".]
 
 **Good commits**:
 ```
-code: fix self-bite detection for single tail segment
+code: add MovementSystem with grid wrapping logic
 
-The collision check now handles the edge case where the snake
-has exactly one tail segment and attempts to reverse direction.
+Implements entity position updates based on velocity components.
+Handles edge wrapping for non-electric wall mode.
 
-doc: update manual with new settings options
+code: extract collision detection to CollisionSystem
 
-build: add pre-commit hook configuration
+Separates collision logic from entity classes. Emits events
+instead of directly modifying game state.
 
-minor: fix typo in comment
+doc: add ECS architecture overview to documentation
+
+build: add pytest for system unit testing
+
+minor: fix typo in Position component docstring
 ```
 
 **Bad commits**:
@@ -125,12 +131,17 @@ WIP                          (not descriptive)
 2. **Branch from correct base**: `feat/*` from `dev`, `hot/*` from `main`
 3. **Run quality checks**:
    ```bash
-   black .
-   ruff check .
-   python kobra.py  # Manual test
+   black .                    # format code
+   ruff check .               # lint code
+   pytest tests/              # run tests
+   python kobra.py            # manual test game
    ```
 4. **Update documentation**: If adding features, update relevant docs
 5. **Review your own changes**: Check diff for unintended changes
+6. **ECS-specific checks**:
+   - Components are pure data (no methods)
+   - Systems have single responsibility
+   - No circular dependencies between modules
 
 ### PR Title Format
 ```
@@ -138,9 +149,10 @@ WIP                          (not descriptive)
 ```
 
 Examples:
-- `[FEAT] Add high score persistence (closes #42)`
-- `[FIX] Resolve apple spawn collision bug (closes #23)`
-- `[DOC] Update contributing guidelines (closes #15)`
+- `[FEAT] Add CollisionSystem for entity interactions (closes #42)`
+- `[FIX] Fix SpawnSystem retry logic for occupied cells (closes #23)`
+- `[REFACTOR] Extract rendering to RenderSystem (closes #15)`
+- `[DOC] Update ECS architecture documentation (closes #8)`
 
 ### PR Description Template
 
@@ -157,18 +169,30 @@ Closes #[issue-number]
 - Specific change 3
 
 ## Testing
+- [ ] Unit tests added/updated
+- [ ] All tests passing (`pytest tests/`)
 - [ ] Manual testing completed
 - [ ] Black formatting passed
 - [ ] Ruff linting passed
 - [ ] Pre-commit hooks passed
 - [ ] Game runs without errors
 
+## ECS-Specific Checklist (if applicable)
+- [ ] Components are pure data (dataclasses, no methods)
+- [ ] Systems inherit from GameSystem
+- [ ] System has single responsibility
+- [ ] System documents reads/writes/queries in docstring
+- [ ] No circular imports between modules
+- [ ] Prefabs register entities with world correctly
+
 ## Screenshots (if UI changes)
 [Add screenshots if applicable]
 
-## Checklist
-- [ ] Code follows project style guidelines
-- [ ] Comments use proper English grammar
+## General Checklist
+- [ ] Code follows project style guidelines (see `ecs_coding_standards.mdc`)
+- [ ] Comments start with lowercase letters
+- [ ] No em dash characters used
+- [ ] Type hints on all public interfaces
 - [ ] Documentation updated (if needed)
 - [ ] Copyright notice updated (if substantial changes)
 - [ ] No unrelated changes included
@@ -277,6 +301,11 @@ All source files must include GPL license header:
 - Explain reasoning behind requests
 - Approve when standards are met
 - Check: code style, logic, testing, docs
+- ECS-specific review points:
+  - Verify components are data-only
+  - Verify systems don't call other systems directly
+  - Check system execution order makes sense
+  - Ensure no game logic in RenderSystem
 
 ## Development Environment Setup
 
@@ -294,13 +323,22 @@ uv sync --group dev
 # Install pre-commit hooks
 pre-commit install
 
-# Create feature branch
-git checkout -b feat/123/your-feature
+# Familiarize yourself with ECS architecture
+# Read .cursor/rules/ecs_overview.mdc
+# Read docs/architecture.md
 
-# Make changes, commit, push
+# Create feature branch
+git checkout -b feat/123/add-scoring-system
+
+# Make changes, run tests
+pytest tests/
+black .
+ruff check .
+
+# Commit and push
 git add .
-git commit -m "code: implement feature X"
-git push -u origin feat/123/your-feature
+git commit -m "code: add ScoringSystem for point tracking"
+git push -u origin feat/123/add-scoring-system
 
 # Create pull request on GitHub
 ```
@@ -309,20 +347,81 @@ git push -u origin feat/123/your-feature
 
 Before submitting PR:
 
+### Code Quality
 - [ ] Code is Black-formatted
 - [ ] No Ruff linting errors
+- [ ] Type hints on all public interfaces
+- [ ] Comments start with lowercase
+- [ ] No em dash characters
+
+### Testing
+- [ ] Unit tests written for new code
+- [ ] All tests passing (`pytest tests/`)
+- [ ] Manual testing completed
+- [ ] Game behavior unchanged (unless intended)
+
+### ECS Architecture (if applicable)
+- [ ] Components are pure data (no logic)
+- [ ] Systems inherit from GameSystem
+- [ ] System has clear single responsibility
+- [ ] No circular imports
+- [ ] Follows patterns in `ecs_coding_standards.mdc`
+
+### Git Workflow
 - [ ] All commits follow message format
 - [ ] Branch name follows convention
-- [ ] Documentation updated
-- [ ] Manual testing completed
-- [ ] No unrelated changes
-- [ ] Copyright notice updated (if needed)
 - [ ] Linked to GitHub issue
 - [ ] PR description complete
 
+### Documentation
+- [ ] Documentation updated (if needed)
+- [ ] Copyright notice updated (if substantial changes)
+- [ ] ECS docs updated (if adding system/component)
+- [ ] No unrelated changes
+
+## ECS-Specific Contribution Guidelines
+
+### Adding a New Component
+1. Create file in `src/ecs/components/`
+2. Use `@dataclass` decorator
+3. Pure data only, no methods
+4. Add docstring explaining purpose
+5. Update `ecs_entities_components.mdc`
+6. Add component to relevant prefabs
+7. Write tests in `tests/ecs/test_components.py`
+
+### Adding a New System
+1. Create file in `src/ecs/systems/`
+2. Inherit from `GameSystem`
+3. Override `update(dt_ms)` method
+4. Document reads/writes/queries in docstring
+5. Update `ecs_systems.mdc` with system details
+6. Add to system execution order in scene
+7. Write unit tests in `tests/ecs/test_<system_name>.py`
+
+### Adding a New Prefab
+1. Create file in `src/ecs/prefabs/`
+2. Factory function returns entity ID
+3. Registers all necessary components
+4. Document which components are added
+5. Write tests in `tests/game/test_prefabs.py`
+
+### Modifying Existing Systems
+- Maintain backward compatibility when possible
+- Update tests to reflect changes
+- Document breaking changes in PR description
+- Verify system execution order still makes sense
+
 ## Resources
 
+### Git and Versioning
 - [GitFlow Model](https://nvie.com/posts/a-successful-git-branching-model/)
 - [Semantic Versioning](https://semver.org/)
 - [REUSE Specification](https://reuse.software/)
 - [Keep a Changelog](https://keepachangelog.com/)
+
+### ECS Architecture
+- [Entity-Component-System FAQ](https://github.com/SanderMertens/ecs-faq)
+- [Game Programming Patterns: Component](https://gameprogrammingpatterns.com/component.html)
+- Project docs: `.cursor/rules/ecs_*.mdc` files
+- Project docs: `docs/architecture.md`

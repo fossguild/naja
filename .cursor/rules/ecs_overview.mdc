@@ -1,0 +1,126 @@
+---
+description: "Visão geral da arquitetura ECS (Entity-Component-System)"
+globs: ["src/**/*"]
+alwaysApply: true
+---
+
+# ECS Architecture Overview
+
+## What is ECS?
+
+ECS (Entity-Component-System) is an architectural pattern that separates:
+
+- **Entity**: A unique identifier that serves as a container for components. No logic or data, just an ID.
+- **Component**: Pure data structures that describe aspects of an entity (position, velocity, appearance). No behavior.
+- **System**: Logic that processes entities with specific components each frame/tick. Contains all behavior.
+
+## Why ECS for Naja?
+
+### Benefits
+- **Separation of concerns**: Data (components) separated from logic (systems)
+- **Composition over inheritance**: Build complex entities by combining simple components
+- **Testability**: Systems can be tested in isolation with mock components
+- **Parallel development**: Multiple developers can work on different systems with minimal conflicts
+- **Maintainability**: Small, focused systems are easier to understand and modify
+
+### Trade-offs
+- **Initial complexity**: More files and abstractions than monolithic approach
+- **Learning curve**: Team needs to understand ECS principles
+- **Indirection**: Following data flow requires understanding component-system relationships
+- **Overkill for simple games**: But valuable for learning and team collaboration
+
+## Core Principles
+
+### 1. Components are pure data
+```
+Good: Position component with x, y fields
+Bad: Position component with move() method
+```
+
+### 2. Systems contain all logic
+```
+Good: MovementSystem reads Position and Velocity, updates Position
+Bad: Velocity component with apply_to(position) method
+```
+
+### 3. Entities are just IDs
+```
+Good: entity_id = 42, with components attached in world registry
+Bad: Entity class with fields and methods
+```
+
+### 4. Systems are independent
+```
+Good: Systems communicate through components and events
+Bad: Systems calling methods on other systems directly
+```
+
+## ECS Flow in Naja
+
+Each game tick follows this order:
+
+1. **Input Phase**: InputSystem reads events, updates input components
+2. **Logic Phase**: 
+   - MovementSystem updates positions based on velocity
+   - CollisionSystem detects collisions, emits events
+   - SpawnSystem creates new entities as needed
+   - ScoringSystem updates score based on events
+3. **Audio Phase**: AudioSystem plays sounds based on audio queue component
+4. **Render Phase**: 
+   - InterpolationSystem calculates smooth positions for rendering
+   - RenderSystem draws everything based on renderable components
+   - UISystem draws HUD and overlays
+
+## Key Concepts
+
+### World Registry
+Central registry that stores:
+- Entity IDs (just integers)
+- Component storage (maps entity_id -> component data)
+- System instances (in execution order)
+- Event queues for inter-system communication
+
+### Prefabs
+Factory functions that create common entity configurations:
+- `create_snake()` -> entity with Position, Velocity, SnakeBody, Collider, Renderable
+- `create_apple()` -> entity with Position, Edible, Renderable
+- `create_obstacle()` -> entity with Position, ObstacleTag, Collider, Renderable
+
+### Queries
+Systems query the world for entities with specific component combinations:
+```
+for entity_id in world.query(Position, Velocity):
+    pos = world.get_component(entity_id, Position)
+    vel = world.get_component(entity_id, Velocity)
+    # update logic
+```
+
+## Migration Strategy
+
+We will migrate gradually, keeping the game playable after each step:
+1. Create infrastructure (world, component definitions, empty systems)
+2. Move rendering logic to RenderSystem
+3. Move input handling to InputSystem
+4. Extract game logic into specialized systems
+5. Replace old classes with prefab factories
+6. Add tests for each system
+
+See `ecs_migration_plan.mdc` for detailed steps.
+
+## Documentation Structure
+
+- `ecs_overview.mdc` (this file) - architectural overview
+- `ecs_entities_components.mdc` - catalog of entities and components
+- `ecs_systems.mdc` - catalog of systems and their responsibilities
+- `ecs_base_system.mdc` - abstract GameSystem base class design
+- `ecs_render_system.mdc` - rendering system specifics
+- `ecs_ui_system.mdc` - UI system specifics
+- `ecs_project_structure.mdc` - file and directory organization
+- `ecs_migration_plan.mdc` - step-by-step migration guide
+- `ecs_coding_standards.mdc` - code style for ECS
+- `ecs_testing.mdc` - testing strategies for ECS
+
+## References
+
+- [Entity-Component-System FAQ](https://github.com/SanderMertens/ecs-faq)
+- [Game Programming Patterns: Component](https://gameprogrammingpatterns.com/component.html)

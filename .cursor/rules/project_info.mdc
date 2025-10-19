@@ -18,22 +18,48 @@ alwaysApply: true
 - **Main Dependency**: Pygame 2.6.1+
 
 ## Architecture Overview
-- **Single-file application**: All game logic in `kobra.py`
-- **Main components**:
-  - Game configuration (lines 24-103)
-  - Settings system with declarative menus (lines 105-263)
-  - UI helpers and modal dialogs (lines 265-413)
-  - Game classes: Snake and Apple (lines 420-540)
-  - Main game loop (lines 557-642)
+- **ECS (Entity-Component-System)**: Modular architecture with clear separation of concerns
+- **Core Principles**:
+  - **Entities**: Just IDs that group components
+  - **Components**: Pure data classes (no logic)
+  - **Systems**: All game logic, inheriting from GameSystem base
+- **Main Modules**:
+  - `src/core/`: Game loop, clock, pygame IO adapter
+  - `src/ecs/`: World registry, components, systems, prefabs
+  - `src/game/`: Scenes, services, config, settings
+  - `kobra.py`: Thin bootstrap entrypoint only
 
-## Key Files
-- `kobra.py`: Main game executable
+## Key Files and Directories
+- `kobra.py`: Bootstrap entry point (minimal, <50 lines after refactor)
 - `pyproject.toml`: Project metadata and dependencies
+- `src/core/app.py`: Main game loop orchestrator
+- `src/ecs/world.py`: Entity registry and component storage
+- `src/ecs/components/`: Pure data components (Position, Velocity, etc.)
+- `src/ecs/systems/`: Logic systems (Movement, Collision, Render, etc.)
+- `src/ecs/prefabs/`: Entity factory functions
+- `src/game/scenes/`: Scene managers (menu, gameplay, game_over)
+- `src/game/services/`: Singleton services (assets, audio)
+- `docs/architecture.md`: ECS architecture explanation
+- `docs/adr/0001-choose-ecs.md`: Architecture decision record
 - `docs/manual.md`: User documentation
 - `docs/CONTRIBUTING.md`: Contribution guidelines
-- `docs/issues.md`: Known bugs and feature requests
 - `assets/font/`: GetVoIP Grotesque font files
 - `assets/sound/`: Game sound effects
+- `tests/ecs/`: System unit tests
+- `tests/game/`: Integration tests
+
+## ECS Documentation
+See `.cursor/rules/` for detailed ECS guidelines:
+- `ecs_overview.mdc`: Architecture overview and principles
+- `ecs_entities_components.mdc`: Component catalog
+- `ecs_systems.mdc`: System catalog and execution order
+- `ecs_base_system.mdc`: GameSystem abstract base design
+- `ecs_render_system.mdc`: Rendering system specifics
+- `ecs_ui_system.mdc`: UI system specifics
+- `ecs_project_structure.mdc`: Directory structure
+- `ecs_migration_plan.mdc`: Step-by-step migration guide
+- `ecs_coding_standards.mdc`: Code style for ECS
+- `ecs_testing.mdc`: Testing strategies
 
 ## Development Standards
 - **Formatter**: Black
