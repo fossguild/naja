@@ -93,7 +93,7 @@ class TestBoardTileAccess:
         board.set_tile(1, 1, Tile.SNAKE_BODY)
         board.set_tile(2, 2, Tile.APPLE)
         board.set_tile(3, 3, Tile.OBSTACLE)
-        
+
         assert board.get_tile(0, 0) == Tile.SNAKE_HEAD
         assert board.get_tile(1, 1) == Tile.SNAKE_BODY
         assert board.get_tile(2, 2) == Tile.APPLE
@@ -104,7 +104,7 @@ class TestBoardTileAccess:
         board = Board(10, 10)
         board.set_tile(5, 5, Tile.APPLE)
         assert board.get_tile(5, 5) == Tile.APPLE
-        
+
         board.set_tile(5, 5, Tile.OBSTACLE)
         assert board.get_tile(5, 5) == Tile.OBSTACLE
 
@@ -115,33 +115,33 @@ class TestBoardBoundsChecking:
     def test_get_tile_out_of_bounds_raises_error(self):
         """Test that accessing out-of-bounds position raises error."""
         board = Board(10, 10)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_tile(-1, 5)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_tile(5, -1)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_tile(10, 5)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_tile(5, 10)
 
     def test_set_tile_out_of_bounds_raises_error(self):
         """Test that setting out-of-bounds position raises error."""
         board = Board(10, 10)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.set_tile(-1, 5, Tile.APPLE)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.set_tile(5, 15, Tile.APPLE)
 
     def test_bounds_error_contains_useful_information(self):
         """Test that BoardOutOfBoundsError provides useful error info."""
         board = Board(10, 10)
-        
+
         try:
             board.get_tile(15, 20)
             pytest.fail("Should have raised BoardOutOfBoundsError")
@@ -156,13 +156,13 @@ class TestBoardBoundsChecking:
     def test_edge_positions_are_valid(self):
         """Test that edge positions (0 and max) are valid."""
         board = Board(10, 10)
-        
+
         # Test corners
         board.set_tile(0, 0, Tile.APPLE)
         board.set_tile(9, 0, Tile.APPLE)
         board.set_tile(0, 9, Tile.APPLE)
         board.set_tile(9, 9, Tile.APPLE)
-        
+
         assert board.get_tile(0, 0) == Tile.APPLE
         assert board.get_tile(9, 0) == Tile.APPLE
         assert board.get_tile(0, 9) == Tile.APPLE
@@ -175,16 +175,16 @@ class TestBoardBatchOperations:
     def test_set_tiles_updates_multiple_positions(self):
         """Test batch updating multiple tiles."""
         board = Board(10, 10)
-        
+
         updates = [
             (0, 0, Tile.SNAKE_HEAD),
             (0, 1, Tile.SNAKE_BODY),
             (0, 2, Tile.SNAKE_BODY),
             (5, 5, Tile.APPLE),
         ]
-        
+
         board.set_tiles(updates)
-        
+
         assert board.get_tile(0, 0) == Tile.SNAKE_HEAD
         assert board.get_tile(0, 1) == Tile.SNAKE_BODY
         assert board.get_tile(0, 2) == Tile.SNAKE_BODY
@@ -199,17 +199,17 @@ class TestBoardBatchOperations:
         """Test that set_tiles validates all positions before making changes."""
         board = Board(10, 10)
         board.set_tile(0, 0, Tile.APPLE)
-        
+
         # Try to update with one invalid position
         updates = [
             (0, 0, Tile.SNAKE_HEAD),
             (5, 5, Tile.SNAKE_BODY),
             (20, 20, Tile.OBSTACLE),  # Invalid!
         ]
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.set_tiles(updates)
-        
+
         # Board should remain unchanged
         assert board.get_tile(0, 0) == Tile.APPLE
         assert board.get_tile(5, 5) == Tile.EMPTY
@@ -217,15 +217,15 @@ class TestBoardBatchOperations:
     def test_clear_board_resets_all_tiles(self):
         """Test that clear() resets all tiles to EMPTY."""
         board = Board(5, 5)
-        
+
         # Set some tiles
         board.set_tile(0, 0, Tile.SNAKE_HEAD)
         board.set_tile(2, 2, Tile.APPLE)
         board.set_tile(4, 4, Tile.OBSTACLE)
-        
+
         # Clear board
         board.clear()
-        
+
         # Check all tiles are EMPTY
         for y in range(5):
             for x in range(5):
@@ -235,9 +235,9 @@ class TestBoardBatchOperations:
         """Test clearing board to a specific tile type."""
         board = Board(5, 5)
         board.set_tile(2, 2, Tile.APPLE)
-        
+
         board.clear(Tile.WALL)
-        
+
         # Check all tiles are WALL
         for y in range(5):
             for x in range(5):
@@ -253,9 +253,9 @@ class TestBoardRowColumnAccess:
         board.set_tile(0, 2, Tile.SNAKE_HEAD)
         board.set_tile(1, 2, Tile.SNAKE_BODY)
         board.set_tile(2, 2, Tile.APPLE)
-        
+
         row = board.get_row(2)
-        
+
         assert len(row) == 5
         assert row[0] == Tile.SNAKE_HEAD
         assert row[1] == Tile.SNAKE_BODY
@@ -269,9 +269,9 @@ class TestBoardRowColumnAccess:
         board.set_tile(2, 0, Tile.SNAKE_HEAD)
         board.set_tile(2, 1, Tile.SNAKE_BODY)
         board.set_tile(2, 2, Tile.APPLE)
-        
+
         column = board.get_column(2)
-        
+
         assert len(column) == 5
         assert column[0] == Tile.SNAKE_HEAD
         assert column[1] == Tile.SNAKE_BODY
@@ -283,10 +283,10 @@ class TestBoardRowColumnAccess:
         """Test that get_row returns a copy, not reference."""
         board = Board(5, 5)
         board.set_tile(2, 0, Tile.APPLE)
-        
+
         row = board.get_row(0)
         row[2] = Tile.OBSTACLE
-        
+
         # Original board should be unchanged
         assert board.get_tile(2, 0) == Tile.APPLE
 
@@ -294,30 +294,30 @@ class TestBoardRowColumnAccess:
         """Test that get_column returns a copy, not reference."""
         board = Board(5, 5)
         board.set_tile(0, 2, Tile.APPLE)
-        
+
         column = board.get_column(0)
         column[2] = Tile.OBSTACLE
-        
+
         # Original board should be unchanged
         assert board.get_tile(0, 2) == Tile.APPLE
 
     def test_get_row_out_of_bounds(self):
         """Test that getting row with invalid index raises error."""
         board = Board(5, 5)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_row(-1)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_row(5)
 
     def test_get_column_out_of_bounds(self):
         """Test that getting column with invalid index raises error."""
         board = Board(5, 5)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_column(-1)
-        
+
         with pytest.raises(BoardOutOfBoundsError):
             board.get_column(5)
 
@@ -334,11 +334,10 @@ class TestBoardPerformance:
     def test_set_and_get_are_fast(self):
         """Test that set/get operations are O(1) - quick even on large boards."""
         board = Board(1000, 1000)
-        
+
         # These should be instant (O(1))
         board.set_tile(999, 999, Tile.APPLE)
         assert board.get_tile(999, 999) == Tile.APPLE
-        
+
         board.set_tile(0, 0, Tile.SNAKE_HEAD)
         assert board.get_tile(0, 0) == Tile.SNAKE_HEAD
-

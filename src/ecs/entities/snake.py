@@ -31,7 +31,7 @@ from src.ecs.components.interpolation import Interpolation
 @dataclass
 class Snake(Entity):
     """Snake entity component composition.
-    
+
     Defines the components that make up a snake entity:
     - position: head position in grid
     - velocity: movement direction and speed
@@ -46,9 +46,8 @@ class Snake(Entity):
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.
-        
+
         Returns:
             EntityType.SNAKE
         """
         return EntityType.SNAKE
-

@@ -25,4 +25,12 @@ from src.ecs.entities.entity import Entity, EntityType
 from src.ecs.board import Board, Tile, BoardOutOfBoundsError
 
 
-__all__ = ["World", "EntityRegistry", "Entity", "EntityType", "Board", "Tile", "BoardOutOfBoundsError"]
+__all__ = [
+    "World",
+    "EntityRegistry",
+    "Entity",
+    "EntityType",
+    "Board",
+    "Tile",
+    "BoardOutOfBoundsError",
+]

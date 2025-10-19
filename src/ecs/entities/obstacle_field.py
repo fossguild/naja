@@ -29,7 +29,7 @@ from src.ecs.components.obstacle import ObstacleTag
 @dataclass
 class Obstacle(Entity):
     """Obstacle entity component composition.
-    
+
     Defines the components that make up an obstacle entity:
     - position: location in grid
     - tag: marker component
@@ -40,9 +40,8 @@ class Obstacle(Entity):
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.
-        
+
         Returns:
             EntityType.OBSTACLE
         """
         return EntityType.OBSTACLE
-

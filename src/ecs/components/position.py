@@ -25,7 +25,7 @@ from dataclasses import dataclass
 @dataclass
 class Position:
     """Grid position of an entity.
-    
+
     Stores the current position in pixel coordinates (aligned to grid).
     Used by: Snake, Apple, Obstacle
     """

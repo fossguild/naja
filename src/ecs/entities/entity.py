@@ -25,7 +25,7 @@ from enum import Enum, auto
 
 class EntityType(Enum):
     """Types of entities in the game.
-    
+
     Used for type-specific queries and filtering.
     """
 
@@ -33,9 +33,10 @@ class EntityType(Enum):
     APPLE = auto()
     OBSTACLE = auto()
 
+
 class Entity(ABC):
     """Abstract base class for all game entities.
-    
+
     All entities must implement get_type() to return their EntityType.
     Entities are composed of components (dataclass fields).
     """
@@ -43,9 +44,7 @@ class Entity(ABC):
     @abstractmethod
     def get_type(self) -> EntityType:
         """Get the type of this entity.
-        
+
         Returns:
             EntityType: Type identifier for this entity
         """
-
-

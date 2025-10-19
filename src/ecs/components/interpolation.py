@@ -25,7 +25,7 @@ from dataclasses import dataclass
 @dataclass
 class Interpolation:
     """Smooth rendering data between ticks.
-    
+
     Stores previous and target positions for smooth animation.
     Alpha is the interpolation factor [0.0, 1.0].
     Used by: Snake (for smooth movement)

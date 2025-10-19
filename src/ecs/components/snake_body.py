@@ -27,7 +27,7 @@ from src.ecs.components.position import Position
 @dataclass
 class SnakeBody:
     """Snake body segments and growth state.
-    
+
     Stores the history of segment positions and pending growth.
     Head position is stored in the entity's Position component.
     Used by: Snake

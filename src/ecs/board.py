@@ -24,7 +24,7 @@ from enum import Enum, auto
 
 class Tile(Enum):
     """Tile types for board rendering.
-    
+
     Each tile type determines how the cell should be rendered.
     Mainly used for color differentiation.
     """
@@ -42,7 +42,7 @@ class BoardOutOfBoundsError(Exception):
 
     def __init__(self, x: int, y: int, width: int, height: int):
         """Initialize the error with position and board dimensions.
-        
+
         Args:
             x: X coordinate that was out of bounds
             y: Y coordinate that was out of bounds
@@ -59,10 +59,10 @@ class BoardOutOfBoundsError(Exception):
 
 class Board:
     """2D game board with tile-based grid system.
-    
+
     Provides O(1) lookup and modification of tiles using a 2D matrix.
     Supports batch updates and bounds checking.
-    
+
     Attributes:
         width: Board width in tiles
         height: Board height in tiles
@@ -75,17 +75,19 @@ class Board:
 
     def __init__(self, width: int, height: int, default_tile: Tile = Tile.EMPTY):
         """Initialize board with given dimensions.
-        
+
         Args:
             width: Board width in tiles (must be > 0)
             height: Board height in tiles (must be > 0)
             default_tile: Initial tile type for all cells
-            
+
         Raises:
             ValueError: If width or height is less than 1
         """
         if width < 1 or height < 1:
-            raise ValueError(f"Board dimensions must be at least 1x1, got {width}x{height}")
+            raise ValueError(
+                f"Board dimensions must be at least 1x1, got {width}x{height}"
+            )
 
         self._width = width
         self._height = height
@@ -95,7 +97,7 @@ class Board:
     @property
     def width(self) -> int:
         """Get board width.
-        
+
         Returns:
             int: Width in tiles
         """
@@ -104,7 +106,7 @@ class Board:
     @property
     def height(self) -> int:
         """Get board height.
-        
+
         Returns:
             int: Height in tiles
         """
@@ -113,7 +115,7 @@ class Board:
     @property
     def is_square(self) -> bool:
         """Check if board is square.
-        
+
         Returns:
             bool: True if width equals height
         """
@@ -121,11 +123,11 @@ class Board:
 
     def _check_bounds(self, x: int, y: int) -> None:
         """Check if coordinates are within board bounds.
-        
+
         Args:
             x: X coordinate (column)
             y: Y coordinate (row)
-            
+
         Raises:
             BoardOutOfBoundsError: If coordinates are out of bounds
         """
@@ -134,16 +136,16 @@ class Board:
 
     def get_tile(self, x: int, y: int) -> Tile:
         """Get tile at specified position.
-        
+
         O(1) operation.
-        
+
         Args:
             x: X coordinate (column)
             y: Y coordinate (row)
-            
+
         Returns:
             Tile: Tile type at position
-            
+
         Raises:
             BoardOutOfBoundsError: If position is out of bounds
         """
@@ -152,14 +154,14 @@ class Board:
 
     def set_tile(self, x: int, y: int, tile: Tile) -> None:
         """Set tile at specified position.
-        
+
         O(1) operation.
-        
+
         Args:
             x: X coordinate (column)
             y: Y coordinate (row)
             tile: Tile type to set
-            
+
         Raises:
             BoardOutOfBoundsError: If position is out of bounds
         """
@@ -168,16 +170,16 @@ class Board:
 
     def set_tiles(self, tile_updates: list[tuple[int, int, Tile]]) -> None:
         """Update multiple tiles at once.
-        
+
         O(n) operation where n is the number of updates.
         All positions are validated before any modifications.
-        
+
         Args:
             tile_updates: List of (x, y, tile) tuples
-            
+
         Raises:
             BoardOutOfBoundsError: If any position is out of bounds
-            
+
         Example:
             board.set_tiles([
                 (0, 0, Tile.SNAKE_HEAD),
@@ -195,7 +197,7 @@ class Board:
 
     def clear(self, tile: Tile = Tile.EMPTY) -> None:
         """Clear the entire board to a specific tile type.
-        
+
         Args:
             tile: Tile type to fill board with
         """
@@ -205,13 +207,13 @@ class Board:
 
     def get_row(self, y: int) -> list[Tile]:
         """Get entire row as a list.
-        
+
         Args:
             y: Row index
-            
+
         Returns:
             list[Tile]: Copy of the row
-            
+
         Raises:
             BoardOutOfBoundsError: If row index is out of bounds
         """
@@ -221,13 +223,13 @@ class Board:
 
     def get_column(self, x: int) -> list[Tile]:
         """Get entire column as a list.
-        
+
         Args:
             x: Column index
-            
+
         Returns:
             list[Tile]: Copy of the column
-            
+
         Raises:
             BoardOutOfBoundsError: If column index is out of bounds
         """
@@ -237,7 +239,7 @@ class Board:
 
     def __repr__(self) -> str:
         """String representation of board.
-        
+
         Returns:
             str: Board representation
         """

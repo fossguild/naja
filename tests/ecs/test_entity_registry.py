@@ -22,7 +22,14 @@
 import pytest
 from src.ecs.entity_registry import EntityRegistry
 from src.ecs.entities import Snake, Apple, Obstacle, EntityType
-from src.ecs.components import Position, Velocity, SnakeBody, Interpolation, Edible, ObstacleTag
+from src.ecs.components import (
+    Position,
+    Velocity,
+    SnakeBody,
+    Interpolation,
+    Edible,
+    ObstacleTag,
+)
 
 
 @pytest.fixture
@@ -38,26 +45,20 @@ def sample_snake():
         position=Position(100, 100),
         velocity=Velocity(1, 0, 10.0),
         body=SnakeBody(),
-        interpolation=Interpolation()
+        interpolation=Interpolation(),
     )
 
 
 @pytest.fixture
 def sample_apple():
     """Create a sample apple entity."""
-    return Apple(
-        position=Position(200, 200),
-        edible=Edible(points=10, growth=1)
-    )
+    return Apple(position=Position(200, 200), edible=Edible(points=10, growth=1))
 
 
 @pytest.fixture
 def sample_obstacle():
     """Create a sample obstacle entity."""
-    return Obstacle(
-        position=Position(300, 300),
-        tag=ObstacleTag()
-    )
+    return Obstacle(position=Position(300, 300), tag=ObstacleTag())
 
 
 class TestEntityRegistryInitialization:
@@ -74,7 +75,7 @@ class TestEntityRegistryInitialization:
             position=Position(0, 0),
             velocity=Velocity(),
             body=SnakeBody(),
-            interpolation=Interpolation()
+            interpolation=Interpolation(),
         )
         entity_id = registry.add(snake)
         assert entity_id == 0
@@ -89,12 +90,14 @@ class TestAddingEntities:
         assert isinstance(entity_id, int)
         assert entity_id >= 0
 
-    def test_add_multiple_entities_get_sequential_ids(self, registry, sample_snake, sample_apple, sample_obstacle):
+    def test_add_multiple_entities_get_sequential_ids(
+        self, registry, sample_snake, sample_apple, sample_obstacle
+    ):
         """Test that entities get sequential IDs."""
         id1 = registry.add(sample_snake)
         id2 = registry.add(sample_apple)
         id3 = registry.add(sample_obstacle)
-        
+
         assert id1 == 0
         assert id2 == 1
         assert id3 == 2
@@ -105,12 +108,14 @@ class TestAddingEntities:
         registry.add(sample_snake)
         assert registry.count() == 1
 
-    def test_add_different_entity_types(self, registry, sample_snake, sample_apple, sample_obstacle):
+    def test_add_different_entity_types(
+        self, registry, sample_snake, sample_apple, sample_obstacle
+    ):
         """Test adding different types of entities."""
         snake_id = registry.add(sample_snake)
         apple_id = registry.add(sample_apple)
         obstacle_id = registry.add(sample_obstacle)
-        
+
         assert registry.get(snake_id).get_type() == EntityType.SNAKE
         assert registry.get(apple_id).get_type() == EntityType.APPLE
         assert registry.get(obstacle_id).get_type() == EntityType.OBSTACLE
@@ -133,7 +138,7 @@ class TestGettingEntities:
         """Test getting specific entities after adding multiple."""
         snake_id = registry.add(sample_snake)
         apple_id = registry.add(sample_apple)
-        
+
         assert registry.get(snake_id) is sample_snake
         assert registry.get(apple_id) is sample_apple
 
@@ -154,7 +159,7 @@ class TestRemovingEntities:
         """Test that removing entity decreases count."""
         entity_id = registry.add(sample_snake)
         assert registry.count() == 1
-        
+
         registry.remove(entity_id)
         assert registry.count() == 0
 
@@ -162,7 +167,7 @@ class TestRemovingEntities:
         """Test that removed entity cannot be retrieved."""
         entity_id = registry.add(sample_snake)
         registry.remove(entity_id)
-        
+
         assert registry.get(entity_id) is None
         assert registry.has(entity_id) is False
 
@@ -171,14 +176,16 @@ class TestRemovingEntities:
         registry.remove(999)  # Should not raise error
         assert registry.count() == 0
 
-    def test_remove_one_of_multiple_entities(self, registry, sample_snake, sample_apple, sample_obstacle):
+    def test_remove_one_of_multiple_entities(
+        self, registry, sample_snake, sample_apple, sample_obstacle
+    ):
         """Test removing one entity from multiple."""
         snake_id = registry.add(sample_snake)
         apple_id = registry.add(sample_apple)
         obstacle_id = registry.add(sample_obstacle)
-        
+
         registry.remove(apple_id)
-        
+
         assert registry.count() == 2
         assert registry.get(snake_id) is sample_snake
         assert registry.get(apple_id) is None
@@ -196,21 +203,23 @@ class TestQueryByType:
     def test_query_by_type_returns_matching_entities(self, registry, sample_snake):
         """Test that query returns entities of matching type."""
         entity_id = registry.add(sample_snake)
-        
+
         snakes = registry.query_by_type(EntityType.SNAKE)
-        
+
         assert len(snakes) == 1
         assert entity_id in snakes
         assert snakes[entity_id] is sample_snake
 
-    def test_query_by_type_filters_out_other_types(self, registry, sample_snake, sample_apple, sample_obstacle):
+    def test_query_by_type_filters_out_other_types(
+        self, registry, sample_snake, sample_apple, sample_obstacle
+    ):
         """Test that query only returns specified type."""
         snake_id = registry.add(sample_snake)
         registry.add(sample_apple)
         registry.add(sample_obstacle)
-        
+
         snakes = registry.query_by_type(EntityType.SNAKE)
-        
+
         assert len(snakes) == 1
         assert snake_id in snakes
 
@@ -220,30 +229,32 @@ class TestQueryByType:
             position=Position(0, 0),
             velocity=Velocity(),
             body=SnakeBody(),
-            interpolation=Interpolation()
+            interpolation=Interpolation(),
         )
         snake2 = Snake(
             position=Position(100, 100),
             velocity=Velocity(),
             body=SnakeBody(),
-            interpolation=Interpolation()
+            interpolation=Interpolation(),
         )
-        
+
         id1 = registry.add(snake1)
         id2 = registry.add(snake2)
-        
+
         snakes = registry.query_by_type(EntityType.SNAKE)
-        
+
         assert len(snakes) == 2
         assert id1 in snakes
         assert id2 in snakes
 
-    def test_count_by_type_returns_correct_count(self, registry, sample_snake, sample_apple):
+    def test_count_by_type_returns_correct_count(
+        self, registry, sample_snake, sample_apple
+    ):
         """Test that count_by_type returns correct count."""
         registry.add(sample_snake)
         registry.add(sample_apple)
         registry.add(Apple(position=Position(50, 50), edible=Edible()))
-        
+
         assert registry.count_by_type(EntityType.SNAKE) == 1
         assert registry.count_by_type(EntityType.APPLE) == 2
         assert registry.count_by_type(EntityType.OBSTACLE) == 0
@@ -252,47 +263,53 @@ class TestQueryByType:
 class TestQueryByComponent:
     """Test querying entities by component."""
 
-    def test_query_by_component_returns_entities_with_component(self, registry, sample_snake, sample_apple):
+    def test_query_by_component_returns_entities_with_component(
+        self, registry, sample_snake, sample_apple
+    ):
         """Test that query returns entities with specified component."""
         snake_id = registry.add(sample_snake)
         apple_id = registry.add(sample_apple)
-        
+
         # Both have position component
         result = registry.query_by_component("position")
-        
+
         assert len(result) == 2
         assert snake_id in result
         assert apple_id in result
 
-    def test_query_by_component_filters_by_component(self, registry, sample_snake, sample_apple):
+    def test_query_by_component_filters_by_component(
+        self, registry, sample_snake, sample_apple
+    ):
         """Test that query filters by component presence."""
         snake_id = registry.add(sample_snake)
         registry.add(sample_apple)
-        
+
         # Only snake has velocity
         result = registry.query_by_component("velocity")
-        
+
         assert len(result) == 1
         assert snake_id in result
 
-    def test_query_by_multiple_components(self, registry, sample_snake, sample_apple, sample_obstacle):
+    def test_query_by_multiple_components(
+        self, registry, sample_snake, sample_apple, sample_obstacle
+    ):
         """Test querying by multiple components (AND logic)."""
         snake_id = registry.add(sample_snake)
         registry.add(sample_apple)
         registry.add(sample_obstacle)
-        
+
         # Only snake has both position and velocity
         result = registry.query_by_component("position", "velocity")
-        
+
         assert len(result) == 1
         assert snake_id in result
 
     def test_query_by_nonexistent_component(self, registry, sample_snake):
         """Test querying for non-existent component returns empty."""
         registry.add(sample_snake)
-        
+
         result = registry.query_by_component("nonexistent_component")
-        
+
         assert len(result) == 0
 
 
@@ -305,39 +322,39 @@ class TestQueryByTypeAndComponents:
             position=Position(0, 0),
             velocity=Velocity(),
             body=SnakeBody(),
-            interpolation=Interpolation()
+            interpolation=Interpolation(),
         )
         snake2 = Snake(
             position=Position(100, 100),
             velocity=Velocity(),
             body=SnakeBody(),
-            interpolation=Interpolation()
+            interpolation=Interpolation(),
         )
         apple = Apple(position=Position(200, 200), edible=Edible())
-        
+
         id1 = registry.add(snake1)
         id2 = registry.add(snake2)
         registry.add(apple)
-        
+
         # Get snakes with interpolation
         result = registry.query_by_type_and_components(
             EntityType.SNAKE, "interpolation"
         )
-        
+
         assert len(result) == 2
         assert id1 in result
         assert id2 in result
 
-    def test_query_by_type_and_components_returns_empty_when_no_match(self, registry, sample_snake, sample_apple):
+    def test_query_by_type_and_components_returns_empty_when_no_match(
+        self, registry, sample_snake, sample_apple
+    ):
         """Test that combined query returns empty when no matches."""
         registry.add(sample_snake)
         registry.add(sample_apple)
-        
+
         # Apples don't have velocity
-        result = registry.query_by_type_and_components(
-            EntityType.APPLE, "velocity"
-        )
-        
+        result = registry.query_by_type_and_components(EntityType.APPLE, "velocity")
+
         assert len(result) == 0
 
 
@@ -348,9 +365,9 @@ class TestGetAll:
         """Test that get_all returns all entities."""
         id1 = registry.add(sample_snake)
         id2 = registry.add(sample_apple)
-        
+
         all_entities = registry.get_all()
-        
+
         assert len(all_entities) == 2
         assert id1 in all_entities
         assert id2 in all_entities
@@ -358,10 +375,10 @@ class TestGetAll:
     def test_get_all_returns_copy(self, registry, sample_snake):
         """Test that get_all returns a copy, not reference."""
         registry.add(sample_snake)
-        
+
         all_entities = registry.get_all()
         all_entities[999] = sample_snake  # Modify copy
-        
+
         # Original registry should be unchanged
         assert registry.count() == 1
         assert not registry.has(999)
@@ -374,16 +391,18 @@ class TestGetAll:
 class TestClear:
     """Test clearing the registry."""
 
-    def test_clear_removes_all_entities(self, registry, sample_snake, sample_apple, sample_obstacle):
+    def test_clear_removes_all_entities(
+        self, registry, sample_snake, sample_apple, sample_obstacle
+    ):
         """Test that clear removes all entities."""
         registry.add(sample_snake)
         registry.add(sample_apple)
         registry.add(sample_obstacle)
-        
+
         assert registry.count() == 3
-        
+
         registry.clear()
-        
+
         assert registry.count() == 0
         assert registry.get_all() == {}
 
@@ -391,9 +410,9 @@ class TestClear:
         """Test that clear resets entity ID counter."""
         registry.add(sample_snake)
         registry.add(sample_snake)
-        
+
         registry.clear()
-        
+
         # Next entity should get ID 0
         new_id = registry.add(sample_snake)
         assert new_id == 0
@@ -412,19 +431,19 @@ class TestEntityRegistryIntegration:
         # Add entities
         snake_id = registry.add(sample_snake)
         apple_id = registry.add(sample_apple)
-        
+
         # Query
         snakes = registry.query_by_type(EntityType.SNAKE)
         assert len(snakes) == 1
-        
+
         # Modify entity
         snake = registry.get(snake_id)
         snake.position.x = 500
-        
+
         # Verify modification persists
         retrieved_snake = registry.get(snake_id)
         assert retrieved_snake.position.x == 500
-        
+
         # Remove
         registry.remove(apple_id)
         assert registry.count() == 1
@@ -432,27 +451,26 @@ class TestEntityRegistryIntegration:
     def test_multiple_operations_maintain_consistency(self, registry):
         """Test that multiple operations maintain registry consistency."""
         entities = []
-        
+
         # Add 10 entities
         for i in range(10):
             snake = Snake(
                 position=Position(i * 10, i * 10),
                 velocity=Velocity(),
                 body=SnakeBody(),
-                interpolation=Interpolation()
+                interpolation=Interpolation(),
             )
             entity_id = registry.add(snake)
             entities.append(entity_id)
-        
+
         assert registry.count() == 10
-        
+
         # Remove every other entity
         for i in range(0, 10, 2):
             registry.remove(entities[i])
-        
+
         assert registry.count() == 5
-        
+
         # Verify remaining entities are correct
         for i in range(1, 10, 2):
             assert registry.has(entities[i])
-

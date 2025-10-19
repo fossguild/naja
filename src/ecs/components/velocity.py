@@ -25,11 +25,11 @@ from dataclasses import dataclass
 @dataclass
 class Velocity:
     """Movement direction and speed.
-    
+
     Direction is represented as discrete grid movement:
     - dx: -1 (left), 0 (still), 1 (right)
     - dy: -1 (up), 0 (still), 1 (down)
-    
+
     Speed is in ticks per cell movement.
     Used by: Snake
     """

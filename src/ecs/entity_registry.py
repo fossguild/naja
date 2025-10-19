@@ -26,7 +26,7 @@ __all__ = ["EntityRegistry"]
 
 class EntityRegistry:
     """Registry for managing entities and their unique IDs.
-    
+
     Handles entity storage, ID generation, and query operations.
     Supports both type-based and component-based queries.
     """
@@ -41,10 +41,10 @@ class EntityRegistry:
 
     def add(self, entity: Entity) -> int:
         """Add an entity to the registry.
-        
+
         Args:
             entity: Entity to add (Snake, Apple, or Obstacle)
-            
+
         Returns:
             int: Unique entity ID assigned to the entity
         """
@@ -55,10 +55,10 @@ class EntityRegistry:
 
     def get(self, entity_id: int) -> Entity | None:
         """Get an entity by ID.
-        
+
         Args:
             entity_id: ID of entity to retrieve
-            
+
         Returns:
             Entity or None if not found
         """
@@ -66,7 +66,7 @@ class EntityRegistry:
 
     def remove(self, entity_id: int) -> None:
         """Remove an entity from the registry.
-        
+
         Args:
             entity_id: ID of entity to remove
         """
@@ -74,13 +74,13 @@ class EntityRegistry:
 
     def query_by_type(self, entity_type: EntityType) -> dict[int, Entity]:
         """Query all entities of a specific type.
-        
+
         Args:
             entity_type: Type to filter by (SNAKE, APPLE, OBSTACLE)
-            
+
         Returns:
             dict: Mapping of entity_id -> entity for matching type
-            
+
         Example:
             snakes = registry.query_by_type(EntityType.SNAKE)
             for entity_id, snake in snakes.items():
@@ -94,18 +94,18 @@ class EntityRegistry:
 
     def query_by_component(self, *component_names: str) -> dict[int, Entity]:
         """Query entities that have specific component fields.
-        
+
         Args:
             *component_names: Component fields (as string names) to check for.
                               These correspond to the dataclass fields of the entity.
-            
+
         Returns:
             dict: Mapping of entity_id -> entity matching criteria
-            
+
         Example:
             # Get all entities with a 'position' component
             positioned_entities = registry.query_by_component("position")
-            
+
             # Get all entities with 'position' and 'velocity' components
             moving_entities = registry.query_by_component("position", "velocity")
         """
@@ -119,14 +119,14 @@ class EntityRegistry:
         self, entity_type: EntityType, *component_names: str
     ) -> dict[int, Entity]:
         """Query entities by both type and components.
-        
+
         Args:
             entity_type: Type to filter by
             *component_names: Component fields to check for
-            
+
         Returns:
             dict: Mapping of entity_id -> entity matching criteria
-            
+
         Example:
             # Get all snakes with interpolation
             snakes = registry.query_by_type_and_components(
@@ -142,7 +142,7 @@ class EntityRegistry:
 
     def get_all(self) -> dict[int, Entity]:
         """Get all entities in the registry.
-        
+
         Returns:
             dict: Mapping of entity_id -> entity
         """
@@ -155,7 +155,7 @@ class EntityRegistry:
 
     def count(self) -> int:
         """Get total number of entities in the registry.
-        
+
         Returns:
             int: Total entity count
         """
@@ -163,10 +163,10 @@ class EntityRegistry:
 
     def count_by_type(self, entity_type: EntityType) -> int:
         """Get count of entities of a specific type.
-        
+
         Args:
             entity_type: Type to count
-            
+
         Returns:
             int: Number of entities of that type
         """
@@ -176,12 +176,11 @@ class EntityRegistry:
 
     def has(self, entity_id: int) -> bool:
         """Check if an entity ID exists in the registry.
-        
+
         Args:
             entity_id: ID to check
-            
+
         Returns:
             bool: True if entity exists, False otherwise
         """
         return entity_id in self._entities
-

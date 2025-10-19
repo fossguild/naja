@@ -26,4 +26,11 @@ from src.ecs.components.apple import Edible
 from src.ecs.components.obstacle import ObstacleTag
 from src.ecs.components.interpolation import Interpolation
 
-__all__ = ["Position", "Velocity", "SnakeBody", "Edible", "ObstacleTag", "Interpolation"]
+__all__ = [
+    "Position",
+    "Velocity",
+    "SnakeBody",
+    "Edible",
+    "ObstacleTag",
+    "Interpolation",
+]

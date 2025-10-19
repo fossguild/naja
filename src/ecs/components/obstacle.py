@@ -25,7 +25,7 @@ from dataclasses import dataclass
 @dataclass
 class ObstacleTag:
     """Marker component for obstacle entities.
-    
+
     Tag-only component with no data fields.
     Used by: Obstacle
     """

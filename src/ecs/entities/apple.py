@@ -29,7 +29,7 @@ from src.ecs.components.apple import Edible
 @dataclass
 class Apple(Entity):
     """Apple entity component composition.
-    
+
     Defines the components that make up an apple entity:
     - position: location in grid
     - edible: points and growth properties
@@ -40,7 +40,7 @@ class Apple(Entity):
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.
-        
+
         Returns:
             EntityType.APPLE
         """

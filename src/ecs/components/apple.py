@@ -25,7 +25,7 @@ from dataclasses import dataclass
 @dataclass
 class Edible:
     """Marks an entity as edible by the snake.
-    
+
     Contains properties for scoring and growth when consumed.
     Used by: Apple
     """
