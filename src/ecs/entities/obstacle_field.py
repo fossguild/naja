@@ -17,4 +17,31 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Obstacle field prefab."""
+"""Obstacle entity."""
+
+from dataclasses import dataclass
+
+from src.ecs.entities.entity import Entity, EntityType
+from src.ecs.components.position import Position
+from src.ecs.components.obstacle import ObstacleTag
+
+
+@dataclass
+class Obstacle(Entity):
+    """Obstacle entity component composition.
+
+    Defines the components that make up an obstacle entity:
+    - position: location in grid
+    - tag: marker component
+    """
+
+    position: Position
+    tag: ObstacleTag
+
+    def get_type(self) -> EntityType:
+        """Get the type of this entity.
+
+        Returns:
+            EntityType.OBSTACLE
+        """
+        return EntityType.OBSTACLE

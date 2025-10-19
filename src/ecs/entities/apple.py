@@ -17,4 +17,31 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Apple (edible) component."""
+"""Apple entity."""
+
+from dataclasses import dataclass
+
+from src.ecs.entities.entity import Entity, EntityType
+from src.ecs.components.position import Position
+from src.ecs.components.edible import Edible
+
+
+@dataclass
+class Apple(Entity):
+    """Apple entity component composition.
+
+    Defines the components that make up an apple entity:
+    - position: location in grid
+    - edible: points and growth properties
+    """
+
+    position: Position
+    edible: Edible
+
+    def get_type(self) -> EntityType:
+        """Get the type of this entity.
+
+        Returns:
+            EntityType.APPLE
+        """
+        return EntityType.APPLE

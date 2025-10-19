@@ -18,3 +18,21 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Snake body component."""
+
+from dataclasses import dataclass, field
+
+from src.ecs.components.position import Position
+
+
+@dataclass
+class SnakeBody:
+    """Snake body segments and growth state.
+
+    Stores the history of segment positions and pending growth.
+    Head position is stored in the entity's Position component.
+    Used by: Snake
+    """
+
+    segments: list[Position] = field(default_factory=list)
+    growth_queue: int = 0
+    alive: bool = True

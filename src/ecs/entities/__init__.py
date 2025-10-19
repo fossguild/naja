@@ -17,4 +17,11 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Prefabs module."""
+"""Entities module."""
+
+from src.ecs.entities.entity import Entity, EntityType
+from src.ecs.entities.snake import Snake
+from src.ecs.entities.apple import Apple
+from src.ecs.entities.obstacle_field import Obstacle
+
+__all__ = ["Entity", "EntityType", "Snake", "Apple", "Obstacle"]

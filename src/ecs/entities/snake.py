@@ -17,20 +17,37 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Components module."""
+"""Snake entity."""
 
+from dataclasses import dataclass
+
+from src.ecs.entities.entity import Entity, EntityType
 from src.ecs.components.position import Position
 from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
-from src.ecs.components.apple import Edible
-from src.ecs.components.obstacle import ObstacleTag
 from src.ecs.components.interpolation import Interpolation
 
-__all__ = [
-    "Position",
-    "Velocity",
-    "SnakeBody",
-    "Edible",
-    "ObstacleTag",
-    "Interpolation",
-]
+
+@dataclass
+class Snake(Entity):
+    """Snake entity component composition.
+
+    Defines the components that make up a snake entity:
+    - position: head position in grid
+    - velocity: movement direction and speed
+    - body: tail segments as Position list
+    - interpolation: smooth rendering data
+    """
+
+    position: Position
+    velocity: Velocity
+    body: SnakeBody
+    interpolation: Interpolation
+
+    def get_type(self) -> EntityType:
+        """Get the type of this entity.
+
+        Returns:
+            EntityType.SNAKE
+        """
+        return EntityType.SNAKE
