@@ -69,6 +69,17 @@ def _draw_settings_menu(
     title_rect = title.get_rect(center=(state.width / 2, state.height / 10))
     state.arena.blit(title, title_rect)
 
+    # Game mode line uses state-backed preference if present
+    race_on = _race_enabled_from_state_or_settings(state, settings)
+    mode_label = "Race Against Time" if race_on else "Classic"
+    mode_text = assets.render_custom(
+        f"Game Mode: {mode_label}   [R] toggle",
+        SCORE_COLOR if race_on else MESSAGE_COLOR,
+        int(state.width / 32),
+    )
+    mode_rect = mode_text.get_rect(center=(state.width / 2, state.height * 0.18))
+    state.arena.blit(mode_text, mode_rect)
+
     # Spacing and scroll parameters - adjusted for smaller text
     row_h = int(state.height * 0.06)
     visible_rows = int(state.height * 0.70 // row_h)
@@ -95,7 +106,7 @@ def _draw_settings_menu(
         state.arena.blit(text, rect)
 
     # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors   [R] race mode"
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 50))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
@@ -130,6 +141,17 @@ def run_settings_menu(
 
             if key in (pygame.K_ESCAPE, pygame.K_RETURN):
                 return  # exit menu
+
+            # toggle race mode using state-backed flag and best-effort settings write
+            if key == pygame.K_r:
+                current = _race_enabled_from_state_or_settings(state, settings)
+                state.race_mode_pref = not current
+                # Best-effort persistence (ignored if GameSettings doesn't store unknown keys)
+                try:
+                    settings.set("race_mode_enabled", state.race_mode_pref)
+                except Exception:
+                    pass
+                continue
 
             if key in (pygame.K_DOWN, pygame.K_s):
                 selected = (selected + 1) % len(settings.MENU_FIELDS)
@@ -325,6 +347,92 @@ def _wait_for_keys(allowed_keys: set[int]) -> int:
             return event.key
 
 
+# --- Race-against-time helpers (safe defaults if settings doesn’t define them) ---
+def _get_setting_or_default(settings: GameSettings, key: str, default):
+    try:
+        val = settings.get(key)
+        return default if val is None else val
+    except Exception:
+        return default
+
+
+def _format_mm_ss(total_ms: int) -> str:
+    if total_ms < 0:
+        total_ms = 0
+    s = total_ms // 1000
+    m = s // 60
+    s = s % 60
+    return f"{int(m):02d}:{int(s):02d}"
+
+
+def _init_race_mode(state: GameState, settings: GameSettings) -> None:
+    """Initialize or reset race-against-time internal state on the GameState object."""
+    state.race_mode = True
+    initial_secs = float(_get_setting_or_default(settings, "race_initial_seconds", 60))
+    bonus_secs = float(_get_setting_or_default(settings, "race_bonus_seconds", 5))
+    cap_secs = float(_get_setting_or_default(settings, "race_time_cap_seconds", 120))
+    now = pygame.time.get_ticks()
+
+    state.race_time_ms = int(initial_secs * 1000)
+    state.race_bonus_ms = int(bonus_secs * 1000)
+    state.race_time_cap_ms = int(cap_secs * 1000)
+    state.race_hint_until = now + 3000  # short onboarding hint
+
+
+def _draw_race_hud(state: GameState, assets: GameAssets) -> None:
+    """Draw remaining time in the top-right corner."""
+    remaining = getattr(state, "race_time_ms", 0)
+    text = f"Time { _format_mm_ss(remaining) }"
+    surf = assets.render_custom(text, SCORE_COLOR, int(state.width / 18))
+    rect = surf.get_rect()
+    rect.topright = (state.width - int(state.width * 0.02), int(state.height * 0.02))
+    state.arena.blit(surf, rect)
+
+
+def _handle_time_up(state: GameState, assets: GameAssets, settings: GameSettings) -> None:
+    """Show 'Time's Up' and wait for restart/quit."""
+    _draw_center_message(state, assets, "Time's Up", "Press Enter/Space to restart  •  Q to exit")
+    key = _wait_for_keys({pygame.K_RETURN, pygame.K_SPACE, pygame.K_q})
+    if key == pygame.K_q:
+        pygame.quit()
+        sys.exit()
+    # else just return to allow caller to reset the round
+
+
+def _is_race_enabled(settings: GameSettings) -> bool:
+    """Return True if settings indicate race mode is enabled."""
+    try:
+        v = settings.get("race_mode_enabled")
+        if isinstance(v, str):
+            v_norm = v.strip().lower()
+            if v_norm in ("1", "true", "yes", "on"):
+                return True
+            if v_norm in ("0", "false", "no", "off"):
+                return False
+        if isinstance(v, (int, float)):
+            return bool(v)
+        if isinstance(v, bool):
+            return v
+    except Exception:
+        pass
+    # Fallback to game_mode string
+    try:
+        gm = settings.get("game_mode")
+        if isinstance(gm, str) and gm.strip().lower() == "race":
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _race_enabled_from_state_or_settings(state: GameState, settings: GameSettings) -> bool:
+    """Prefer a transient selection stored on GameState; fallback to settings."""
+    pref = getattr(state, "race_mode_pref", None)
+    if isinstance(pref, bool):
+        return pref
+    return _is_race_enabled(settings)
+
+
 def _show_reset_warning_dialog(state: GameState, assets: GameAssets) -> str:
     """Show a warning dialog when critical settings changed.
 
@@ -456,14 +564,7 @@ def start_menu(
     config: GameConfig,
     settings: GameSettings,
 ) -> None:
-    """Main menu shown before the game starts.
-
-    Args:
-        state: GameState instance
-        assets: GameAssets instance
-        config: GameConfig instance
-        settings: GameSettings instance
-    """
+    """Main menu shown before the game starts."""
     selected = 0
     items = ["Start Game", "Settings"]
 
@@ -514,7 +615,6 @@ def start_menu(
                     pygame.quit()
                     sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # Simple click detection
                 mx, my = event.pos
                 for i, text_label in enumerate(items):
                     rect = assets.render_small(text_label, MESSAGE_COLOR).get_rect(
@@ -671,8 +771,16 @@ def main():
     ##
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
 
-    show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
+    show_pause_hint_end_time = pygame.time.get_ticks() + 2000
     previous_tail_length = 0
+
+    # Initialize race mode pref from settings, then apply
+    if not hasattr(state, "race_mode_pref"):
+        state.race_mode_pref = _is_race_enabled(settings)
+    if state.race_mode_pref:
+        _init_race_mode(state, settings)
+    else:
+        state.race_mode = False
 
     ##
     ## Main loop
@@ -745,15 +853,13 @@ def main():
                     # Determine if we should reset
                     should_reset = False
                     if needs_reset:
-                        # If "Reset Game on Apply" is enabled, reset automatically
                         if settings.get("reset_game_on_apply"):
                             should_reset = True
                         else:
-                            # Show warning dialog and ask user
                             user_choice = _show_reset_warning_dialog(state, assets)
                             if user_choice == "reset":
                                 should_reset = True
-                            else:  # user_choice == "cancel"
+                            else:
                                 # Revert the critical settings changes
                                 settings.set("cells_per_side", old_cells)
                                 settings.set("obstacle_difficulty", old_obstacles)
@@ -770,18 +876,45 @@ def main():
                         settings,
                         reset_objects=should_reset,
                     )
+
+                    # Evaluate race mode from state preference first, then settings
+                    race_enabled = _race_enabled_from_state_or_settings(state, settings)
+                    prev_enabled = getattr(state, "race_mode", False)
+
+                    if should_reset:
+                        if race_enabled:
+                            _init_race_mode(state, settings)
+                        else:
+                            state.race_mode = False
+                    else:
+                        # No reset: toggle mode live if changed
+                        if race_enabled and not prev_enabled:
+                            _init_race_mode(state, settings)
+                        elif not race_enabled and prev_enabled:
+                            state.race_mode = False
+
                     state.game_on = was_running
                 elif event.key == pygame.K_n:  # N : toggle music mute
                     settings.set(
                         "background_music", not settings.get("background_music")
                     )
                     apply_settings(state, assets, config, settings, reset_objects=False)
-
                 elif event.key == pygame.K_c:  # C : randomize snake colors
                     settings.randomize_snake_colors()
 
         ## Update the game
         if state.game_on:
+            # Race-against-time countdown
+            if getattr(state, "race_mode", False):
+                state.race_time_ms -= dt
+                if state.race_time_ms <= 0:
+                    state.race_time_ms = 0
+                    # Show time-up, then reset round
+                    _handle_time_up(state, assets, settings)
+                    apply_settings(state, assets, config, settings, reset_objects=True)
+                    _init_race_mode(state, settings)
+                    continue
+
             if len(state.snake.tail) == 0 and previous_tail_length > 0:
                 show_pause_hint_end_time = pygame.time.get_ticks() + 2000
             previous_tail_length = len(state.snake.tail)
@@ -954,6 +1087,10 @@ def main():
         score_rect = score.get_rect(center=(state.width / 2, state.height / 12))
         state.arena.blit(score, score_rect)
 
+        # Race mode HUD
+        if getattr(state, "race_mode", False):
+            _draw_race_hud(state, assets)
+
         # Draw music status indicator
         draw_music_indicator(state, assets, settings)
 
@@ -962,9 +1099,7 @@ def main():
             if state.snake.head.x == apple.x and state.snake.head.y == apple.y:
                 state.snake.got_apple = True
                 max_speed = float(settings.get("max_speed"))
-                state.snake.speed = min(
-                    state.snake.speed * 1.1, max_speed
-                )  # Increase speed
+                state.snake.speed = min(state.snake.speed * 1.1, max_speed)
 
                 # Plays the eating sound if enabled in the settings
                 if (
@@ -973,6 +1108,15 @@ def main():
                     and assets.eat_sound
                 ):
                     assets.eat_sound.play()
+
+                # Race mode: add bonus time on apple
+                if getattr(state, "race_mode", False):
+                    bonus = getattr(state, "race_bonus_ms", 0)
+                    cap = getattr(state, "race_time_cap_ms", 0)
+                    remaining = getattr(state, "race_time_ms", 0)
+                    state.race_time_ms = (
+                        min(remaining + bonus, cap) if cap > 0 else remaining + bonus
+                    )
 
                 # Remove eaten apple and spawn a new one
                 state.apples.remove(apple)
@@ -1000,6 +1144,21 @@ def main():
             hint_surf.set_alpha(180)  # Deixa o texto semi-transparente
             hint_rect = hint_surf.get_rect(center=(state.width / 2, state.height - 40))
             state.arena.blit(hint_surf, hint_rect)
+
+        # Optional onboarding hint for race mode
+        if getattr(state, "race_mode", False) and state.game_on:
+            now = pygame.time.get_ticks()
+            if now < getattr(state, "race_hint_until", 0):
+                hint = assets.render_custom(
+                    "Race Mode: eat apples to gain time",
+                    MESSAGE_COLOR,
+                    int(state.width / 30),
+                )
+                hint.set_alpha(180)
+                hint_rect = hint.get_rect(
+                    center=(state.width / 2, state.height - 70)
+                )
+                state.arena.blit(hint, hint_rect)
 
         # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
         if not state.game_on:
