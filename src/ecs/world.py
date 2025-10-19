@@ -18,4 +18,3 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Entity registry, component storage, and system manager."""
-
