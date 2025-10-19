@@ -1,0 +1,193 @@
+---
+description: "Design do GameSystem abstrato base para todos os sistemas"
+globs: ["src/ecs/systems/**/*", "src/core/**/*"]
+---
+
+# GameSystem Abstract Base Class
+
+## Purpose
+
+GameSystem is an abstract base class that provides a consistent interface and shared context for all systems. This gives us:
+
+- **One place to wire dependencies**: All shared resources injected through constructor
+- **Consistent lifecycle hooks**: Standard initialization and cleanup
+- **Fewer circular imports**: Dependencies flow one direction
+- **Easier testing**: Single fixture to build base with mock dependencies
+- **Explicit contracts**: Clear documentation of what each system can access
+
+## Constructor Inputs
+
+The GameSystem constructor receives all shared context that systems might need:
+
+### Required Parameters
+- **state: GameState** - dynamic world state, includes clock and surfaces
+- **settings: GameSettings** - current user settings (mutable)
+- **config: GameConfig** - static rules and sizing helpers (read-only)
+- **assets: GameAssets** - fonts, sounds, sprites (read-only)
+- **window_surface: pygame.Surface** - main render target
+
+### Optional Parameters
+- **logger: Callable** - logging function for debugging
+- **rng: Random** - random number generator for deterministic tests
+- **event_bus: EventBus** - shared event queue for inter-system communication
+
+## Abstract Responsibilities
+
+GameSystem provides optional lifecycle hooks that child systems can override:
+
+## Minimal Interface Contract
+
+### Protected References
+All systems have access to these protected attributes:
+
+- `_state: GameState` - game world state
+- `_settings: GameSettings` - user settings
+- `_config: GameConfig` - game configuration
+- `_assets: GameAssets` - game assets
+- `_surface: pygame.Surface` - window surface
+- `_logger: Callable` - logging function
+- `_event_bus: EventBus` - event queue
+
+### Public Properties
+Convenience properties to reduce dot chains in child systems:
+
+- `state` - read-only access to _state
+- `settings` - read-only access to _settings
+- `config` - read-only access to _config
+- `assets` - read-only access to _assets
+- `surface` - read-only access to _surface
+
+## Conceptual Example Structure
+
+```
+abstract class GameSystem:
+    constructor(state, settings, config, assets, surface, logger, rng, event_bus):
+        store all as protected attributes
+        
+    abstract method update(dt_ms):
+        must be overridden by child classes
+        
+    optional method on_attach():
+        default implementation does nothing
+        
+    optional method on_detach():
+        default implementation does nothing
+        
+    optional method before_frame(dt_ms):
+        default implementation does nothing
+        
+    optional method after_frame(dt_ms):
+        default implementation does nothing
+        
+    optional method dispose():
+        default implementation does nothing
+        
+    property state:
+        return self._state
+        
+    property settings:
+        return self._settings
+        
+    (similar properties for other attributes)
+    
+    method require_running_pygame():
+        assert pygame display initialized
+        
+    method require_not_paused():
+        assert not self._state.paused
+```
+
+## Usage Pattern
+
+### Child System Implementation
+```
+class MovementSystem(GameSystem):
+    def update(self, dt_ms):
+        # access shared context through properties
+        if self.state.paused:
+            return
+            
+        # query world for entities
+        for entity in self.get_world().query(Position, Velocity):
+            pos = entity.get(Position)
+            vel = entity.get(Velocity)
+            
+            # update logic
+            pos.x += vel.dx
+            pos.y += vel.dy
+```
+
+### System Registration in Main
+```
+# create shared context once
+state = GameState()
+settings = GameSettings()
+config = GameConfig()
+assets = GameAssets()
+surface = pygame.display.set_mode(...)
+
+# create systems with shared context
+movement_sys = MovementSystem(state, settings, config, assets, surface)
+render_sys = RenderSystem(state, settings, config, assets, surface)
+
+# register to world
+world.add_system(movement_sys)
+world.add_system(render_sys)
+
+# call lifecycle hooks
+movement_sys.on_attach()
+render_sys.on_attach()
+
+# game loop
+while running:
+    movement_sys.before_frame(dt)
+    render_sys.before_frame(dt)
+    
+    movement_sys.update(dt)
+    render_sys.update(dt)
+    
+    movement_sys.after_frame(dt)
+    render_sys.after_frame(dt)
+```
+
+## Design Rules
+
+1. **Keep base generic**: GameSystem should not contain game-specific logic
+2. **Engine-like interface**: Base class is framework code, not game code
+3. **Immutable shared context**: Systems receive references but should not replace them
+4. **No system cross-references**: Systems don't call methods on other systems directly
+5. **Protected attributes**: Use underscore prefix for injected dependencies
+
+## Benefits
+
+### Dependency Injection
+- All dependencies are explicit in constructor
+- Easy to mock for testing
+- No hidden global state
+
+### Consistent Interface
+- All systems have same initialization pattern
+- Predictable lifecycle for debugging
+- Standard hooks reduce boilerplate
+
+### Testability
+- Create test fixture once with mock dependencies
+- Inject deterministic RNG for reproducible tests
+- Verify system behavior without running full game
+
+### Maintainability
+- Single source of truth for shared context
+- Easy to add new shared resources (add to base constructor)
+- Clear contract for what systems can access
+
+## Migration Strategy
+
+1. Create abstract GameSystem with empty lifecycle hooks
+2. No behavior change, just infrastructure
+3. Convert RenderSystem to inherit GameSystem (verify rendering unchanged)
+4. Convert UISystem to inherit GameSystem (verify UI unchanged)
+5. Convert remaining systems one by one
+6. Update main to create systems with shared context
+7. Add tests for each system using mocked GameSystem
+
+See `ecs_migration_plan.mdc` for detailed steps.
