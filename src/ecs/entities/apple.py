@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from src.ecs.entities.entity import Entity, EntityType
 from src.ecs.components.position import Position
-from src.ecs.components.apple import Edible
+from src.ecs.components.edible import Edible
 
 
 @dataclass
