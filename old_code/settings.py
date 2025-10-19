@@ -19,7 +19,7 @@
 
 """Dynamic game settings and menu configuration."""
 
-from src.constants import SNAKE_COLOR_PALETTES
+from .constants import SNAKE_COLOR_PALETTES
 
 
 class GameSettings:

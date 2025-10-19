@@ -1,0 +1,634 @@
+---
+description: "Plano de migração ECS dividido para 5 desenvolvedores em paralelo"
+globs: ["**/*"]
+---
+
+# ECS Parallel Migration Plan - 5 Developers
+
+## Overview
+
+This document organizes the ECS migration plan for **5 developers working in parallel**. Tasks are grouped by domain and dependencies to maximize parallelism while minimizing merge conflicts.
+
+## Synchronization Points
+
+Critical moments where all developers must sync:
+
+1. **Sync Point 1** (After infrastructure): Person 1 completes Steps 1, 2, 3, 5
+2. **Sync Point 2** (After components): All complete Step 4 collaboratively
+3. **Sync Point 3** (Before scene wiring): All complete their systems
+4. **Sync Point 4** (Final integration): Person 1 completes Step 23, all verify
+
+---
+
+## Person 1: Infrastructure & Core Architecture 
+
+**Domain**: Foundation, framework, orchestration
+
+**Branch naming**: `feat/<issue>/<description>`
+- Example: `feat/200/create-ecs-infrastructure`
+
+### Phase 1: Foundation (PRIORITY - BLOCKS OTHERS)
+
+#### Issue #200: Create ECS Infrastructure (Step 1)
+**Priority**: CRITICAL - Must complete first
+- Create `src/ecs/world.py` with entity registry
+- Implement component storage (dict-based)
+- Implement entity creation/deletion
+- Implement query functionality
+- Write unit tests for world registry
+- **Deliverable**: Working world registry with tests passing
+
+#### Issue #201: Migrate Core Game Loop (Step 2)
+**Priority**: HIGH - Needed for systems
+- Create `src/core/app.py` with main game loop
+- Create `src/core/clock.py` with fixed timestep
+- Update `kobra.py` to bootstrap and run
+- Move frame limiting and delta time logic
+- **Deliverable**: Game runs with new core loop
+
+#### Issue #202: Create Pygame IO Adapter (Step 3)
+**Priority**: HIGH - Enables testing
+- Create `src/core/io/pygame_adapter.py`
+- Wrap event polling
+- Wrap screen initialization
+- Wrap drawing primitives (rect, circle, line)
+- **Deliverable**: Pygame abstraction layer complete
+
+#### Issue #203: Implement GameSystem Base Class (Step 5)
+**Priority**: CRITICAL - Blocks all systems
+- Create abstract `GameSystem` class
+- Add dependency injection constructor
+- Add lifecycle hooks (on_attach, on_detach, update, etc.)
+- Add property getters for context
+- Add guard helpers (require_running_pygame, etc.)
+- **Deliverable**: GameSystem base ready for inheritance
+
+### Phase 2: Integration (After all systems complete)
+
+#### Issue #220: Wire Systems in Gameplay Scene (Step 23)
+**Priority**: CRITICAL - Final integration
+- Create `src/game/scenes/gameplay.py`
+- Register all systems in correct order:
+  1. InputSystem
+  2. MovementSystem
+  3. CollisionSystem
+  4. SpawnSystem
+  5. ScoringSystem
+  6. AudioSystem
+  7. InterpolationSystem
+  8. RenderSystem
+  9. UISystem
+  10. ValidationSystem
+  11. ResizeSystem
+- Call lifecycle hooks
+- Update main loop to use scene
+- **Deliverable**: All systems working together
+
+### Phase 3: Coordination
+
+- Review PRs from other developers
+- Resolve merge conflicts
+- Ensure consistency across systems
+- Coordinate synchronization points
+
+---
+
+## Person 2: Rendering & Visual Systems
+
+**Domain**: Everything the player sees
+
+**Branch naming**: `feat/<issue>/<description>`
+- Example: `feat/205/migrate-render-system`
+
+### Phase 1: Setup (After Person 1 completes Step 5)
+
+#### Issue #204: Define Visual Components (Step 4 - partial)
+**Collaborate with all developers**
+- Create visual components:
+  - `Position(x, y, prev_x, prev_y)`
+  - `Renderable(shape, color, size)`
+  - `Interpolation(alpha, wrapped_axis)`
+  - `Grid(width, height, cell_size, offset)`
+- Add docstrings and type hints
+- **Deliverable**: Visual components defined
+
+### Phase 2: Core Rendering (After Step 4 sync)
+
+#### Issue #205: Migrate Basic Rendering to RenderSystem (Step 6)
+**Priority**: HIGH - Visual feedback needed
+- Create `RenderSystem` inheriting `GameSystem`
+- Move grid drawing logic
+- Move obstacle drawing logic
+- Move apple drawing logic
+- Ensure visual output identical (screenshot comparison)
+- Make system read-only (no state changes)
+- **Deliverable**: RenderSystem draws static elements
+
+#### Issue #206: Add Snake Rendering with Interpolation (Step 7)
+**Priority**: HIGH - Completes rendering
+- Move snake drawing logic
+- Implement smooth interpolation between ticks
+- Handle edge wrapping for smooth visuals
+- Ensure no visual jumps during wrapping
+- **Deliverable**: Snake renders smoothly
+
+### Phase 3: Visual Polish (After Step 6-7)
+
+#### Issue #207: Implement InterpolationSystem (Step 19)
+**Priority**: MEDIUM - Enhances smoothness
+- Create `InterpolationSystem` inheriting `GameSystem`
+- Calculate interpolation alpha based on time
+- Detect edge wrapping for special handling
+- Update Interpolation component for RenderSystem
+- **Deliverable**: Smooth movement calculations
+
+#### Issue #208: Implement ResizeSystem (Step 21)
+**Priority**: LOW - Quality of life
+- Create `ResizeSystem` inheriting `GameSystem`
+- Detect window resize events
+- Recalculate cell size
+- Update grid component
+- Trigger asset reload if needed
+- **Deliverable**: Window resize handling
+
+---
+
+## Person 3: UI & Input Systems
+
+**Domain**: Menus, dialogs, user input
+
+**Branch naming**: `feat/<issue>/<description>`
+- Example: `feat/209/migrate-ui-system`
+
+### Phase 1: Setup (After Person 1 completes Step 5)
+
+#### Issue #204: Define UI Components (Step 4 - partial)
+**Collaborate with all developers**
+- Create UI components:
+  - `MenuItem(text, action, selected)`
+  - `Dialog(title, message, options)`
+  - `InputState(keys_pressed, mouse_pos)`
+- Add docstrings and type hints
+- **Deliverable**: UI components defined
+
+### Phase 2: UI Systems (After Step 4 sync and RenderSystem ready)
+
+#### Issue #209: Migrate Start Menu to UISystem (Step 8)
+**Priority**: HIGH - User entry point
+**Depends on**: RenderSystem (Step 6)
+- Create `UISystem` inheriting `GameSystem`
+- Move start menu loop
+- Implement `run_start_menu()` returning decision enum
+- Delegate rendering to RenderSystem
+- Add menu navigation tests
+- **Deliverable**: Start menu working
+
+#### Issue #210: Migrate Settings & Dialogs to UISystem (Step 9)
+**Priority**: HIGH - Completes UI
+- Move settings menu loop
+- Implement `run_settings_menu()` returning result
+- Move reset warning dialog
+- Implement `prompt_reset_warning()`
+- Move game over prompt
+- Implement `prompt_game_over()`
+- **Deliverable**: All menus and dialogs working
+
+### Phase 3: Input & Commands (After Step 8-9)
+
+#### Issue #211: Implement Command Protocol (Step 10)
+**Priority**: MEDIUM - Improves architecture
+- Create command dataclasses (Move, Pause, Quit, etc.)
+- Implement `handle_in_game_event()` in UISystem
+- Update main loop to process commands
+- Ensure deterministic command application
+- **Deliverable**: Typed command system
+
+#### Issue #212: Migrate Settings Application Logic (Step 11)
+**Priority**: MEDIUM - Settings functionality
+**Depends on**: Step 10
+- Implement `apply_settings(reset_objects)` in UISystem
+- Move window resize logic
+- Move font reload logic
+- Move entity recreation logic
+- Implement `needs_reset()` detection
+- **Deliverable**: Settings application working
+
+#### Issue #213: Migrate InputSystem (Step 12)
+**Priority**: MEDIUM - Input handling
+- Create `InputSystem` inheriting `GameSystem`
+- Move direction input (arrows, WASD)
+- Move pause handling (P key)
+- Move quit handling (Q key)
+- Move menu handling (M, ESC keys)
+- Move music toggle (N key)
+- Move palette randomize (C key)
+- **Deliverable**: Input handling system
+
+---
+
+## Person 4: Gameplay Logic Systems
+
+**Domain**: Movement, collision, spawning, scoring
+
+**Branch naming**: `feat/<issue>/<description>`
+- Example: `feat/214/migrate-movement-system`
+
+### Phase 1: Setup (After Person 1 completes Step 5)
+
+#### Issue #204: Define Gameplay Components (Step 4 - partial)
+**Collaborate with all developers**
+- Create gameplay components:
+  - `Velocity(dx, dy, speed)`
+  - `SnakeBody(segments)`
+  - `Collider(radius, layer)`
+  - `Edible(points)`
+  - `ObstacleTag()`
+  - `Score(current, high_score)`
+- Add docstrings and type hints
+- **Deliverable**: Gameplay components defined
+
+### Phase 2: Core Gameplay Systems (After Step 4 sync)
+
+#### Issue #214: Migrate MovementSystem (Step 13)
+**Priority**: HIGH - Core mechanic
+- Create `MovementSystem` inheriting `GameSystem`
+- Extract snake movement logic
+- Implement grid wrapping
+- Handle body segment following
+- Respect pause flag
+- **Deliverable**: Snake movement working
+
+#### Issue #215: Migrate CollisionSystem (Step 14)
+**Priority**: HIGH - Core mechanic
+**Can work parallel with #214**
+- Create `CollisionSystem` inheriting `GameSystem`
+- Extract apple collision detection
+- Extract wall collision (electric mode)
+- Extract obstacle collision
+- Extract self-collision
+- Emit collision events (don't change state directly)
+- **Deliverable**: Collision detection working
+
+#### Issue #216: Migrate SpawnSystem (Step 15)
+**Priority**: HIGH - Core mechanic
+**Can work parallel with #214, #215**
+- Create `SpawnSystem` inheriting `GameSystem`
+- Extract apple spawning logic
+- Implement free cell detection
+- Handle spawn retry logic
+- Respond to collision events
+- **Deliverable**: Apple spawning working
+
+#### Issue #217: Migrate ScoringSystem (Step 17)
+**Priority**: MEDIUM - Scoring mechanic
+**Depends on**: CollisionSystem (#215)
+- Create `ScoringSystem` inheriting `GameSystem`
+- Listen for ate_apple events
+- Update score component
+- Update high score component
+- Preserve score across settings changes
+- **Deliverable**: Scoring system working
+
+---
+
+## Person 5: Supporting Systems & Quality
+
+**Domain**: Obstacles, audio, validation, prefabs, testing
+
+**Branch naming**: `feat/<issue>/<description>`
+- Example: `feat/218/migrate-obstacle-system`
+
+### Phase 1: Setup (After Person 1 completes Step 5)
+
+#### Issue #204: Define Supporting Components (Step 4 - partial)
+**Collaborate with all developers**
+- Create supporting components:
+  - `AudioQueue(sfx_queue, music_enabled)`
+  - `Obstacle(x, y)`
+  - `Validated(last_check_time)`
+- Add docstrings and type hints
+- **Deliverable**: Supporting components defined
+
+### Phase 2: Supporting Systems (After Step 4 sync)
+
+#### Issue #218: Migrate ObstacleGenerationSystem (Step 16)
+**Priority**: MEDIUM - Level generation
+**Can work parallel with Person 4**
+- Create `ObstacleGenerationSystem` inheriting `GameSystem`
+- Extract constructive generation algorithm
+- Extract connectivity check (flood fill)
+- Extract trap detection logic
+- Ensure deterministic generation with seed
+- **Deliverable**: Obstacle generation working
+
+#### Issue #219: Migrate AudioSystem (Step 18)
+**Priority**: MEDIUM - Audio feedback
+**Can work parallel with #218**
+- Create `AudioSystem` inheriting `GameSystem`
+- Implement SFX queue processing
+- Implement music control (play, pause, stop, next)
+- Handle multiple simultaneous SFX (mixer channels)
+- Respect music enabled flag
+- **Deliverable**: Audio system working
+
+#### Issue #222: Migrate ValidationSystem (Step 20)
+**Priority**: LOW - Debugging aid
+**Can work parallel with other systems**
+- Create `ValidationSystem` inheriting `GameSystem`
+- Verify exactly one apple exists
+- Verify snake position in bounds
+- Verify no invalid entity overlap
+- Log warnings for anomalies
+- **Deliverable**: Validation system for debugging
+
+### Phase 3: Prefabs (After gameplay systems ready)
+
+#### Issue #223: Create Entity Prefabs (Step 22)
+**Priority**: MEDIUM - Entity creation
+**Depends on**: All components and basic systems
+- Implement `create_snake()` in `src/ecs/prefabs/snake.py`
+- Implement `create_apple()` in `src/ecs/prefabs/apple.py`
+- Implement `create_obstacles()` in `src/ecs/prefabs/obstacle_field.py`
+- Replace old class constructors
+- **Deliverable**: Prefab factories working
+
+### Phase 4: Quality (Ongoing)
+
+#### Issue #224: Add System Unit Tests (Step 25)
+**Priority**: HIGH - Quality assurance
+**Continuous**: Add tests as systems are completed
+- Write unit tests for MovementSystem
+- Write unit tests for CollisionSystem
+- Write unit tests for SpawnSystem
+- Write unit tests for ScoringSystem
+- Write unit tests for InterpolationSystem
+- Write integration tests for full game flow
+- **Deliverable**: Comprehensive test coverage
+
+---
+
+## Shared Responsibilities (All Developers)
+
+### Phase: Component Definition (Sync Point 2)
+**Timeline**: After Step 5, before system implementation
+
+#### Issue #204: Define All Components (Step 4)
+**Priority**: CRITICAL - Blocks all systems
+**ALL DEVELOPERS COLLABORATE**
+
+Each person creates components for their domain:
+
+**Person 1 (Infrastructure):**
+- `Entity(id, active)`
+- `GameState(running, paused)`
+
+**Person 2 (Visual):**
+- `Position(x, y, prev_x, prev_y)`
+- `Renderable(shape, color, size)`
+- `Interpolation(alpha, wrapped_axis)`
+- `Grid(width, height, cell_size, offset)`
+
+**Person 3 (UI):**
+- `MenuItem(text, action, selected)`
+- `Dialog(title, message, options)`
+- `InputState(keys_pressed, mouse_pos)`
+
+**Person 4 (Gameplay):**
+- `Velocity(dx, dy, speed)`
+- `SnakeBody(segments)`
+- `Collider(radius, layer)`
+- `Edible(points)`
+- `ObstacleTag()`
+- `Score(current, high_score)`
+
+**Person 5 (Supporting):**
+- `AudioQueue(sfx_queue, music_enabled)`
+- `Obstacle(x, y)`
+- `Validated(last_check_time)`
+
+**Requirements:**
+- All components are pure data (dataclasses)
+- No methods (except `__post_init__` if needed)
+- Complete docstrings
+- Type hints on all fields
+- Unit tests for component creation
+
+**Coordination:** Daily sync to review component design
+**Deliverable:** All components defined, typed, documented, tested
+
+---
+
+### Phase: Cleanup (After Step 23)
+
+#### Issue #225: Remove Old Code (Step 24)
+**Priority**: LOW - Final cleanup
+**ALL DEVELOPERS REVIEW**
+
+**Tasks:**
+- Person 4: Remove `src/entities.py`
+- Person 1: Remove `src/state.py`
+- Person 2: Remove old rendering code from `kobra.py`
+- Person 3: Remove old input handling from `kobra.py`
+- All: Remove deprecation comments
+- All: Verify no references to old code
+
+**Deliverable:** Clean codebase with only ECS code
+
+---
+
+### Phase: Documentation (Continuous)
+
+#### Issue #226: Update Documentation (Step 26)
+**Priority**: MEDIUM - Knowledge sharing
+**Each person documents their domain**
+
+**Person 1:**
+- Write `docs/architecture.md` (overall ECS structure)
+- Write `docs/adr/0001-choose-ecs.md` (decision rationale)
+
+**Person 2:**
+- Document RenderSystem and InterpolationSystem
+- Add visual system examples to architecture.md
+
+**Person 3:**
+- Document UISystem and InputSystem
+- Update `docs/manual.md` with UI changes
+
+**Person 4:**
+- Document MovementSystem, CollisionSystem, SpawnSystem, ScoringSystem
+- Add gameplay system examples to architecture.md
+
+**Person 5:**
+- Document AudioSystem and ValidationSystem
+- Update `docs/CONTRIBUTING.md` with ECS guidelines
+- Update README.md with architecture overview
+
+**Deliverable:** Complete, accurate documentation
+
+---
+
+### Phase: Final Verification (After Step 24)
+
+#### Issue #227: Final Verification (Step 27)
+**Priority**: CRITICAL - Quality gate
+**ALL DEVELOPERS TEST**
+
+**Division of testing:**
+
+**Person 1:** Infrastructure verification
+- System execution order correct
+- Lifecycle hooks called properly
+- No memory leaks
+
+**Person 2:** Visual verification
+- Compare screenshots with original
+- Verify smooth interpolation
+- Test window resize
+
+**Person 3:** UI verification
+- Test all menus (start, settings, dialogs)
+- Test all input combinations
+- Verify menu navigation
+
+**Person 4:** Gameplay verification
+- Play full game, eat apples, hit walls
+- Test wrapping, electric walls, obstacles
+- Verify collision detection
+- Test scoring accuracy
+
+**Person 5:** Quality verification
+- Performance testing (frame rate unchanged)
+- Audio verification (all sounds play)
+- Run all unit tests
+- Run all integration tests
+
+**Deliverable:** Verified, production-ready game
+
+---
+
+## Timeline Overview
+
+### Phase 1: Foundation
+- Person 1 creates infrastructure (Steps 1, 2, 3, 5)
+- ALL create components (Step 4) - **SYNC POINT 2**
+- Begin system implementation
+
+### Phase 2: Parallel System Development
+- **Person 1**: Review PRs, coordinate
+- **Person 2**: RenderSystem, InterpolationSystem (Steps 6, 7, 19)
+- **Person 3**: UISystem, InputSystem (Steps 8, 9, 10, 11, 12)
+- **Person 4**: MovementSystem, CollisionSystem, SpawnSystem, ScoringSystem (Steps 13, 14, 15, 17)
+- **Person 5**: ObstacleGenerationSystem, AudioSystem, ValidationSystem (Steps 16, 18, 20)
+
+### Phase 3: Integration & Polish
+- Complete remaining systems
+- Person 5 creates prefabs (Step 22)
+- Person 1 wires scene (Step 23) - **SYNC POINT 3**
+- Remove old code (Step 24)
+
+### Phase 4: Quality & Documentation
+- Person 5 completes tests (Step 25)
+- ALL update documentation (Step 26)
+- ALL verify (Step 27) - **SYNC POINT 4**
+
+---
+
+## Communication Protocol
+
+### Daily Standups (15 minutes)
+- What I completed yesterday
+- What I'm working on today
+- Any blockers or dependencies
+
+### Sync Points (1-2 hours)
+- **Sync Point 1**: After infrastructure ready
+- **Sync Point 2**: After components defined
+- **Sync Point 3**: Before scene wiring
+- **Sync Point 4**: Final verification
+
+### Pull Request Reviews
+- Tag relevant developers based on domain
+- Person 1 reviews all infrastructure changes
+- Each person reviews changes in their domain
+- Require 2 approvals before merge
+
+### Branch Strategy
+- All branches from `dev`
+- Merge to `dev` after review
+- Follow naming: `feat/<issue>/<description>`
+- Small, focused PRs (max 500 lines)
+
+### Issue Tracking
+- All issues labeled by domain:
+  - `domain:infrastructure`
+  - `domain:rendering`
+  - `domain:ui`
+  - `domain:gameplay`
+  - `domain:supporting`
+- Priority labels: `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
+- Dependency labels: `depends-on:#<issue>`
+
+---
+
+## Risk Mitigation
+
+### Risk: Merge conflicts in shared files
+**Mitigation:**
+- Separate concerns clearly
+- Person 1 owns infrastructure files
+- Each person owns their system files
+- Components defined collaboratively with clear ownership
+- Frequent small merges
+
+### Risk: Integration issues at scene wiring
+**Mitigation:**
+- Define component contracts early (Step 4)
+- Document system reads/writes clearly
+- Integration testing before Step 23
+- Person 1 coordinates integration
+
+### Risk: Person blocked waiting for dependencies
+**Mitigation:**
+- Create mock implementations for testing
+- Define interfaces early
+- Clear dependency tracking in issues
+- Daily standups to identify blockers
+
+### Risk: Inconsistent code style across developers
+**Mitigation:**
+- Use Black formatter (enforced by pre-commit)
+- Use Ruff linter (enforced by pre-commit)
+- Code review checklist
+- Refer to `ecs_coding_standards.mdc`
+
+### Risk: Systems don't integrate smoothly
+**Mitigation:**
+- Define system execution order early
+- Document component dependencies
+- Integration tests before final scene wiring
+- Person 1 reviews system interfaces
+
+---
+
+## Success Criteria
+
+The parallel migration succeeds when:
+
+1. **Functionality**: All features work identically to original
+2. **Quality**: All tests pass, Black/Ruff clean
+3. **Documentation**: Architecture explained, contributing guide updated
+4. **Performance**: No performance regression
+5. **Team**: All developers understand ECS principles
+6. **Timeline**: Completed within 5 weeks
+
+---
+
+## Post-Migration
+
+After successful migration:
+
+1. **Retrospective**: What went well, what to improve
+2. **Knowledge sharing**: Present ECS architecture to team
+3. **New features**: Easy to add (new systems, new components)
+4. **Onboarding**: New contributors can understand architecture
+5. **Celebration**: 🎉 Team accomplished complex refactor!
