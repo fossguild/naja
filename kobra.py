@@ -671,6 +671,9 @@ def main():
     ##
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
 
+    # Ensure the chosen initial speed is used from the very first move
+    state.snake.speed = float(settings.get("initial_speed"))
+
     show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
     previous_tail_length = 0
 
