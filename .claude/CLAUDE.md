@@ -21,4 +21,3 @@ This project is migrating from a monolithic snake game to an Entity-Component-Sy
 - Comments always start lowercase
 - Never use em dash character
 - Use Black formatting and Ruff linting
-

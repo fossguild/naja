@@ -11,4 +11,3 @@ TODO: Document the decision.
 
 ## Consequences
 TODO: Document the consequences.
-

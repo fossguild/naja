@@ -60,13 +60,13 @@ Bad: Systems calling methods on other systems directly
 Each game tick follows this order:
 
 1. **Input Phase**: InputSystem reads events, updates input components
-2. **Logic Phase**: 
+2. **Logic Phase**:
    - MovementSystem updates positions based on velocity
    - CollisionSystem detects collisions, emits events
    - SpawnSystem creates new entities as needed
    - ScoringSystem updates score based on events
 3. **Audio Phase**: AudioSystem plays sounds based on audio queue component
-4. **Render Phase**: 
+4. **Render Phase**:
    - InterpolationSystem calculates smooth positions for rendering
    - RenderSystem draws everything based on renderable components
    - UISystem draws HUD and overlays
