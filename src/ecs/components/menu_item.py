@@ -25,14 +25,15 @@ from dataclasses import dataclass
 @dataclass
 class MenuItem:
     """Component for menu item entities.
-    
+
     Contains:
     - text: Display text for the menu item
     - action: Action identifier to execute when selected
     - selected: Whether this item is currently selected
-    
+
     Used by: UISystem for menu rendering and interaction
     """
+
     text: str
     action: str
     selected: bool

@@ -26,14 +26,15 @@ from typing import List
 @dataclass
 class Dialog:
     """Component for dialog entities.
-    
+
     Contains:
     - title: Title text displayed in dialog header
     - message: Main message text of the dialog
     - options: List of available options/buttons
-    
+
     Used by: UISystem for dialog rendering and interaction
     """
+
     title: str
     message: str
     options: List[str]

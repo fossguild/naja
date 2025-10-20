@@ -26,12 +26,13 @@ from typing import Set
 @dataclass
 class InputState:
     """Component for tracking input state.
-    
+
     Contains:
     - keys_pressed: Set of currently pressed key names
     - mouse_pos: Current mouse position as (x, y) tuple
-    
+
     Used by: InputSystem for capturing user input
     """
+
     keys_pressed: Set[str]
     mouse_pos: tuple[int, int]
