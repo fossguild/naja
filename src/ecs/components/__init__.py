@@ -23,10 +23,12 @@ from src.ecs.components.position import Position
 from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
 from src.ecs.components.edible import Edible
-from src.ecs.components.obstacle import ObstacleTag
+from src.ecs.components.obstacle import ObstacleTag, Obstacle
 from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
 from src.ecs.components.grid import Grid
+from src.ecs.components.audio_queue import AudioQueue
+from src.ecs.components.validated import Validated
 
 __all__ = [
     "Position",
@@ -34,7 +36,10 @@ __all__ = [
     "SnakeBody",
     "Edible",
     "ObstacleTag",
+    "Obstacle",
     "Interpolation",
     "Renderable",
     "Grid",
+    "AudioQueue",
+    "Validated",
 ]

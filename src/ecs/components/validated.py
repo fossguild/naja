@@ -17,30 +17,19 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Obstacle components."""
+"""Validated component for debugging."""
 
 from dataclasses import dataclass
 
 
 @dataclass
-class ObstacleTag:
-    """Marker component for obstacle entities.
-
-    Tag-only component with no data fields.
-    Used by: Obstacle
-    """
-
-
-@dataclass
-class Obstacle:
-    """Component for obstacle entities with position.
+class Validated:
+    """Component for tracking validation state of entities.
 
     Contains:
-    - x: X coordinate of the obstacle
-    - y: Y coordinate of the obstacle
+    - last_check_time: Timestamp of last validation check
 
-    Used by: ObstacleGenerationSystem, CollisionSystem
+    Used by: ValidationSystem for debugging and integrity checks
     """
 
-    x: int
-    y: int
+    last_check_time: float
