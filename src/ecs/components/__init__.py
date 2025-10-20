@@ -29,6 +29,10 @@ from src.ecs.components.renderable import Renderable
 from src.ecs.components.grid import Grid
 from src.ecs.components.audio_queue import AudioQueue
 from src.ecs.components.validated import Validated
+from src.ecs.components.ui_state import UIState
+from src.ecs.components.menu_item import MenuItem
+from src.ecs.components.dialog import Dialog
+from src.ecs.components.input_state import InputState
 
 __all__ = [
     "Position",
@@ -42,4 +46,8 @@ __all__ = [
     "Grid",
     "AudioQueue",
     "Validated",
+    "UIState",
+    "MenuItem",
+    "Dialog",
+    "InputState",
 ]

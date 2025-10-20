@@ -17,23 +17,23 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""UI state component."""
+"""Dialog component."""
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import List
 
 
 @dataclass
-class UIState:
-    """Component for managing overall UI state.
+class Dialog:
+    """Component for dialog entities.
     
     Contains:
-    - active_menu: Currently active menu (None if no menu)
-    - active_dialog: Currently active dialog (None if no dialog)
-    - show_settings: Whether settings dialog should be shown
+    - title: Title text displayed in dialog header
+    - message: Main message text of the dialog
+    - options: List of available options/buttons
     
-    Used by: UISystem for overall UI control
+    Used by: UISystem for dialog rendering and interaction
     """
-    active_menu: Optional[str]
-    active_dialog: Optional[str]
-    show_settings: bool
+    title: str
+    message: str
+    options: List[str]
