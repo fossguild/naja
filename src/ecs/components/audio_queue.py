@@ -26,12 +26,13 @@ from typing import List
 @dataclass
 class AudioQueue:
     """Component for managing audio playback queue.
-    
+
     Contains:
     - sfx_queue: List of sound effects to play
     - music_enabled: Whether background music is enabled
-    
+
     Used by: AudioSystem
     """
+
     sfx_queue: List[str]
     music_enabled: bool

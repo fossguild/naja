@@ -34,12 +34,13 @@ class ObstacleTag:
 @dataclass
 class Obstacle:
     """Component for obstacle entities with position.
-    
+
     Contains:
     - x: X coordinate of the obstacle
     - y: Y coordinate of the obstacle
-    
+
     Used by: ObstacleGenerationSystem, CollisionSystem
     """
+
     x: int
     y: int

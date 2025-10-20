@@ -25,10 +25,11 @@ from dataclasses import dataclass
 @dataclass
 class Validated:
     """Component for tracking validation state of entities.
-    
+
     Contains:
     - last_check_time: Timestamp of last validation check
-    
+
     Used by: ValidationSystem for debugging and integrity checks
     """
+
     last_check_time: float
