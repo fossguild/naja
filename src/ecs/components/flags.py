@@ -17,4 +17,19 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Flags component."""
+"""Flags component for game state control."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Flags:
+    """Component for tracking game state flags.
+
+    Contains:
+    - paused: Whether the game is currently paused
+
+    Used by: InputSystem, MovementSystem, and other systems that need to respect pause state
+    """
+
+    paused: bool = False
