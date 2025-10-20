@@ -18,3 +18,22 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Palette component."""
+
+from dataclasses import dataclass
+from typing import Tuple
+
+
+@dataclass
+class Palette:
+    """Color palette for rendering an entity.
+
+    Stores RGB color tuples for different parts of an entity.
+    Used by: Snake (head and tail colors), Apple, Obstacle
+    """
+
+    primary_color: Tuple[int, int, int] = (0, 255, 0)  # default green for snake head
+    secondary_color: Tuple[int, int, int] = (
+        0,
+        170,
+        0,
+    )  # default dark green for snake tail
