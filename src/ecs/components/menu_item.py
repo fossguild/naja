@@ -17,24 +17,23 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""UI state component."""
+"""Menu item component."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
-class UIState:
-    """Component for managing overall UI state.
+class MenuItem:
+    """Component for menu item entities.
 
     Contains:
-    - active_menu: Currently active menu (None if no menu)
-    - active_dialog: Currently active dialog (None if no dialog)
-    - show_settings: Whether settings dialog should be shown
+    - text: Display text for the menu item
+    - action: Action identifier to execute when selected
+    - selected: Whether this item is currently selected
 
-    Used by: UISystem for overall UI control
+    Used by: UISystem for menu rendering and interaction
     """
 
-    active_menu: Optional[str]
-    active_dialog: Optional[str]
-    show_settings: bool
+    text: str
+    action: str
+    selected: bool
