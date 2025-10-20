@@ -30,5 +30,5 @@ class Edible:
     Used by: Apple
     """
 
-    points: int = 10
-    growth: int = 1  # how many segments to add to snake
+    points: int = 10 # Hoy many points earned by fruit
+    growth: int = 1  # how many segments to add to snake by fruit

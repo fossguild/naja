@@ -18,3 +18,17 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Score component."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Score:
+    """Maintaining of the score and highest_score data.
+
+    Contains properties for scoring and growth when consumed.
+    Used by: Apple
+    """
+
+    current: int = 0
+    high_score: int = 0 # how many segments to add to snake
