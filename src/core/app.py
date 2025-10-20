@@ -24,6 +24,7 @@ import pygame
 from typing import Optional
 
 from .clock import GameClock
+from .io.pygame_adapter import PygameIOAdapter
 from old_code.config import GameConfig
 from old_code.settings import GameSettings
 from old_code.assets import GameAssets
@@ -46,13 +47,15 @@ class GameApp:
         self.assets: Optional[GameAssets] = None
         self.state: Optional[GameState] = None
         self.clock: Optional[GameClock] = None
+        self.pygame_adapter: Optional[PygameIOAdapter] = None
         self.running: bool = False
 
     def initialize(self) -> None:
         """Initialize all game systems and resources."""
-        # Initialize pygame subsystems
-        pygame.init()
-        pygame.mixer.init()
+        # Initialize pygame adapter and subsystems
+        self.pygame_adapter = PygameIOAdapter()
+        self.pygame_adapter.init()
+        self.pygame_adapter.init_mixer()
 
         # Initialize game configuration
         self.config = GameConfig()
@@ -89,7 +92,7 @@ class GameApp:
             self.state.height,
         )
         self.state.create_obstacles_constructively(num_obstacles)
-        pygame.display.set_caption(WINDOW_TITLE)
+        self.pygame_adapter.set_caption(WINDOW_TITLE)
 
     def run(self) -> None:
         """Run the main game loop."""
@@ -142,8 +145,8 @@ class GameApp:
         # Recompute window and recreate surface/fonts if grid changed
         if new_grid_size != old_grid:
             new_width, new_height = self.config.calculate_window_size(new_grid_size)
-            self.state.arena = pygame.display.set_mode((new_width, new_height))
-            pygame.display.set_caption(WINDOW_TITLE)
+            self.state.arena = self.pygame_adapter.set_mode((new_width, new_height))
+            self.pygame_adapter.set_caption(WINDOW_TITLE)
 
             # Update state's dimensions to match new grid size
             self.state.update_dimensions(new_width, new_height, new_grid_size)
@@ -218,11 +221,11 @@ class GameApp:
             )
 
             # Update display
-            pygame.display.update()
+            self.pygame_adapter.update_display()
 
     def _process_events(self) -> None:
         """Process pygame events."""
-        for event in pygame.event.get():
+        for event in self.pygame_adapter.get_events():
             # App terminated
             if event.type == pygame.QUIT:
                 self.quit()
@@ -489,10 +492,10 @@ class GameApp:
                         1.0 - self.state.snake.move_progress
                     )
 
-            pygame.draw.rect(
+            self.pygame_adapter.draw_rect(
                 self.state.arena,
                 current_tail_color,
-                pygame.Rect(
+                self.pygame_adapter.create_rect(
                     round(draw_tx),
                     round(draw_ty),
                     self.state.grid_size,
@@ -501,10 +504,10 @@ class GameApp:
             )
 
         # Draw head (use int coords for Rect)
-        pygame.draw.rect(
+        self.pygame_adapter.draw_rect(
             self.state.arena,
             current_head_color,
-            pygame.Rect(
+            self.pygame_adapter.create_rect(
                 round(self.state.snake.draw_x),
                 round(self.state.snake.draw_y),
                 self.state.grid_size,
@@ -588,5 +591,5 @@ class GameApp:
     def quit(self) -> None:
         """Quit the game application."""
         self.running = False
-        pygame.quit()
+        self.pygame_adapter.quit()
         sys.exit()
