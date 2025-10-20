@@ -71,13 +71,11 @@ class AssetsSystem(BaseSystem):
         try:
             # Big font for titles
             self._fonts["big"] = pygame.font.Font(
-                self.FONT_PATH,
-                int(self._window_width / 8)
+                self.FONT_PATH, int(self._window_width / 8)
             )
             # Small font for UI elements
             self._fonts["small"] = pygame.font.Font(
-                self.FONT_PATH,
-                int(self._window_width / 20)
+                self.FONT_PATH, int(self._window_width / 20)
             )
         except Exception as e:
             print(f"Warning: Could not load custom fonts: {e}")
@@ -94,7 +92,9 @@ class AssetsSystem(BaseSystem):
             self._sprites["speaker_on"] = None
 
         try:
-            self._sprites["speaker_muted"] = pygame.image.load(self.SPEAKER_MUTED_SPRITE_PATH)
+            self._sprites["speaker_muted"] = pygame.image.load(
+                self.SPEAKER_MUTED_SPRITE_PATH
+            )
         except pygame.error as e:
             print(f"Warning: Could not load speaker-muted sprite: {e}")
             self._sprites["speaker_muted"] = None

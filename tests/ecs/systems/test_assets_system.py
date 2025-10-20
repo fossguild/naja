@@ -75,6 +75,7 @@ class TestAssetsSystemInitialization:
     def test_inherits_from_base_system(self, assets_system):
         """Test that AssetsSystem inherits from BaseSystem."""
         from src.ecs.systems.base_system import BaseSystem
+
         assert isinstance(assets_system, BaseSystem)
 
 
@@ -256,9 +257,10 @@ class TestSystemBehavior:
         # Should not raise any exceptions
         assets_system.update(world)
 
-    @patch('pygame.font.Font')
+    @patch("pygame.font.Font")
     def test_font_loading_fallback_on_error(self, mock_font, pygame_init):
         """Test that font loading falls back to default on error."""
+
         def font_side_effect(path, size):
             if path is not None and "GetVoIP" in path:
                 raise Exception("Font file not found")
