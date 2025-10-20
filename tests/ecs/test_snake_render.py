@@ -31,7 +31,6 @@ from src.ecs.components.palette import Palette
 from src.ecs.world import World
 from src.ecs.board import Board
 from src.ecs.systems.board_display import BoardRenderSystem
-from src.core.types.color import Color
 
 
 class MockRenderer:
