@@ -22,6 +22,7 @@
 
 import sys
 import pygame
+import random
 from old_code.entities import Snake, Apple, Obstacle
 from old_code.constants import (
     DEAD_HEAD_COLOR,
@@ -50,6 +51,44 @@ pygame.mixer.init()
 ##
 ## Settings Menu Functions
 ##
+
+
+# Helper: wrap/blit multi-line text within a max width
+def _blit_wrapped_text(
+    state: GameState,
+    assets: GameAssets,
+    text: str,
+    color,
+    font_px: int,
+    left: int,
+    top: int,
+    max_width: int,
+) -> int:
+    # Simple word-wrap using render_custom to measure width
+    words = text.split()
+    if not words:
+        return top
+    lines = []
+    line = []
+    for w in words:
+        test = " ".join(line + [w])
+        test_surf = assets.render_custom(test, color, font_px)
+        if test_surf.get_width() <= max_width or not line:
+            line.append(w)
+        else:
+            lines.append(" ".join(line))
+            line = [w]
+    if line:
+        lines.append(" ".join(line))
+
+    y = top
+    for ln in lines:
+        surf = assets.render_custom(ln, color, font_px)
+        rect = surf.get_rect()
+        rect.topleft = (left, y)
+        state.arena.blit(surf, rect)
+        y += rect.height  # advance by rendered height
+    return y
 
 
 def _draw_settings_menu(
@@ -94,10 +133,44 @@ def _draw_settings_menu(
         rect.top = padding_y + draw_i * row_h
         state.arena.blit(text, rect)
 
-    # Hint footer (smaller)
-    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
+    # Footer hint (updated to include [T] for moving apples)
+    hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors   [T] move apples"
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 50))
-    state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
+    hint_rect = hint.get_rect(center=(state.width / 2, state.height * 0.95))
+
+    # Selected field description (field['desc'] if provided; else local mapping)
+    desc_text = None
+    try:
+        f = settings.MENU_FIELDS[selected_index]
+        desc_text = f.get("desc")
+        if not desc_text:
+            # Local fallback descriptions keyed by setting key
+            descriptions = {
+                "moving_apple_mode": "When enabled, apples periodically teleport to new free cells. You can toggle it quickly with [T] during the game.",
+                "moving_apple_interval_ms": "Average time in milliseconds between relocations for each apple. Lower values relocate more frequently.",
+            }
+            desc_text = descriptions.get(f.get("key"))
+    except Exception:
+        pass
+
+    # Draw description block above the footer hint
+    if desc_text:
+        left = int(state.width * 0.10)
+        max_w = int(state.width * 0.80)
+        desc_top = int(state.height * 0.86)  # a bit above the hint
+        _blit_wrapped_text(
+            state,
+            assets,
+            desc_text,
+            GRID_COLOR,
+            int(state.width / 60),
+            left,
+            desc_top,
+            max_w,
+        )
+
+    # Finally draw the hint over everything to ensure visibility
+    state.arena.blit(hint, hint_rect)
 
     pygame.display.update()
 
@@ -185,6 +258,13 @@ def apply_settings(
     else:
         pygame.mixer.music.pause()
 
+    # Moving apples toggle (safe read; default keeps previous or False)
+    try:
+        state.moving_apples_enabled = bool(settings.get("moving_apple_mode"))
+    except Exception:
+        if not hasattr(state, "moving_apples_enabled"):
+            state.moving_apples_enabled = False
+
     # Recompute window and recreate surface/fonts if grid changed
     if new_grid_size != old_grid:
         new_width, new_height = config.calculate_window_size(new_grid_size)
@@ -222,6 +302,8 @@ def apply_settings(
             # Also ensure it doesn't overlap with existing apples
             while any(apple.x == a.x and apple.y == a.y for a in state.apples):
                 apple.ensure_valid_position(state.snake, state.obstacles)
+            # Prime relocation timers for moving-apple mode
+            _prime_moving_apple(apple, state, settings)
             state.apples.append(apple)
 
 
@@ -633,6 +715,75 @@ def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> b
 
 
 ##
+## Moving apples helpers
+##
+
+
+def _safe_get_setting_bool(
+    settings: GameSettings, key: str, default: bool = False
+) -> bool:
+    try:
+        return bool(settings.get(key))
+    except Exception:
+        return default
+
+
+def _safe_get_setting_int(settings: GameSettings, key: str, default: int) -> int:
+    try:
+        return int(settings.get(key))
+    except Exception:
+        return default
+
+
+def _prime_moving_apple(apple: Apple, state: GameState, settings: GameSettings) -> None:
+    """
+    Attach or refresh relocation timer metadata to the apple.
+    """
+    if not hasattr(apple, "_relocate_elapsed_ms"):
+        apple._relocate_elapsed_ms = 0.0
+    base_interval = _safe_get_setting_int(settings, "moving_apple_interval_ms", 1200)
+    jitter = int(base_interval * 0.25)
+    try:
+        apple._relocate_interval_ms = max(
+            200, base_interval + random.randint(-jitter, jitter)
+        )
+    except Exception:
+        apple._relocate_interval_ms = base_interval
+
+
+def update_moving_apples(state: GameState, settings: GameSettings, dt_ms: int) -> None:
+    """
+    Periodically relocate apples to new valid free cells when enabled.
+    Uses Apple.ensure_valid_position to avoid snake and obstacles, and
+    also prevents overlapping other apples.
+    """
+    if not getattr(state, "moving_apples_enabled", False):
+        return
+    if not getattr(state, "apples", None):
+        return
+
+    for apple in state.apples:
+        _prime_moving_apple(apple, state, settings)
+        apple._relocate_elapsed_ms += dt_ms
+        if apple._relocate_elapsed_ms >= getattr(apple, "_relocate_interval_ms", 1200):
+            oldx, oldy = apple.x, apple.y
+            attempts = 0
+            while attempts < 50:
+                apple.ensure_valid_position(state.snake, state.obstacles)
+                # Ensure it doesn't overlap with other apples and is not same as old
+                no_overlap = all(
+                    (apple is a) or (apple.x != a.x or apple.y != a.y)
+                    for a in state.apples
+                )
+                if no_overlap and (apple.x != oldx or apple.y != oldy):
+                    break
+                attempts += 1
+            apple._relocate_elapsed_ms = 0.0
+            # Refresh timer with new jitter
+            _prime_moving_apple(apple, state, settings)
+
+
+##
 ## Main game function
 ##
 
@@ -670,6 +821,13 @@ def main():
     ## Start flow
     ##
     start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
+
+    # Initialize moving-apple mode flag from settings (safe) and prime existing apples
+    state.moving_apples_enabled = _safe_get_setting_bool(
+        settings, "moving_apple_mode", getattr(state, "moving_apples_enabled", False)
+    )
+    for a in getattr(state, "apples", []):
+        _prime_moving_apple(a, state, settings)
 
     show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
     previous_tail_length = 0
@@ -776,9 +934,12 @@ def main():
                         "background_music", not settings.get("background_music")
                     )
                     apply_settings(state, assets, config, settings, reset_objects=False)
-
                 elif event.key == pygame.K_c:  # C : randomize snake colors
                     settings.randomize_snake_colors()
+                elif event.key == pygame.K_t:  # T : toggle moving apples at runtime
+                    state.moving_apples_enabled = not getattr(
+                        state, "moving_apples_enabled", False
+                    )
 
         ## Update the game
         if state.game_on:
@@ -872,6 +1033,10 @@ def main():
                 state.snake.move_progress = 0.0
                 state.snake.draw_x = float(state.snake.head.x)
                 state.snake.draw_y = float(state.snake.head.y)
+
+        # Move apples (if enabled) before drawing them
+        if state.game_on:
+            update_moving_apples(state, settings, dt)
 
         state.arena.fill(ARENA_COLOR)
         draw_grid(state)
@@ -989,6 +1154,8 @@ def main():
                         new_apple.x == a.x and new_apple.y == a.y for a in state.apples
                     ):
                         new_apple.ensure_valid_position(state.snake, state.obstacles)
+                    # Prime relocation timers for moving-apple mode
+                    _prime_moving_apple(new_apple, state, settings)
                     state.apples.append(new_apple)
 
                 break  # Only eat one apple per frame
