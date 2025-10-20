@@ -17,21 +17,18 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Audio queue component."""
+"""Validated component for debugging."""
 
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
-class AudioQueue:
-    """Component for managing audio playback queue.
+class Validated:
+    """Component for tracking validation state of entities.
     
     Contains:
-    - sfx_queue: List of sound effects to play
-    - music_enabled: Whether background music is enabled
+    - last_check_time: Timestamp of last validation check
     
-    Used by: AudioSystem
+    Used by: ValidationSystem for debugging and integrity checks
     """
-    sfx_queue: List[str]
-    music_enabled: bool
+    last_check_time: float

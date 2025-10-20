@@ -17,7 +17,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Obstacle component."""
+"""Obstacle components."""
 
 from dataclasses import dataclass
 
@@ -29,3 +29,17 @@ class ObstacleTag:
     Tag-only component with no data fields.
     Used by: Obstacle
     """
+
+
+@dataclass
+class Obstacle:
+    """Component for obstacle entities with position.
+    
+    Contains:
+    - x: X coordinate of the obstacle
+    - y: Y coordinate of the obstacle
+    
+    Used by: ObstacleGenerationSystem, CollisionSystem
+    """
+    x: int
+    y: int
