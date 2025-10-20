@@ -1,6 +1,7 @@
 # ECS Migration Status
 
 ## Migration Issues Checklist (Implementation Order)
+See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 
 - ✅ Issue #200: Create ECS Infrastructure (Step 1)
 - ❌ Issue #201: Migrate Core Game Loop (Step 2)
