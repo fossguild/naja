@@ -1,0 +1,90 @@
+# ECS Issues ↔ Steps Map (English version)
+
+This file maps each **Issue** from the parallel plan to its corresponding **Step** in the detailed implementation plan, with suggested owners, dependencies, and sync points. It also provides the inverse mapping: **Step to Issue**.
+
+---
+
+## Issue → Step Map
+
+| Issue | Summary                     | Detailed Step | Suggested Owner | Dependencies        | Notes                                                      |
+| ----- | --------------------------- | ------------- | --------------- | ------------------- | ---------------------------------------------------------- |
+| 200   | Create ECS infrastructure   | Step 1        | Person 1        | None                | entity registry, component store, query API, test cases    |
+| 201   | Migrate core game loop      | Step 2        | Person 1        | Step 1              | main loop in `core/app.py`, clock, bootstrap in `kobra.py` |
+| 202   | Create Pygame I/O adapter   | Step 3        | Person 1        | Step 1              | screen abstraction, event translation, drawing primitives  |
+| 203   | GameSystem base class       | Step 5        | Person 1        | Step 1, 2, 3        | abstract base for systems, lifecycle hooks                 |
+| 204   | Define components           | Step 4        | All             | Step 1, 5           | grouped by visual, UI, gameplay, support                   |
+| 205   | RenderSystem (basic)        | Step 6        | Person 2        | Step 4, 5           | render grid, obstacles, apples (read-only)                 |
+| 206   | RenderSystem (snake)        | Step 7        | Person 2        | Step 6              | draw snake with interpolation and wrap                     |
+| 207   | InterpolationSystem         | Step 19       | Person 2        | Step 7              | calculate alpha for smooth visuals                         |
+| 208   | ResizeSystem                | Step 21       | Person 2        | Step 3, 4           | resize window, recalculate cell sizes                      |
+| 209   | UISystem (start menu)       | Step 8        | Person 3        | Step 6              | draw menu screen                                           |
+| 210   | UISystem (dialogs/settings) | Step 9        | Person 3        | Step 6              | reset, pause, game over, settings panels                   |
+| 211   | Command protocol            | Step 10       | Person 3        | Step 8, 9           | typed actions (e.g. pause, quit, restart)                  |
+| 212   | Settings application        | Step 11       | Person 3        | Step 10             | apply new settings, recreate grid/scene                    |
+| 213   | InputSystem                 | Step 12       | Person 3        | Step 10             | handle keybinds, emit commands                             |
+| 214   | MovementSystem              | Step 13       | Person 4        | Step 4, 5           | tick-based advance, segment follow, wrap, pause            |
+| 215   | CollisionSystem             | Step 14       | Person 4        | Step 4, 5           | detect food, wall, self, electric shock                    |
+| 216   | SpawnSystem                 | Step 15       | Person 4        | Step 4, 5           | respawn apples, check for trap, random cell                |
+| 217   | ScoringSystem               | Step 17       | Person 4        | Step 14             | update score and high score                                |
+| 218   | ObstacleGenerationSystem    | Step 16       | Person 5        | Step 4, 5           | construct valid obstacle pattern                           |
+| 219   | AudioSystem                 | Step 18       | Person 5        | Step 3, 4, 5        | background music, SFX queue, mute toggle                   |
+| 220   | Wire gameplay scene         | Step 23       | Person 1        | Step 6–22           | order systems, hook into scene startup                     |
+| 222   | ValidationSystem            | Step 20       | Person 5        | Step 4, 5           | debugging checks, warnings                                 |
+| 223   | Create prefabs              | Step 22       | Person 5        | Steps 13–18, 20, 21 | factory for snake, apple, obstacles                        |
+| 224   | Add system tests            | Step 25       | Person 5        | Steps 13–19         | test movement, collisions, events                          |
+| 225   | Remove old code             | Step 24       | All             | Step 23             | remove `entities.py`, `state.py`, old UI code              |
+| 226   | Update documentation        | Step 26       | All             | Steps 23, 24        | architecture overview, contributing guide                  |
+| 227   | Final verification          | Step 27       | All             | Steps 24, 25, 26    | final QA gate, visual and performance checks               |
+
+---
+
+## Step → Issue Map
+
+| Step | Description         | Issues | Owner    |
+| ---- | ------------------- | ------ | -------- |
+| 1    | ECS infrastructure  | 200    | Person 1 |
+| 2    | Core game loop      | 201    | Person 1 |
+| 3    | Pygame adapter      | 202    | Person 1 |
+| 4    | Components          | 204    | All      |
+| 5    | GameSystem base     | 203    | Person 1 |
+| 6    | RenderSystem part 1 | 205    | Person 2 |
+| 7    | RenderSystem part 2 | 206    | Person 2 |
+| 8    | UISystem part 1     | 209    | Person 3 |
+| 9    | UISystem part 2     | 210    | Person 3 |
+| 10   | Command protocol    | 211    | Person 3 |
+| 11   | Apply settings      | 212    | Person 3 |
+| 12   | InputSystem         | 213    | Person 3 |
+| 13   | MovementSystem      | 214    | Person 4 |
+| 14   | CollisionSystem     | 215    | Person 4 |
+| 15   | SpawnSystem         | 216    | Person 4 |
+| 16   | ObstacleSystem      | 218    | Person 5 |
+| 17   | ScoringSystem       | 217    | Person 4 |
+| 18   | AudioSystem         | 219    | Person 5 |
+| 19   | InterpolationSystem | 207    | Person 2 |
+| 20   | ValidationSystem    | 222    | Person 5 |
+| 21   | ResizeSystem        | 208    | Person 2 |
+| 22   | Prefabs             | 223    | Person 5 |
+| 23   | Gameplay scene      | 220    | Person 1 |
+| 24   | Code cleanup        | 225    | All      |
+| 25   | System tests        | 224    | Person 5 |
+| 26   | Documentation       | 226    | All      |
+| 27   | Final review        | 227    | All      |
+
+---
+
+## Sync Points
+
+* **Sync Point 1:** Complete Issues 200–203 before allowing parallel work
+* **Sync Point 2:** All members finish their parts of Issue 204 (components)
+* **Sync Point 3:** Before wiring scene (Issue 220), ensure all systems are done
+* **Sync Point 4:** After code cleanup (Issue 225), finish docs and review
+
+---
+
+## Usage
+
+* When opening a new issue, include the mapped step and domain label
+* During code review, use this table to verify step-level completion criteria
+* Keep ADR updated if any sequence change is agreed
+
+---
