@@ -26,6 +26,7 @@ from src.ecs.components.position import Position
 from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
 from src.ecs.components.interpolation import Interpolation
+from src.ecs.components.renderable import Renderable
 
 
 @dataclass
@@ -37,12 +38,14 @@ class Snake(Entity):
     - velocity: movement direction and speed
     - body: tail segments as Position list
     - interpolation: smooth rendering data
+    - renderable: visual appearance
     """
 
     position: Position
     velocity: Velocity
     body: SnakeBody
     interpolation: Interpolation
+    renderable: Renderable
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.
