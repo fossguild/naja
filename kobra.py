@@ -607,7 +607,9 @@ def draw_music_indicator(
 def draw_pause_screen(state: GameState, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
-    overlay = pygame_adapter.create_surface((state.width, state.height), pygame.SRCALPHA)
+    overlay = pygame_adapter.create_surface(
+        (state.width, state.height), pygame.SRCALPHA
+    )
     overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
     state.arena.blit(overlay, (0, 0))
 
