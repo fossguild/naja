@@ -18,6 +18,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Movement system."""
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -28,6 +29,7 @@ from src.ecs.entities.entity import EntityType
 from src.ecs.components.position import Position
 from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
+
 
 class MovementSystem(BaseSystem):
     """Update entity positions based on velocity and grid rules.
