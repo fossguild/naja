@@ -160,6 +160,7 @@ class BoardRenderSystem(BaseSystem):
         1. Clear the screen
         2. Draw the grid
         3. Draw all board tiles
+        4. Draw ECS entities with components (if available)
 
         Args:
             world: Game world to render
@@ -167,6 +168,7 @@ class BoardRenderSystem(BaseSystem):
         self.clear_screen()
         self.draw_grid(world)
         self.draw_board(world)
+        self.draw_ecs_entities(world)
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
