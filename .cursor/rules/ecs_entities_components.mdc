@@ -65,7 +65,7 @@ Used by: Snake
 ### SnakeBody Component
 ```
 Snake segments and growth queue
-Fields: 
+Fields:
   - segments: list[(x, y)] - body segment positions
   - length: int - current length
   - growth_queue: int - pending growth from eating apples
@@ -76,7 +76,7 @@ Used by: Snake
 ### Collider Component
 ```
 Collision detection boundaries
-Fields: 
+Fields:
   - shape (enum: RECT, CIRCLE, SEGMENTS)
   - bounds: shape-specific data
   - layer (enum: SNAKE, OBSTACLE, WALL, APPLE)
@@ -97,7 +97,7 @@ Used by: Snake, Apple, Obstacle, Wall, HUD
 ### Edible Component
 ```
 Can be eaten by snake
-Fields: 
+Fields:
   - points (int) - score value
   - growth (int) - how many segments to add
 Used by: Apple
@@ -113,7 +113,7 @@ Used by: Obstacle
 ### WallTag Component
 ```
 Marker for wall entities
-Fields: 
+Fields:
   - electric (bool) - causes death on collision
 Used by: Wall
 ```
@@ -121,7 +121,7 @@ Used by: Wall
 ### Score Component
 ```
 Current game score
-Fields: 
+Fields:
   - value (int)
   - high_score (int)
 Used by: Game

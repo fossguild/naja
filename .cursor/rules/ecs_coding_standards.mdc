@@ -46,7 +46,7 @@ class Position:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-    
+
     def move(self, dx, dy):  # NO METHODS
         self.x += dx
         self.y += dy
@@ -67,16 +67,16 @@ Single responsibility
 ```
 class MovementSystem(GameSystem):
     """Updates entity positions based on velocity.
-    
+
     Reads: Position, Velocity, Grid
     Writes: Position
     Queries: entities with Position and Velocity
     """
-    
+
     def update(self, dt_ms: float) -> None:
         if self.state.paused:
             return
-            
+
         for entity in self.get_world().query(Position, Velocity):
             # update logic
 ```
@@ -128,11 +128,11 @@ Example:
 ```
 def create_snake(world: World, start_pos: tuple[int, int]) -> int:
     """Create snake entity with starting position.
-    
+
     Args:
         world: ECS world registry
         start_pos: (x, y) grid position
-        
+
     Returns:
         Entity ID of created snake
     """
@@ -178,14 +178,14 @@ from src.game.constants import CELL_SIZE
 ```
 def spawn_apple(self, position: tuple[int, int]) -> int:
     x, y = position
-    
+
     # validate input
     if not (0 <= x < self.config.grid_cols):
         raise ValueError(f"x={x} out of grid bounds")
-    
+
     # assert invariant
     assert self._count_apples() == 0, "apple already exists"
-    
+
     # create entity
     entity_id = self._create_apple_entity(x, y)
     return entity_id
@@ -207,10 +207,10 @@ Lists main classes/functions.
 ```
 class MovementSystem(GameSystem):
     """Updates entity positions based on velocity.
-    
+
     This system runs on every tick and moves entities
     with Position and Velocity components.
-    
+
     Reads: Position, Velocity, Grid
     Writes: Position
     """
@@ -220,11 +220,11 @@ class MovementSystem(GameSystem):
 ```
 def create_snake(world: World, start_pos: tuple[int, int]) -> int:
     """Create snake entity with starting position.
-    
+
     Args:
         world: ECS world registry
         start_pos: (x, y) grid position
-        
+
     Returns:
         Entity ID of created snake
     """
@@ -274,11 +274,11 @@ def test_movement_system_moves_snake_forward():
     entity_id = world.create_entity()
     world.add_component(entity_id, Position(5, 5))
     world.add_component(entity_id, Velocity(1, 0))
-    
+
     # act: run system
     system = MovementSystem(mock_context)
     system.update(16.0)
-    
+
     # assert: verify result
     pos = world.get_component(entity_id, Position)
     assert pos.x == 6
@@ -366,7 +366,7 @@ class UISystem:
 class UISystem:
     def update(self, dt_ms):
         world.set_component(hud_entity, UiState(show_menu=True))
-        
+
 class RenderSystem:
     def update(self, dt_ms):
         ui_state = world.get_component(hud_entity, UiState)
@@ -389,7 +389,7 @@ class GameSystem:
 class InputSystem:
     def update(self, dt_ms):
         self._handle_input()
-        
+
 class MovementSystem:
     def update(self, dt_ms):
         self._update_movement()

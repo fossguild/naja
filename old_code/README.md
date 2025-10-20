@@ -16,4 +16,3 @@ This directory contains the original functional code before the ECS architecture
 This code is kept for reference during the ECS migration. Once the migration is complete and all functionality has been verified, this directory can be removed.
 
 **Do not use this code in the new ECS architecture!**
-

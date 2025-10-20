@@ -82,7 +82,7 @@ This document outlines the step-by-step plan to migrate Naja from its current mo
 ---
 
 ### Step 5: Implement GameSystem Base Class
-**Goal**: Create abstract base with shared context 
+**Goal**: Create abstract base with shared context
 
 **Tasks**:
 - Implement `GameSystem` abstract class
@@ -95,7 +95,7 @@ This document outlines the step-by-step plan to migrate Naja from its current mo
 - GameSystem class is abstract (cannot instantiate)
 - Child classes can access shared context via properties
 - Game still uses old systems
-  
+
 ---
 
 ### Step 6: Migrate RenderSystem (Part 1)
@@ -239,7 +239,7 @@ This document outlines the step-by-step plan to migrate Naja from its current mo
 - Body segments follow head correctly
 - Movement stops when paused
 - No visual or behavioral differences
-  
+
 ---
 
 ### Step 14: Migrate CollisionSystem
@@ -343,7 +343,7 @@ This document outlines the step-by-step plan to migrate Naja from its current mo
 - Edge wrapping looks smooth
 - Interpolation doesn't affect game logic
 - Visual smoothness unchanged
-  
+
 ---
 
 ### Step 20: Migrate ValidationSystem
