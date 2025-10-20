@@ -447,6 +447,10 @@ class GameApp:
         for apple in self.state.apples:
             apple.update(self.state.arena)
 
+        # TODO(Issue #228): This is OLD snake rendering code that will be replaced by ECS
+        # The new ECS rendering is implemented in BoardRenderSystem but not yet integrated.
+        # This code MUST stay active until Issue #220 (Scene Wiring) is complete.
+        # DO NOT comment out or remove until the game is fully migrated to ECS!
         electric_walls = self.settings.get("electric_walls")
         snake_colors = self.settings.get_snake_colors()
         current_head_color = snake_colors["head"]
