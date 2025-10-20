@@ -8,10 +8,10 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ✅ Issue #202: Create Pygame IO Adapter (Step 3)
 - ❌ Issue #204: Define All Components (Step 4)
 - ✅ Issue #203: Implement GameSystem Base Class (Step 5)
-- ❌ Issue #205: RenderSystem (basic) (Step 6)
-- ❌ Issue #206: RenderSystem (snake) (Step 7)
-- ❌ Issue #209: UISystem (start menu) (Step 8)
-- ❌ Issue #210: UISystem (dialogs/settings) (Step 9)
+- ✅ Issue #205: RenderSystem (basic) (Step 6) - Merged from feat/206/render-system
+- ✅ Issue #206: RenderSystem (snake) (Step 7) - Merged from feat/206/render-system
+- ✅ Issue #209: UISystem (start menu) (Step 8) - Merged from feat/246/game-board-static-ui
+- ✅ Issue #210: UISystem (dialogs/settings) (Step 9) - Merged from feat/246/game-board-static-ui
 - ❌ Issue #211: Command protocol (Step 10)
 - ❌ Issue #212: Settings application (Step 11)
 - ❌ Issue #213: InputSystem (Step 12)
@@ -20,7 +20,7 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ❌ Issue #216: SpawnSystem (Step 15)
 - ❌ Issue #218: ObstacleGenerationSystem (Step 16)
 - ❌ Issue #217: ScoringSystem (Step 17)
-- ❌ Issue #219: AudioSystem (Step 18)
+- ✅ Issue #219: AudioSystem (Step 18) - Merged from feat/239/assetsSystem
 - ❌ Issue #207: InterpolationSystem (Step 19)
 - ❌ Issue #222: ValidationSystem (Step 20)
 - ❌ Issue #208: ResizeSystem (Step 21)
@@ -30,4 +30,14 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ❌ Issue #224: Add system tests (Step 25)
 - ❌ Issue #226: Update documentation (Step 26)
 - ❌ Issue #227: Final verification (Step 27)
+
+## Recent Merges
+
+The following issues were completed through merges from teammate branches:
+
+- **feat/239/assetsSystem** → Issue #219: AudioSystem (AssetsSystem)
+- **feat/206/render-system** → Issues #205 & #206: RenderSystem (basic + snake)
+- **feat/246/game-board-static-ui** → Issues #209 & #210: UISystem (start menu + dialogs/settings)
+
+These merges were completed on the `feat/205/define-visual-components` branch to avoid future conflicts before starting Issue #204.
 
