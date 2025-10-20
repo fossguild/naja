@@ -45,6 +45,10 @@ from old_code.settings import GameSettings
 
 # Import the new core game loop
 from src.core.app import GameApp
+from src.core.io.pygame_adapter import PygameIOAdapter
+
+# Global pygame adapter instance
+pygame_adapter = PygameIOAdapter()
 
 
 ##
@@ -99,7 +103,7 @@ def _draw_settings_menu(
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 50))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
-    pygame.display.update()
+    pygame_adapter.update_display()
 
 
 def run_settings_menu(
@@ -117,10 +121,10 @@ def run_settings_menu(
     while True:
         _draw_settings_menu(state, assets, settings, selected)
 
-        for event in pygame.event.get():
+        for event in pygame_adapter.get_events():
             # Guard clauses keep nesting shallow.
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame_adapter.quit()
                 sys.exit()
 
             if event.type != pygame.KEYDOWN:
@@ -188,8 +192,8 @@ def apply_settings(
     # Recompute window and recreate surface/fonts if grid changed
     if new_grid_size != old_grid:
         new_width, new_height = config.calculate_window_size(new_grid_size)
-        state.arena = pygame.display.set_mode((new_width, new_height))
-        pygame.display.set_caption(WINDOW_TITLE)
+        state.arena = pygame_adapter.set_mode((new_width, new_height))
+        pygame_adapter.set_caption(WINDOW_TITLE)
 
         # Update state's dimensions to match new grid size
         state.update_dimensions(new_width, new_height, new_grid_size)
@@ -309,15 +313,15 @@ def _draw_center_message(
         sub_surf, sub_surf.get_rect(center=(state.width / 2, state.height / 1.8))
     )
 
-    pygame.display.update()
+    pygame_adapter.update_display()
 
 
 def _wait_for_keys(allowed_keys: set[int]) -> int:
     """Block until a KEYDOWN for one of allowed_keys (or quit). Return the key."""
     while True:
-        event = pygame.event.wait()
+        event = pygame_adapter.wait_for_event()
         if event.type == pygame.QUIT:
-            pygame.quit()
+            pygame_adapter.quit()
             sys.exit()
         if event.type == pygame.KEYDOWN and (
             not allowed_keys or event.key in allowed_keys
@@ -385,12 +389,12 @@ def _show_reset_warning_dialog(state: GameState, assets: GameAssets) -> str:
             hint, hint.get_rect(center=(state.width / 2, state.height * 0.92))
         )
 
-        pygame.display.update()
+        pygame_adapter.update_display()
 
         # Input handling
-        for event in pygame.event.get():
+        for event in pygame_adapter.get_events():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame_adapter.quit()
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
@@ -428,8 +432,8 @@ def game_over_handler(
         GameAssets.play_death_music()
 
     # Tell the bad news
-    pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
-    pygame.display.update()
+    pygame_adapter.draw_rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
+    pygame_adapter.update_display()
     # Game-over prompt: only Space/Enter restart; Q quits.
     _draw_center_message(
         state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
@@ -441,7 +445,7 @@ def game_over_handler(
         GameAssets.play_background_music()
 
     if key == pygame.K_q:
-        pygame.quit()
+        pygame_adapter.quit()
         sys.exit()
 
 
@@ -485,12 +489,12 @@ def start_menu(
             )
             state.arena.blit(text, rect)
 
-        pygame.display.update()
+        pygame_adapter.update_display()
 
         # Input handling
-        for event in pygame.event.get():
+        for event in pygame_adapter.get_events():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame_adapter.quit()
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
@@ -511,7 +515,7 @@ def start_menu(
                     run_settings_menu(state, assets, settings)
                     apply_settings(state, assets, config, settings, reset_objects=False)
                 elif key == pygame.K_ESCAPE:
-                    pygame.quit()
+                    pygame_adapter.quit()
                     sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # Simple click detection
@@ -546,8 +550,8 @@ def draw_grid(state: GameState) -> None:
     """
     for x in range(0, state.width, state.grid_size):
         for y in range(0, state.height, state.grid_size):
-            rect = pygame.Rect(x, y, state.grid_size, state.grid_size)
-            pygame.draw.rect(state.arena, GRID_COLOR, rect, 1)
+            rect = pygame_adapter.create_rect(x, y, state.grid_size, state.grid_size)
+            pygame_adapter.draw_rect(state.arena, GRID_COLOR, rect, 1)
 
 
 ##
@@ -603,7 +607,7 @@ def draw_music_indicator(
 def draw_pause_screen(state: GameState, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
-    overlay = pygame.Surface((state.width, state.height), pygame.SRCALPHA)
+    overlay = pygame_adapter.create_surface((state.width, state.height), pygame.SRCALPHA)
     overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
     state.arena.blit(overlay, (0, 0))
 
