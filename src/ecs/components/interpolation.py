@@ -20,21 +20,16 @@
 """Interpolation component."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass
 class Interpolation:
     """Smooth rendering data between ticks.
 
-    Stores previous and target positions for smooth animation.
-    Alpha is the interpolation factor [0.0, 1.0].
+    Stores interpolation factor and wrapping information for smooth animation.
     Used by: Snake (for smooth movement)
     """
 
-    prev_x: int = 0
-    prev_y: int = 0
-    target_x: int = 0
-    target_y: int = 0
-    draw_x: float = 0.0
-    draw_y: float = 0.0
-    move_progress: float = 0.0
+    alpha: float = 0.0  # interpolation factor [0.0, 1.0]
+    wrapped_axis: Literal["none", "x", "y", "both"] = "none"

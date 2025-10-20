@@ -27,8 +27,11 @@ class Position:
     """Grid position of an entity.
 
     Stores the current position in pixel coordinates (aligned to grid).
+    prev_x and prev_y store the previous position for interpolation.
     Used by: Snake, Apple, Obstacle
     """
 
     x: int
     y: int
+    prev_x: int = 0
+    prev_y: int = 0

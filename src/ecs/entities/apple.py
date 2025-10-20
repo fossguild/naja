@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from src.ecs.entities.entity import Entity, EntityType
 from src.ecs.components.position import Position
 from src.ecs.components.edible import Edible
+from src.ecs.components.renderable import Renderable
 
 
 @dataclass
@@ -33,10 +34,12 @@ class Apple(Entity):
     Defines the components that make up an apple entity:
     - position: location in grid
     - edible: points and growth properties
+    - renderable: visual appearance
     """
 
     position: Position
     edible: Edible
+    renderable: Renderable
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.

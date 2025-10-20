@@ -18,3 +18,19 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Grid component."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Grid:
+    """Game grid configuration.
+
+    Defines the grid dimensions, cell size, and offset for rendering.
+    Used by: Game world, rendering systems
+    """
+
+    width: int  # number of cells horizontally
+    height: int  # number of cells vertically
+    cell_size: int  # pixel size of each cell
+    offset: tuple[int, int] = (0, 0)  # (x, y) offset for grid positioning
