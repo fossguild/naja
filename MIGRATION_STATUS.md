@@ -23,7 +23,7 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ✅ Issue #215: InputSystem (Step 12) 
 - ✅ Issue #217: MovementSystem (Step 13) 
 - ✅ Issue #218: CollisionSystem (Step 14) 
-- ❌ Issue #219: SpawnSystem (Step 15) 
+- ✅ Issue #219: SpawnSystem (Step 15) 
 - ❌ Issue #222: ObstacleGenerationSystem (Step 16) 
 - ❌ Issue #220: ScoringSystem (Step 17) 
 - ❌ Issue #223: AudioSystem (Step 18) 
