@@ -48,6 +48,7 @@ def mock_callbacks():
     """Create mock callback functions."""
     return {
         "direction": Mock(),
+        "get_current_direction": Mock(return_value=(0, 0)),
         "quit": Mock(),
         "pause": Mock(),
         "menu": Mock(),
@@ -61,6 +62,7 @@ def test_input_system_creation(mock_pygame_adapter, mock_callbacks):
     system = InputSystem(
         pygame_adapter=mock_pygame_adapter,
         direction_callback=mock_callbacks["direction"],
+        get_current_direction_callback=mock_callbacks["get_current_direction"],
         quit_callback=mock_callbacks["quit"],
         pause_callback=mock_callbacks["pause"],
         menu_callback=mock_callbacks["menu"],
@@ -79,6 +81,7 @@ def test_input_system_handles_no_events(world, mock_pygame_adapter, mock_callbac
     system = InputSystem(
         pygame_adapter=mock_pygame_adapter,
         direction_callback=mock_callbacks["direction"],
+        get_current_direction_callback=mock_callbacks["get_current_direction"],
     )
 
     system.update(world)
@@ -278,3 +281,71 @@ def test_input_system_with_no_callbacks(world, mock_pygame_adapter):
 
     # should not raise any errors
     system.update(world)
+
+
+def test_input_system_prevents_180_degree_turns(
+    world, mock_pygame_adapter, mock_callbacks
+):
+    """Test that InputSystem prevents 180-degree turns like the old code."""
+    # test case: snake moving right (dx=1), player presses left (dx=-1)
+    mock_callbacks["get_current_direction"].return_value = (1, 0)  # moving right
+
+    keydown_event = Mock()
+    keydown_event.type = pygame.KEYDOWN
+    keydown_event.key = pygame.K_LEFT  # would be 180° turn
+    mock_pygame_adapter.get_events.return_value = [keydown_event]
+
+    system = InputSystem(
+        pygame_adapter=mock_pygame_adapter,
+        direction_callback=mock_callbacks["direction"],
+        get_current_direction_callback=mock_callbacks["get_current_direction"],
+    )
+
+    system.update(world)
+
+    # direction callback should NOT be called (180° turn prevented)
+    mock_callbacks["direction"].assert_not_called()
+
+
+def test_input_system_allows_valid_turns(world, mock_pygame_adapter, mock_callbacks):
+    """Test that InputSystem allows valid direction changes."""
+    # test case: snake moving right (dx=1), player presses up (dy=-1)
+    mock_callbacks["get_current_direction"].return_value = (1, 0)  # moving right
+
+    keydown_event = Mock()
+    keydown_event.type = pygame.KEYDOWN
+    keydown_event.key = pygame.K_UP  # valid turn
+    mock_pygame_adapter.get_events.return_value = [keydown_event]
+
+    system = InputSystem(
+        pygame_adapter=mock_pygame_adapter,
+        direction_callback=mock_callbacks["direction"],
+        get_current_direction_callback=mock_callbacks["get_current_direction"],
+    )
+
+    system.update(world)
+
+    # direction callback SHOULD be called (valid turn)
+    mock_callbacks["direction"].assert_called_once_with(0, -1)
+
+
+def test_input_system_allows_stopping(world, mock_pygame_adapter, mock_callbacks):
+    """Test that InputSystem allows stopping (opposite direction when stopped)."""
+    # test case: snake stopped (dx=0, dy=0), player presses any direction
+    mock_callbacks["get_current_direction"].return_value = (0, 0)  # stopped
+
+    keydown_event = Mock()
+    keydown_event.type = pygame.KEYDOWN
+    keydown_event.key = pygame.K_RIGHT
+    mock_pygame_adapter.get_events.return_value = [keydown_event]
+
+    system = InputSystem(
+        pygame_adapter=mock_pygame_adapter,
+        direction_callback=mock_callbacks["direction"],
+        get_current_direction_callback=mock_callbacks["get_current_direction"],
+    )
+
+    system.update(world)
+
+    # direction callback SHOULD be called (can start moving)
+    mock_callbacks["direction"].assert_called_once_with(1, 0)
