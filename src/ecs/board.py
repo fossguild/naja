@@ -66,19 +66,28 @@ class Board:
     Attributes:
         width: Board width in tiles
         height: Board height in tiles
+        cell_size: Size of each cell in pixels
         is_square: True if width equals height
     """
 
     _grid: list[list[Tile]]
     _width: int
     _height: int
+    _cell_size: int
 
-    def __init__(self, width: int, height: int, default_tile: Tile = Tile.EMPTY):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        cell_size: int = 30,
+        default_tile: Tile = Tile.EMPTY,
+    ):
         """Initialize board with given dimensions.
 
         Args:
             width: Board width in tiles (must be > 0)
             height: Board height in tiles (must be > 0)
+            cell_size: Size of each cell in pixels (default: 30)
             default_tile: Initial tile type for all cells
 
         Raises:
@@ -91,6 +100,7 @@ class Board:
 
         self._width = width
         self._height = height
+        self._cell_size = cell_size
         # initialize 2D grid with default tiles (row-major order)
         self._grid = [[default_tile for _ in range(width)] for _ in range(height)]
 
@@ -111,6 +121,15 @@ class Board:
             int: Height in tiles
         """
         return self._height
+
+    @property
+    def cell_size(self) -> int:
+        """Get cell size in pixels.
+
+        Returns:
+            int: Size of each cell in pixels
+        """
+        return self._cell_size
 
     @property
     def is_square(self) -> bool:
@@ -243,4 +262,4 @@ class Board:
         Returns:
             str: Board representation
         """
-        return f"Board(width={self._width}, height={self._height}, is_square={self.is_square})"
+        return f"Board(width={self._width}, height={self._height}, cell_size={self._cell_size}, is_square={self.is_square})"
