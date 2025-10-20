@@ -17,20 +17,8 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Components module."""
+"""Rendering utilities module."""
 
-from src.ecs.components.position import Position
-from src.ecs.components.velocity import Velocity
-from src.ecs.components.snake_body import SnakeBody
-from src.ecs.components.edible import Edible
-from src.ecs.components.obstacle import ObstacleTag
-from src.ecs.components.interpolation import Interpolation
+from src.core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
 
-__all__ = [
-    "Position",
-    "Velocity",
-    "SnakeBody",
-    "Edible",
-    "ObstacleTag",
-    "Interpolation",
-]
+__all__ = ["PygameSurfaceRenderer"]

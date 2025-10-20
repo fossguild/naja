@@ -4,7 +4,7 @@
 #
 #   This file is part of KobraPy.
 #
-#   KobraPy is free software: you can redistribute it and/or modify
+#   Kobrapy is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
@@ -19,6 +19,13 @@
 
 # pylint: disable=no-member
 # Pygame uses dynamic imports that pylint doesn't understand
+
+"""Bootstrap entry point for Naja game.
+
+This file serves as a thin bootstrap layer that initializes the core game loop
+and delegates to the new ECS architecture while maintaining compatibility with
+the old code during migration.
+"""
 
 import sys
 import pygame
@@ -36,15 +43,12 @@ from old_code.assets import GameAssets
 from old_code.config import GameConfig
 from old_code.settings import GameSettings
 
-##
-## Game initialization
-##
+# Import the new core game loop
+from src.core.app import GameApp
+from src.core.io.pygame_adapter import PygameIOAdapter
 
-# Initialize Pygame to access display info.
-pygame.init()
-
-# Initialize the audio mixer
-pygame.mixer.init()
+# Global pygame adapter instance
+pygame_adapter = PygameIOAdapter()
 
 
 ##
@@ -99,7 +103,7 @@ def _draw_settings_menu(
     hint = assets.render_custom(hint_text, GRID_COLOR, int(state.width / 50))
     state.arena.blit(hint, hint.get_rect(center=(state.width / 2, state.height * 0.95)))
 
-    pygame.display.update()
+    pygame_adapter.update_display()
 
 
 def run_settings_menu(
@@ -117,10 +121,10 @@ def run_settings_menu(
     while True:
         _draw_settings_menu(state, assets, settings, selected)
 
-        for event in pygame.event.get():
+        for event in pygame_adapter.get_events():
             # Guard clauses keep nesting shallow.
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame_adapter.quit()
                 sys.exit()
 
             if event.type != pygame.KEYDOWN:
@@ -188,8 +192,8 @@ def apply_settings(
     # Recompute window and recreate surface/fonts if grid changed
     if new_grid_size != old_grid:
         new_width, new_height = config.calculate_window_size(new_grid_size)
-        state.arena = pygame.display.set_mode((new_width, new_height))
-        pygame.display.set_caption(WINDOW_TITLE)
+        state.arena = pygame_adapter.set_mode((new_width, new_height))
+        pygame_adapter.set_caption(WINDOW_TITLE)
 
         # Update state's dimensions to match new grid size
         state.update_dimensions(new_width, new_height, new_grid_size)
@@ -309,15 +313,15 @@ def _draw_center_message(
         sub_surf, sub_surf.get_rect(center=(state.width / 2, state.height / 1.8))
     )
 
-    pygame.display.update()
+    pygame_adapter.update_display()
 
 
 def _wait_for_keys(allowed_keys: set[int]) -> int:
     """Block until a KEYDOWN for one of allowed_keys (or quit). Return the key."""
     while True:
-        event = pygame.event.wait()
+        event = pygame_adapter.wait_for_event()
         if event.type == pygame.QUIT:
-            pygame.quit()
+            pygame_adapter.quit()
             sys.exit()
         if event.type == pygame.KEYDOWN and (
             not allowed_keys or event.key in allowed_keys
@@ -385,12 +389,12 @@ def _show_reset_warning_dialog(state: GameState, assets: GameAssets) -> str:
             hint, hint.get_rect(center=(state.width / 2, state.height * 0.92))
         )
 
-        pygame.display.update()
+        pygame_adapter.update_display()
 
         # Input handling
-        for event in pygame.event.get():
+        for event in pygame_adapter.get_events():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame_adapter.quit()
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
@@ -428,8 +432,8 @@ def game_over_handler(
         GameAssets.play_death_music()
 
     # Tell the bad news
-    pygame.draw.rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
-    pygame.display.update()
+    pygame_adapter.draw_rect(state.arena, DEAD_HEAD_COLOR, state.snake.head)
+    pygame_adapter.update_display()
     # Game-over prompt: only Space/Enter restart; Q quits.
     _draw_center_message(
         state, assets, "Game Over", "Press Enter/Space to restart  •  Q to exit"
@@ -441,7 +445,7 @@ def game_over_handler(
         GameAssets.play_background_music()
 
     if key == pygame.K_q:
-        pygame.quit()
+        pygame_adapter.quit()
         sys.exit()
 
 
@@ -485,12 +489,12 @@ def start_menu(
             )
             state.arena.blit(text, rect)
 
-        pygame.display.update()
+        pygame_adapter.update_display()
 
         # Input handling
-        for event in pygame.event.get():
+        for event in pygame_adapter.get_events():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame_adapter.quit()
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
@@ -511,7 +515,7 @@ def start_menu(
                     run_settings_menu(state, assets, settings)
                     apply_settings(state, assets, config, settings, reset_objects=False)
                 elif key == pygame.K_ESCAPE:
-                    pygame.quit()
+                    pygame_adapter.quit()
                     sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # Simple click detection
@@ -546,8 +550,8 @@ def draw_grid(state: GameState) -> None:
     """
     for x in range(0, state.width, state.grid_size):
         for y in range(0, state.height, state.grid_size):
-            rect = pygame.Rect(x, y, state.grid_size, state.grid_size)
-            pygame.draw.rect(state.arena, GRID_COLOR, rect, 1)
+            rect = pygame_adapter.create_rect(x, y, state.grid_size, state.grid_size)
+            pygame_adapter.draw_rect(state.arena, GRID_COLOR, rect, 1)
 
 
 ##
@@ -603,7 +607,9 @@ def draw_music_indicator(
 def draw_pause_screen(state: GameState, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
-    overlay = pygame.Surface((state.width, state.height), pygame.SRCALPHA)
+    overlay = pygame_adapter.create_surface(
+        (state.width, state.height), pygame.SRCALPHA
+    )
     overlay.fill((32, 32, 32, 180))  # Cinza escuro, semi-transparente
     state.arena.blit(overlay, (0, 0))
 
@@ -638,375 +644,18 @@ def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> b
 
 
 def main():
-    """Main game entry point with proper initialization."""
-    # Initialize game configuration
-    config = GameConfig()
+    """Main game entry point with proper initialization.
 
-    # Initialize game settings
-    settings = GameSettings(config.initial_width, config.initial_grid_size)
+    This function now serves as a thin bootstrap layer that delegates
+    to the new ECS-based core game loop while maintaining compatibility
+    with the old code during migration.
+    """
+    # Create and initialize the game application
+    app = GameApp()
+    app.initialize()
 
-    # Initialize game assets
-    assets = GameAssets(config.initial_width)
-
-    # Initialize and start background music
-    GameAssets.init_music(volume=0.2, start_playing=True)
-
-    # Initialize game state
-    state = GameState(
-        config.initial_width, config.initial_height, config.initial_grid_size
-    )
-
-    # Apply default settings with state
-    apply_settings(state, assets, config, settings, reset_objects=False)
-
-    # Calculate and create obstacles from settings
-    num_obstacles = Obstacle.calculate_obstacles_from_difficulty(
-        settings.get("obstacle_difficulty"), state.width, state.grid_size, state.height
-    )
-    state.create_obstacles_constructively(num_obstacles)
-    pygame.display.set_caption(WINDOW_TITLE)
-
-    ##
-    ## Start flow
-    ##
-    start_menu(state, assets, config, settings)  # blocks until user picks "Start Game"
-
-    show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 segundos
-    previous_tail_length = 0
-
-    ##
-    ## Main loop
-    ##
-    while True:
-        dt = state.clock.tick_busy_loop(0)
-        for event in pygame.event.get():  # Wait for events
-            # App terminated
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-            # Key pressed
-            if event.type == pygame.KEYDOWN:
-                # Down arrow (or S): move down
-                if (
-                    event.key
-                    in (
-                        pygame.K_DOWN,
-                        pygame.K_s,
-                    )
-                    and state.snake.ymov != -1
-                ):
-                    state.snake.ymov = 1
-                    state.snake.xmov = 0
-                # Up arrow (or W): move up
-                elif event.key in (pygame.K_UP, pygame.K_w) and state.snake.ymov != 1:
-                    state.snake.ymov = -1
-                    state.snake.xmov = 0
-                # Right arrow (or D): move right
-                elif (
-                    event.key in (pygame.K_RIGHT, pygame.K_d) and state.snake.xmov != -1
-                ):
-                    state.snake.ymov = 0
-                    state.snake.xmov = 1
-                # Left arrow (or A): move left
-                elif event.key in (pygame.K_LEFT, pygame.K_a) and state.snake.xmov != 1:
-                    state.snake.ymov = 0
-                    state.snake.xmov = -1
-                # Q : quit game
-                elif event.key == pygame.K_q:
-                    pygame.quit()
-                    sys.exit()
-                elif event.key == pygame.K_p:  # P : pause game
-                    state.toggle_pause()
-                    if state.game_on:
-                        show_pause_hint_end_time = pygame.time.get_ticks() + 2000
-                elif event.key in (pygame.K_m, pygame.K_ESCAPE):  # M or ESC : open menu
-                    was_running = state.game_on
-                    state.pause()
-
-                    # Store old values of critical settings
-                    old_cells = settings.get("cells_per_side")
-                    old_obstacles = settings.get("obstacle_difficulty")
-                    old_initial_speed = settings.get("initial_speed")
-                    old_num_apples = settings.get("number_of_apples")
-                    old_electric_walls = settings.get("electric_walls")
-
-                    run_settings_menu(state, assets, settings)
-
-                    # Check if critical settings changed (require reset)
-                    needs_reset = (
-                        old_cells != settings.get("cells_per_side")
-                        or old_obstacles != settings.get("obstacle_difficulty")
-                        or old_initial_speed != settings.get("initial_speed")
-                        or old_num_apples != settings.get("number_of_apples")
-                        or old_electric_walls != settings.get("electric_walls")
-                    )
-
-                    # Determine if we should reset
-                    should_reset = False
-                    if needs_reset:
-                        # If "Reset Game on Apply" is enabled, reset automatically
-                        if settings.get("reset_game_on_apply"):
-                            should_reset = True
-                        else:
-                            # Show warning dialog and ask user
-                            user_choice = _show_reset_warning_dialog(state, assets)
-                            if user_choice == "reset":
-                                should_reset = True
-                            else:  # user_choice == "cancel"
-                                # Revert the critical settings changes
-                                settings.set("cells_per_side", old_cells)
-                                settings.set("obstacle_difficulty", old_obstacles)
-                                settings.set("initial_speed", old_initial_speed)
-                                settings.set("number_of_apples", old_num_apples)
-                                settings.set("electric_walls", old_electric_walls)
-                                should_reset = False
-
-                    # Apply settings with or without reset
-                    apply_settings(
-                        state,
-                        assets,
-                        config,
-                        settings,
-                        reset_objects=should_reset,
-                    )
-                    state.game_on = was_running
-                elif event.key == pygame.K_n:  # N : toggle music mute
-                    settings.set(
-                        "background_music", not settings.get("background_music")
-                    )
-                    apply_settings(state, assets, config, settings, reset_objects=False)
-
-                elif event.key == pygame.K_c:  # C : randomize snake colors
-                    settings.randomize_snake_colors()
-
-        ## Update the game
-        if state.game_on:
-            if len(state.snake.tail) == 0 and previous_tail_length > 0:
-                show_pause_hint_end_time = pygame.time.get_ticks() + 2000
-            previous_tail_length = len(state.snake.tail)
-            # Only update snake position when it has reached its current target
-            if (
-                state.snake.target_x == state.snake.head.x
-                and state.snake.target_y == state.snake.head.y
-            ):
-                if state.snake.xmov or state.snake.ymov:
-                    state.snake.update(
-                        state.apples,
-                        state.obstacles,
-                        lambda: game_over_handler(state, assets, settings),
-                        settings.get("electric_walls"),
-                    )
-
-            # Advance interpolation toward the current target grid cell (if any)
-            if (
-                state.snake.target_x != state.snake.head.x
-                or state.snake.target_y != state.snake.head.y
-            ):
-                move_interval_ms = 1000.0 / state.snake.speed
-                state.snake.move_progress += dt / move_interval_ms
-
-                if state.snake.move_progress > 1.0:
-                    state.snake.move_progress = 1.0
-
-                electric_walls = settings.get("electric_walls")
-
-                # We multiply by xmov (respectively, ymov) so that the snake
-                # keeps moving in the direction it was moving earlier
-                if not electric_walls and _will_wrap_around(
-                    state, state.snake.head.x, state.snake.target_x, state.snake.width
-                ):
-                    state.snake.draw_x = (
-                        state.snake.head.x
-                        + state.snake.xmov * state.grid_size * state.snake.move_progress
-                    )
-                else:
-                    state.snake.draw_x = (
-                        state.snake.head.x
-                        + (state.snake.target_x - state.snake.head.x)
-                        * state.snake.move_progress
-                    )
-
-                if not electric_walls and _will_wrap_around(
-                    state, state.snake.head.y, state.snake.target_y, state.snake.height
-                ):
-                    state.snake.draw_y = (
-                        state.snake.head.y
-                        + state.snake.ymov * state.grid_size * state.snake.move_progress
-                    )
-                else:
-                    state.snake.draw_y = (
-                        state.snake.head.y
-                        + (state.snake.target_y - state.snake.head.y)
-                        * state.snake.move_progress
-                    )
-
-                if state.snake.move_progress >= 1.0:
-                    # Move completed: remember previous head position
-                    prev_x = state.snake.head.x
-                    prev_y = state.snake.head.y
-
-                    # Snap head to target grid cell
-                    state.snake.head.x = state.snake.target_x
-                    state.snake.head.y = state.snake.target_y
-                    state.snake.x = state.snake.head.x
-                    state.snake.y = state.snake.head.y
-
-                    # Insert previous head position into tail (store as (x,y) tuple)
-                    state.snake.tail.insert(0, (prev_x, prev_y))
-                    if state.snake.got_apple:
-                        state.snake.got_apple = False
-                    else:
-                        # Only pop when we didn't just eat an apple
-                        if state.snake.tail:
-                            state.snake.tail.pop()
-
-                    # Reset progress and ensure draw coords are exact integers
-                    state.snake.move_progress = 0.0
-                    state.snake.draw_x = float(state.snake.head.x)
-                    state.snake.draw_y = float(state.snake.head.y)
-                    state.snake.prev_head_x = state.snake.head.x
-                    state.snake.prev_head_y = state.snake.head.y
-            else:
-                # No pending move: keep draw coordinates synced to head
-                state.snake.move_progress = 0.0
-                state.snake.draw_x = float(state.snake.head.x)
-                state.snake.draw_y = float(state.snake.head.y)
-
-        state.arena.fill(ARENA_COLOR)
-        draw_grid(state)
-
-        # Draw obstacles
-        for obstacle in state.obstacles:
-            obstacle.update()
-
-        # Draw all apples
-        for apple in state.apples:
-            apple.update(state.arena)
-
-        electric_walls = settings.get("electric_walls")
-
-        snake_colors = settings.get_snake_colors()
-        current_head_color = snake_colors["head"]
-        current_tail_color = snake_colors["tail"]
-
-        # Draw the tail with smooth interpolation
-        for i, (tx, ty) in enumerate(state.snake.tail):
-            draw_tx = tx
-            draw_ty = ty
-
-            if i == 0:
-                prev_tx = state.snake.head.x
-                prev_ty = state.snake.head.y
-            else:
-                prev_tx, prev_ty = state.snake.tail[i - 1]
-
-            if state.snake.move_progress > 0.0:
-                if not electric_walls and _will_wrap_around(
-                    state, prev_tx, tx, state.snake.width
-                ):
-                    draw_tx = (
-                        prev_tx
-                        + state.snake.xmov * state.grid_size * state.snake.move_progress
-                    )
-                else:
-                    draw_tx = prev_tx + (tx - prev_tx) * (
-                        1.0 - state.snake.move_progress
-                    )
-
-                if not electric_walls and _will_wrap_around(
-                    state, prev_ty, ty, state.snake.height
-                ):
-                    draw_ty = (
-                        prev_ty
-                        + state.snake.ymov * state.grid_size * state.snake.move_progress
-                    )
-                else:
-                    draw_ty = prev_ty + (ty - prev_ty) * (
-                        1.0 - state.snake.move_progress
-                    )
-
-            pygame.draw.rect(
-                state.arena,
-                current_tail_color,
-                pygame.Rect(
-                    round(draw_tx), round(draw_ty), state.grid_size, state.grid_size
-                ),
-            )
-
-        # Draw head (use int coords for Rect)
-        pygame.draw.rect(
-            state.arena,
-            current_head_color,
-            pygame.Rect(
-                round(state.snake.draw_x),
-                round(state.snake.draw_y),
-                state.grid_size,
-                state.grid_size,
-            ),
-        )
-
-        # Show score (snake length = head + tail)
-        score = assets.render_custom(
-            f"{len(state.snake.tail)}", SCORE_COLOR, int(state.width / 10)
-        )
-        score.set_alpha(75)  # opacity
-        score_rect = score.get_rect(center=(state.width / 2, state.height / 12))
-        state.arena.blit(score, score_rect)
-
-        # Draw music status indicator
-        draw_music_indicator(state, assets, settings)
-
-        # Check collision with all apples and maintain N apples in arena
-        for apple in state.apples[:]:  # Use slice to iterate over copy
-            if state.snake.head.x == apple.x and state.snake.head.y == apple.y:
-                state.snake.got_apple = True
-                max_speed = float(settings.get("max_speed"))
-                state.snake.speed = min(
-                    state.snake.speed * 1.1, max_speed
-                )  # Increase speed
-
-                # Plays the eating sound if enabled in the settings
-                if (
-                    settings.get("eat_sound")
-                    and hasattr(assets, "eat_sound")
-                    and assets.eat_sound
-                ):
-                    assets.eat_sound.play()
-
-                # Remove eaten apple and spawn a new one
-                state.apples.remove(apple)
-
-                # Calculate available free cells using state properties
-                free_cells = state.get_free_cells_count()
-
-                # Only spawn new apple if there are free cells
-                if free_cells > 0:
-                    new_apple = Apple(state.width, state.height, state.grid_size)
-                    new_apple.ensure_valid_position(state.snake, state.obstacles)
-                    # Ensure it doesn't overlap with existing apples
-                    while any(
-                        new_apple.x == a.x and new_apple.y == a.y for a in state.apples
-                    ):
-                        new_apple.ensure_valid_position(state.snake, state.obstacles)
-                    state.apples.append(new_apple)
-
-                break  # Only eat one apple per frame
-
-        if pygame.time.get_ticks() < show_pause_hint_end_time and state.game_on:
-            hint_surf = assets.render_custom(
-                "Press P to pause", MESSAGE_COLOR, int(state.width / 30)
-            )
-            hint_surf.set_alpha(180)  # Deixa o texto semi-transparente
-            hint_rect = hint_surf.get_rect(center=(state.width / 2, state.height - 40))
-            state.arena.blit(hint_surf, hint_rect)
-
-        # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
-        if not state.game_on:
-            draw_pause_screen(state, assets)
-
-        # Update display
-        pygame.display.update()
+    # Run the game
+    app.run()
 
 
 if __name__ == "__main__":
