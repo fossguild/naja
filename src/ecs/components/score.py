@@ -31,4 +31,4 @@ class Score:
     """
 
     current: int = 0
-    high_score: int = 0 # how many segments to add to snake
+    high_score: int = 0  # how many segments to add to snake

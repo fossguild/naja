@@ -24,11 +24,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Collider:
-    """ Handles the game's collisions
+    """Handles the game's collisions
 
     Contains properties for detecting the collision between any Entity
     Used by: Apple, Snake, Obstacles
     """
 
-    radius: int # Defines the hitbox size of an entity (grid element's size)
+    radius: int  # Defines the hitbox size of an entity (grid element's size)
     layer: int  # Separate the entities in categories, facilitating the detection

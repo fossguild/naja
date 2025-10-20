@@ -63,36 +63,36 @@ Convenience properties to reduce dot chains in child systems:
 abstract class GameSystem:
     constructor(state, settings, config, assets, surface, logger, rng, event_bus):
         store all as protected attributes
-        
+
     abstract method update(dt_ms):
         must be overridden by child classes
-        
+
     optional method on_attach():
         default implementation does nothing
-        
+
     optional method on_detach():
         default implementation does nothing
-        
+
     optional method before_frame(dt_ms):
         default implementation does nothing
-        
+
     optional method after_frame(dt_ms):
         default implementation does nothing
-        
+
     optional method dispose():
         default implementation does nothing
-        
+
     property state:
         return self._state
-        
+
     property settings:
         return self._settings
-        
+
     (similar properties for other attributes)
-    
+
     method require_running_pygame():
         assert pygame display initialized
-        
+
     method require_not_paused():
         assert not self._state.paused
 ```
@@ -106,12 +106,12 @@ class MovementSystem(GameSystem):
         # access shared context through properties
         if self.state.paused:
             return
-            
+
         # query world for entities
         for entity in self.get_world().query(Position, Velocity):
             pos = entity.get(Position)
             vel = entity.get(Velocity)
-            
+
             # update logic
             pos.x += vel.dx
             pos.y += vel.dy
@@ -142,10 +142,10 @@ render_sys.on_attach()
 while running:
     movement_sys.before_frame(dt)
     render_sys.before_frame(dt)
-    
+
     movement_sys.update(dt)
     render_sys.update(dt)
-    
+
     movement_sys.after_frame(dt)
     render_sys.after_frame(dt)
 ```

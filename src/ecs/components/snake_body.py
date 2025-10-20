@@ -34,5 +34,5 @@ class SnakeBody:
     """
 
     segments: list[Position] = field(default_factory=list)
-    growth_queue: int = 0
+    size: int = 1  # Guards the size of the snake
     alive: bool = True
