@@ -639,7 +639,7 @@ def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> b
 
 def main():
     """Main game entry point with proper initialization.
-    
+
     This function now serves as a thin bootstrap layer that delegates
     to the new ECS-based core game loop while maintaining compatibility
     with the old code during migration.
@@ -647,7 +647,7 @@ def main():
     # Create and initialize the game application
     app = GameApp()
     app.initialize()
-    
+
     # Run the game
     app.run()
 
