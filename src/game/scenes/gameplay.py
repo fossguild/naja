@@ -100,6 +100,8 @@ class GameplayScene(BaseScene):
         self._attached = False
         self._paused = False
         self._board_render_system: Optional[BoardRenderSystem] = None
+        self._game_over = False
+        self._death_reason = ""
 
     def on_attach(self) -> None:
         """Initialize and register all game systems.
@@ -273,6 +275,13 @@ class GameplayScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering gameplay scene."""
         print("Entering GameplayScene")
+
+        # Clear any pending scene transition from previous session
+        self.set_next_scene(None)
+
+        # Reset world state for new game
+        self._reset_game_world()
+
         self.on_attach()
         print("GameplayScene attached")
 
@@ -281,6 +290,56 @@ class GameplayScene(BaseScene):
         print("Exiting GameplayScene")
         self.on_detach()
         print("GameplayScene detached")
+
+    def _reset_game_world(self) -> None:
+        """Reset the game world for a new game.
+
+        This clears all existing entities and recreates them with fresh state.
+        Called when entering gameplay scene to ensure clean state.
+        """
+        # Clear all entities from the world
+        self._world.registry.clear()
+
+        # Reset game over state
+        self._game_over = False
+        self._death_reason = ""
+
+        # Recreate initial entities
+        grid_size = self._world.board.cell_size
+
+        # Create snake at center of board
+        from src.ecs.prefabs.snake import create_snake
+
+        _ = create_snake(
+            world=self._world,
+            grid_size=grid_size,
+            initial_speed=float(self._settings.get("initial_speed")),
+            head_color=None,  # will use default from palette
+            tail_color=None,  # will use default from palette
+        )
+
+        # Create apple at random valid position
+        from src.ecs.prefabs.apple import create_apple
+
+        _ = create_apple(
+            world=self._world,
+            x=self._world.board.width // 2 + 5,
+            y=self._world.board.height // 2,
+            grid_size=grid_size,
+            color=None,  # will use default
+        )
+
+        # Create obstacles based on difficulty
+        difficulty = self._settings.get("obstacle_difficulty")
+        if difficulty and difficulty != "None":
+            from src.ecs.prefabs.obstacle_field import create_obstacles
+
+            _ = create_obstacles(
+                world=self._world,
+                difficulty=difficulty,
+                grid_size=grid_size,
+                random_seed=None,  # use true randomness
+            )
 
     def render(self) -> None:
         """Render the gameplay scene."""
