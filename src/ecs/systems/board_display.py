@@ -27,12 +27,13 @@ from src.ecs.world import World
 from src.ecs.board import Tile
 from src.core.types.color import Color
 from src.core.rendering.pygame_surface_renderer import RenderEnqueue
+from src.ecs.components.position import Position
+from src.ecs.components.snake_body import SnakeBody
+from src.ecs.components.interpolation import Interpolation
+from src.ecs.components.palette import Palette
 
 if TYPE_CHECKING:
-    from src.ecs.components.position import Position
-    from src.ecs.components.snake_body import SnakeBody
-    from src.ecs.components.interpolation import Interpolation
-    from src.ecs.components.palette import Palette
+    pass
 
 
 class BoardRenderSystem(BaseSystem):

@@ -31,11 +31,7 @@ from typing import Optional
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
-from src.ecs.entities.apple import Apple
-from src.ecs.components.position import Position
-from src.ecs.components.edible import Edible
-from src.ecs.components.renderable import Renderable
-from src.core.types.color import Color
+from src.ecs.prefabs.apple import create_apple
 
 
 class SpawnSystem(BaseSystem):
@@ -71,8 +67,10 @@ class SpawnSystem(BaseSystem):
         """
         self._max_spawn_attempts = max_spawn_attempts
         self._apple_color = apple_color
-        if random_seed is not None:
-            random.seed(random_seed)
+        # use instance-specific Random for deterministic behavior
+        self._random = (
+            random.Random(random_seed) if random_seed is not None else random.Random()
+        )
 
     def update(self, world: World) -> None:
         """Check for spawn requests and create entities.
@@ -97,17 +95,17 @@ class SpawnSystem(BaseSystem):
         Returns:
             Entity ID of spawned apple, or None if no free cells available
         """
-        # get board dimensions
+        # get board dimensions (width and height are in tiles)
         board = world.board
-        grid_width = board.width
-        grid_height = board.height
+        grid_width_tiles = board.width
+        grid_height_tiles = board.height
         grid_size = board.cell_size
 
         # get all occupied cells
         occupied_cells = self._get_occupied_cells(world)
 
-        # calculate total cells
-        total_cells = (grid_width // grid_size) * (grid_height // grid_size)
+        # calculate total cells (board dimensions are already in tiles)
+        total_cells = grid_width_tiles * grid_height_tiles
 
         # check if there are any free cells
         if len(occupied_cells) >= total_cells:
@@ -115,9 +113,13 @@ class SpawnSystem(BaseSystem):
 
         # try to find a free cell with retry logic
         for _ in range(self._max_spawn_attempts):
-            # generate random position aligned to grid
-            x = random.randrange(0, grid_width, grid_size)
-            y = random.randrange(0, grid_height, grid_size)
+            # generate random tile coordinate
+            tile_x = self._random.randrange(0, grid_width_tiles)
+            tile_y = self._random.randrange(0, grid_height_tiles)
+
+            # convert to pixel coordinates (grid-aligned)
+            x = tile_x * grid_size
+            y = tile_y * grid_size
 
             # check if this cell is free
             if (x, y) not in occupied_cells:
@@ -160,10 +162,9 @@ class SpawnSystem(BaseSystem):
             Number of free cells
         """
         board = world.board
-        grid_size = board.cell_size
 
-        # calculate total cells
-        total_cells = (board.width // grid_size) * (board.height // grid_size)
+        # calculate total cells (board dimensions are in tiles)
+        total_cells = board.width * board.height
 
         # get occupied cells count
         occupied_count = len(self._get_occupied_cells(world))
@@ -210,20 +211,15 @@ class SpawnSystem(BaseSystem):
         Returns:
             Entity ID of created apple
         """
-        # create apple entity with required components
-        apple = Apple(
-            position=Position(x=x, y=y),
-            edible=Edible(points=10, growth=1),
-            renderable=Renderable(
-                shape="circle",
-                color=Color(
-                    self._apple_color[0], self._apple_color[1], self._apple_color[2]
-                ),
-                size=grid_size,
-            ),
+        # use prefab factory to create apple
+        entity_id = create_apple(
+            world=world,
+            x=x,
+            y=y,
+            grid_size=grid_size,
+            color=self._apple_color,
+            points=10,
+            growth=1,
         )
-
-        # register entity with world
-        entity_id = world.registry.add(apple)
 
         return entity_id
