@@ -64,8 +64,18 @@ class InterpolationSystem(BaseSystem):
         Args:
             world: ECS world containing entities and components
         """
-        # stub - will be implemented with actual interpolation logic
-        pass
+        from src.ecs.entities.entity import EntityType
+
+        # update interpolation for all snakes
+        snakes = world.registry.query_by_type_and_components(
+            EntityType.SNAKE, "position", "interpolation"
+        )
+
+        for _, snake in snakes.items():
+            # for now, just keep alpha at 0 (no interpolation)
+            # this makes the snake draw at exact grid positions
+            snake.interpolation.alpha = 0.0
+            snake.interpolation.wrapped_axis = "none"
 
     def update_interpolation(
         self,

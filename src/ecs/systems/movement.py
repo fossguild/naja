@@ -39,7 +39,21 @@ class MovementSystem(BaseSystem):
 
     """
 
+    def __init__(self):
+        """Initialize movement system with timing control."""
+        self._frame_counter = 0
+        self._frames_per_move = 12  # move every 12 frames (at 60fps = 5 moves/second)
+
     def update(self, world: World) -> None:
+        # simple frame-based movement (more reliable than time-based for now)
+        self._frame_counter += 1
+
+        # only move every N frames
+        if self._frame_counter < self._frames_per_move:
+            return
+
+        self._frame_counter = 0
+
         registry = world.registry
         board = world.board
 
@@ -56,6 +70,10 @@ class MovementSystem(BaseSystem):
 
             # Verifying if a given snake is alive
             if not body.alive:
+                continue
+
+            # only move if velocity is non-zero
+            if velocity.dx == 0 and velocity.dy == 0:
                 continue
 
             # Insert a new segment to the head's current position
