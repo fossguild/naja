@@ -282,6 +282,15 @@ class GameplayScene(BaseScene):
         # Reset world state for new game
         self._reset_game_world()
 
+        # Restore background music (in case we're coming from game over)
+        try:
+            from src.game.services.assets import GameAssets
+
+            if self._settings and self._settings.get("background_music"):
+                GameAssets.play_background_music()
+        except Exception:
+            pass  # ignore if music fails to load
+
         self.on_attach()
         print("GameplayScene attached")
 

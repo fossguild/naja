@@ -273,3 +273,73 @@ class TestGameplaySceneReset:
         print(
             f"Fill args after reset: {mock_renderer.fill.call_args if mock_renderer.fill.called else 'N/A'}"
         )
+
+
+class TestGameOverScene:
+    """Test game over scene functionality."""
+
+    @pytest.fixture
+    def mock_pygame_adapter(self):
+        """Create a mock pygame adapter."""
+        adapter = Mock()
+        adapter.get_events = Mock(return_value=[])
+        return adapter
+
+    @pytest.fixture
+    def mock_renderer(self):
+        """Create a mock renderer."""
+        renderer = Mock()
+        renderer.fill = Mock()
+        renderer.blit = Mock()
+        return renderer
+
+    @pytest.fixture
+    def mock_assets(self):
+        """Create mock assets."""
+        return Mock()
+
+    @pytest.fixture
+    def game_over_scene(self, mock_pygame_adapter, mock_renderer, mock_assets):
+        """Create a game over scene for testing."""
+        from src.game.scenes.game_over import GameOverScene
+
+        scene = GameOverScene(
+            pygame_adapter=mock_pygame_adapter,
+            renderer=mock_renderer,
+            width=400,
+            height=400,
+            assets=mock_assets,
+        )
+        return scene
+
+    def test_restart_goes_to_gameplay(self, game_over_scene, mock_pygame_adapter):
+        """Test that pressing Enter/Space goes directly to gameplay scene."""
+        import pygame
+
+        # Simulate pressing ENTER
+        mock_pygame_adapter.get_events = Mock(
+            return_value=[Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN)]
+        )
+
+        # Update the scene
+        next_scene = game_over_scene.update(16.0)
+
+        # Should transition to gameplay, not menu
+        assert next_scene == "gameplay", "Should go directly to gameplay scene"
+
+    def test_restart_with_space_goes_to_gameplay(
+        self, game_over_scene, mock_pygame_adapter
+    ):
+        """Test that pressing Space also goes directly to gameplay scene."""
+        import pygame
+
+        # Simulate pressing SPACE
+        mock_pygame_adapter.get_events = Mock(
+            return_value=[Mock(type=pygame.KEYDOWN, key=pygame.K_SPACE)]
+        )
+
+        # Update the scene
+        next_scene = game_over_scene.update(16.0)
+
+        # Should transition to gameplay, not menu
+        assert next_scene == "gameplay", "Should go directly to gameplay scene"

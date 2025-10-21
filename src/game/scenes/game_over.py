@@ -92,7 +92,7 @@ class GameOverScene(BaseScene):
 
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    return "menu"  # restart game from the menu
+                    return "gameplay"  # restart game directly
                 elif event.key == pygame.K_q:
                     pygame.quit()
                     sys.exit()
@@ -133,7 +133,7 @@ class GameOverScene(BaseScene):
 
             # "Press Enter/Space to restart • Q to exit" text below (exactly like old code)
             restart_text = small_font.render(
-                "Press Enter/Space to restart • Q to exit", True, message_color
+                "Press Enter/Space to play again • Q to exit", True, message_color
             )
             restart_rect = restart_text.get_rect(
                 center=(self._width // 2, self._height / 1.8)
