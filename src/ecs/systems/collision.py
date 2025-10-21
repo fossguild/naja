@@ -147,10 +147,17 @@ class CollisionSystem(BaseSystem):
         if self._get_electric_walls:
             electric_walls = self._get_electric_walls()
 
+        # convert pixel dimensions to grid dimensions
+        grid_width = width // grid_size
+        grid_height = height // grid_size
+
         # EXACT LOGIC from old code: only die if electric_walls is True
         if electric_walls and (
-            next_x not in range(0, width) or next_y not in range(0, height)
+            next_x not in range(0, grid_width) or next_y not in range(0, grid_height)
         ):
+            print(
+                f"WALL COLLISION: pos=({next_x},{next_y}), grid=({grid_width},{grid_height})"
+            )
             return True
 
         return False
@@ -223,12 +230,14 @@ class CollisionSystem(BaseSystem):
 
         # query apples from world (ECS way)
         # EXACT LOGIC: iterate over each apple
-        for entity_id in world.registry.query_by_component("x", "y"):
-            entity = world.registry.get(entity_id)
+        from src.ecs.entities.entity import EntityType
 
-            # check if entity is at the same position as head
-            if hasattr(entity, "x") and hasattr(entity, "y"):
-                if head_x == entity.x and head_y == entity.y:
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        for entity_id, apple in apples.items():
+            # check if apple is at the same position as head
+            if hasattr(apple, "position"):
+                if head_x == apple.position.x and head_y == apple.position.y:
+                    print(f"APPLE EATEN: head=({head_x},{head_y})")
                     # apple eaten! call callbacks
                     if self._apple_eaten_callback:
                         self._apple_eaten_callback(entity_id, (head_x, head_y))
