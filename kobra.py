@@ -29,8 +29,7 @@ the old code during migration.
 
 import sys
 import pygame
-from old_code.entities import Snake, Apple, Obstacle
-from old_code.constants import (
+from src.game.constants import (
     DEAD_HEAD_COLOR,
     ARENA_COLOR,
     GRID_COLOR,
@@ -38,13 +37,12 @@ from old_code.constants import (
     MESSAGE_COLOR,
     WINDOW_TITLE,
 )
-from old_code.state import GameState
-from old_code.assets import GameAssets
-from old_code.config import GameConfig
-from old_code.settings import GameSettings
+from src.game.services.assets import GameAssets
+from src.game.config import GameConfig
+from src.game.settings import GameSettings
 
-# Import the new core game loop
-from src.core.app import GameApp
+# Import the new ECS-based game loop
+from src.core.app import ECSGameApp
 from src.core.io.pygame_adapter import PygameIOAdapter
 
 # Global pygame adapter instance
@@ -56,8 +54,12 @@ pygame_adapter = PygameIOAdapter()
 ##
 
 
+# TODO: These menu functions still reference old GameState and will be replaced
+# by ECS UISystem in a future iteration
+
+
 def _draw_settings_menu(
-    state: GameState, assets: GameAssets, settings: GameSettings, selected_index: int
+    state, assets: GameAssets, settings: GameSettings, selected_index: int
 ) -> None:
     """Draw the settings menu screen.
 
@@ -106,9 +108,7 @@ def _draw_settings_menu(
     pygame_adapter.update_display()
 
 
-def run_settings_menu(
-    state: GameState, assets: GameAssets, settings: GameSettings
-) -> None:
+def run_settings_menu(state, assets: GameAssets, settings: GameSettings) -> None:
     """Run the settings menu modal loop.
 
     Args:
@@ -145,88 +145,27 @@ def run_settings_menu(
 
             if key in (pygame.K_LEFT, pygame.K_a):
                 settings.step_setting(settings.MENU_FIELDS[selected], -1)
+                # apply music setting immediately if changed
+                if settings.MENU_FIELDS[selected]["key"] == "background_music":
+                    if settings.get("background_music"):
+                        pygame.mixer.music.unpause()
+                    else:
+                        pygame.mixer.music.pause()
                 continue
 
             if key in (pygame.K_RIGHT, pygame.K_d):
                 settings.step_setting(settings.MENU_FIELDS[selected], +1)
+                # apply music setting immediately if changed
+                if settings.MENU_FIELDS[selected]["key"] == "background_music":
+                    if settings.get("background_music"):
+                        pygame.mixer.music.unpause()
+                    else:
+                        pygame.mixer.music.pause()
                 continue
 
 
-def apply_settings(
-    state: GameState,
-    assets: GameAssets,
-    config: GameConfig,
-    settings: GameSettings,
-    reset_objects: bool = False,
-) -> None:
-    """Apply settings to game state, potentially resizing window and recreating objects.
-
-    Args:
-        state: GameState instance
-        assets: GameAssets instance
-        config: GameConfig instance
-        settings: GameSettings instance
-        reset_objects: Whether to recreate game objects (snake, apples, obstacles)
-    """
-    old_grid = state.grid_size
-
-    # Calculate new grid size from desired cells per side
-    desired_cells = max(10, int(settings.get("cells_per_side")))
-    new_grid_size = config.get_optimal_grid_size(desired_cells)
-
-    # Calculate obstacles from difficulty
-    new_width, new_height = config.calculate_window_size(new_grid_size)
-    num_obstacles = Obstacle.calculate_obstacles_from_difficulty(
-        settings.get("obstacle_difficulty"), new_width, new_grid_size, new_height
-    )
-
-    # Validate and get apples count
-    num_apples = settings.validate_apples_count(new_width, new_grid_size, new_height)
-
-    # Control background music playback based on setting
-    if settings.get("background_music"):
-        pygame.mixer.music.unpause()
-    else:
-        pygame.mixer.music.pause()
-
-    # Recompute window and recreate surface/fonts if grid changed
-    if new_grid_size != old_grid:
-        new_width, new_height = config.calculate_window_size(new_grid_size)
-        state.arena = pygame_adapter.set_mode((new_width, new_height))
-        pygame_adapter.set_caption(WINDOW_TITLE)
-
-        # Update state's dimensions to match new grid size
-        state.update_dimensions(new_width, new_height, new_grid_size)
-
-        # Reload fonts with new width
-        assets.reload_fonts(new_width)
-
-        # Force reset_objects when grid size changes to prevent misalignment
-        reset_objects = True
-
-    # Recreate moving objects to reflect new geometry/speed
-    if reset_objects:
-        # Get current dimensions from state
-        width = state.width
-        height = state.height
-        grid_size = state.grid_size
-
-        # Recreate snake with initial speed
-        state.snake = Snake(width, height, grid_size)
-        state.snake.speed = float(settings.get("initial_speed"))
-
-        # Create obstacles
-        state.create_obstacles_constructively(num_obstacles)
-
-        # Create multiple apples
-        state.apples = []
-        for _ in range(num_apples):
-            apple = Apple(width, height, grid_size)
-            apple.ensure_valid_position(state.snake, state.obstacles)
-            # Also ensure it doesn't overlap with existing apples
-            while any(apple.x == a.x and apple.y == a.y for a in state.apples):
-                apple.ensure_valid_position(state.snake, state.obstacles)
-            state.apples.append(apple)
+# NOTE: Menu and settings functions temporarily kept here
+# These will be refactored into ECS UISystem in future iterations
 
 
 # Load speaker sprites
@@ -274,9 +213,7 @@ def _render_text_fit(
     return surf  # last attempt even if it doesn't fit perfectly
 
 
-def _draw_center_message(
-    state: GameState, assets: GameAssets, title: str, subtitle: str
-) -> None:
+def _draw_center_message(state, assets: GameAssets, title: str, subtitle: str) -> None:
     """Draw a centered message with title and subtitle.
 
     Args:
@@ -329,7 +266,7 @@ def _wait_for_keys(allowed_keys: set[int]) -> int:
             return event.key
 
 
-def _show_reset_warning_dialog(state: GameState, assets: GameAssets) -> str:
+def _show_reset_warning_dialog(state, assets: GameAssets) -> str:
     """Show a warning dialog when critical settings changed.
 
     Returns:
@@ -413,9 +350,7 @@ def _show_reset_warning_dialog(state: GameState, assets: GameAssets) -> str:
                     return "cancel"
 
 
-def game_over_handler(
-    state: GameState, assets: GameAssets, settings: GameSettings
-) -> None:
+def game_over_handler(state, assets: GameAssets, settings: GameSettings) -> None:
     """Handle game over scenario with visual feedback and prompt.
 
     Args:
@@ -455,7 +390,7 @@ def game_over_handler(
 
 
 def start_menu(
-    state: GameState,
+    state,
     assets: GameAssets,
     config: GameConfig,
     settings: GameSettings,
@@ -508,12 +443,10 @@ def start_menu(
                         return  # proceed to game
                     elif items[selected] == "Settings":
                         run_settings_menu(state, assets, settings)
-                        apply_settings(
-                            state, assets, config, settings, reset_objects=False
-                        )
+                        # settings are applied automatically in ECS
                 elif key == pygame.K_m:
                     run_settings_menu(state, assets, settings)
-                    apply_settings(state, assets, config, settings, reset_objects=False)
+                    # settings are applied automatically in ECS
                 elif key == pygame.K_ESCAPE:
                     pygame_adapter.quit()
                     sys.exit()
@@ -532,9 +465,7 @@ def start_menu(
                             return
                         elif text_label == "Settings":
                             run_settings_menu(state, assets, settings)
-                            apply_settings(
-                                state, assets, config, settings, reset_objects=False
-                            )
+                            # settings are applied automatically in ECS
 
 
 ##
@@ -542,7 +473,7 @@ def start_menu(
 ##
 
 
-def draw_grid(state: GameState) -> None:
+def draw_grid(state) -> None:
     """Draw the game grid.
 
     Args:
@@ -559,9 +490,7 @@ def draw_grid(state: GameState) -> None:
 ##
 
 
-def draw_music_indicator(
-    state: GameState, assets: GameAssets, settings: GameSettings
-) -> None:
+def draw_music_indicator(state, assets: GameAssets, settings: GameSettings) -> None:
     """Draw a subtle music status indicator in the bottom-right corner.
 
     Args:
@@ -604,7 +533,7 @@ def draw_music_indicator(
     state.arena.blit(hint_surf, hint_rect)
 
 
-def draw_pause_screen(state: GameState, assets: GameAssets):
+def draw_pause_screen(state, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
     overlay = pygame_adapter.create_surface(
@@ -627,7 +556,7 @@ def draw_pause_screen(state: GameState, assets: GameAssets):
     state.arena.blit(paused_subtitle, paused_subtitle_rect)
 
 
-def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> bool:
+def _will_wrap_around(state, origin: int, dest: int, limit: int) -> bool:
     """
     Checks if an object on the game's grid will wrap around by moving in a
     straight line (horizontally or vertically) from origin to dest.
@@ -644,14 +573,12 @@ def _will_wrap_around(state: GameState, origin: int, dest: int, limit: int) -> b
 
 
 def main():
-    """Main game entry point with proper initialization.
+    """Main game entry point.
 
-    This function now serves as a thin bootstrap layer that delegates
-    to the new ECS-based core game loop while maintaining compatibility
-    with the old code during migration.
+    This function bootstraps the ECS-based game application.
     """
-    # Create and initialize the game application
-    app = GameApp()
+    # Create and initialize the ECS game application
+    app = ECSGameApp()
     app.initialize()
 
     # Run the game
