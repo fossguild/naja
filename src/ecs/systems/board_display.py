@@ -300,12 +300,21 @@ class BoardRenderSystem(BaseSystem):
             grid_height: Total grid height in pixels
             color: Head color as (r, g, b) tuple
         """
-        # draw head at exact grid position (simplified for now)
-        pixel_x = position.x * cell_size
-        pixel_y = position.y * cell_size
+        # calculate smooth interpolated position between prev and current
+        draw_x, draw_y = self._calculate_interpolated_position(
+            position.x * cell_size,
+            position.y * cell_size,
+            position.prev_x * cell_size,
+            position.prev_y * cell_size,
+            interpolation.alpha,
+            interpolation.wrapped_axis,
+            cell_size,
+            grid_width,
+            grid_height,
+        )
 
-        # Draw head rectangle
-        rect = pygame.Rect(pixel_x, pixel_y, cell_size, cell_size)
+        # Draw head rectangle at interpolated position
+        rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
         self._renderer.draw_rect(color, rect, 0)
 
     def _draw_snake_tail(
@@ -333,14 +342,25 @@ class BoardRenderSystem(BaseSystem):
         if not body.segments:
             return
 
-        # draw each tail segment at exact grid position (simplified for now)
+        # draw each tail segment with interpolation
+        # this creates smooth movement and natural overlap when turning
         for segment in body.segments:
-            pixel_x = segment.x * cell_size
-            pixel_y = segment.y * cell_size
+            # calculate interpolated position for each segment
+            draw_x, draw_y = self._calculate_interpolated_position(
+                segment.x * cell_size,
+                segment.y * cell_size,
+                segment.prev_x * cell_size,
+                segment.prev_y * cell_size,
+                interpolation.alpha,
+                interpolation.wrapped_axis,
+                cell_size,
+                grid_width,
+                grid_height,
+            )
 
             segment_rect = pygame.Rect(
-                pixel_x,
-                pixel_y,
+                int(draw_x),
+                int(draw_y),
                 cell_size,
                 cell_size,
             )

@@ -32,7 +32,11 @@ from src.ecs.board import Board
 from src.ecs.prefabs.snake import create_snake
 from src.ecs.prefabs.apple import create_apple
 from src.ecs.prefabs.obstacle_field import create_obstacles
+from src.game.scenes.scene_manager import SceneManager
+from src.game.scenes.menu import MenuScene
 from src.game.scenes.gameplay import GameplayScene
+from src.game.scenes.game_over import GameOverScene
+from src.game.scenes.settings import SettingsScene
 from src.core.io.pygame_adapter import PygameIOAdapter
 from src.core.clock import GameClock
 from src.game.config import GameConfig
@@ -55,7 +59,7 @@ class ECSGameApp:
         self.settings = None
         self.assets = None
         self.world = None
-        self.scene = None
+        self.scene_manager = None
         self.clock = None
         self.renderer = None
         self.running = False
@@ -103,21 +107,67 @@ class ECSGameApp:
         # create renderer
         self.renderer = PygameSurfaceRenderer(self.surface)
 
-        # create and initialize gameplay scene
-        self.scene = GameplayScene(
-            world=self.world,
-            pygame_adapter=self.pygame_adapter,
-            renderer=self.renderer.view(),  # pass enqueue-only view to systems
-            config=self.config,
-            settings=self.settings,
-            assets=self.assets,
-        )
+        # create scene manager
+        self.scene_manager = SceneManager()
+        
+        # create and register scenes
+        self._create_scenes()
 
         # initialize game clock
         self.clock = GameClock()
 
         # create initial entities
         self._create_initial_entities()
+        
+        # start with menu scene
+        self.scene_manager.set_scene("menu")
+        
+    def _create_scenes(self) -> None:
+        """Create and register all game scenes."""
+        # Menu scene
+        menu_scene = MenuScene(
+            pygame_adapter=self.pygame_adapter,
+            renderer=self.renderer.view(),
+            width=self.config.initial_width,
+            height=self.config.initial_height,
+            assets=self.assets,
+            settings=self.settings,
+        )
+        self.scene_manager.register_scene("menu", menu_scene)
+        
+        # Settings scene
+        settings_scene = SettingsScene(
+            pygame_adapter=self.pygame_adapter,
+            renderer=self.renderer.view(),
+            width=self.config.initial_width,
+            height=self.config.initial_height,
+            assets=self.assets,
+            settings=self.settings,
+        )
+        self.scene_manager.register_scene("settings", settings_scene)
+        
+        # Gameplay scene
+        gameplay_scene = GameplayScene(
+            pygame_adapter=self.pygame_adapter,
+            renderer=self.renderer.view(),
+            width=self.config.initial_width,
+            height=self.config.initial_height,
+            world=self.world,
+            config=self.config,
+            settings=self.settings,
+            assets=self.assets,
+        )
+        self.scene_manager.register_scene("gameplay", gameplay_scene)
+        
+        # Game over scene
+        game_over_scene = GameOverScene(
+            pygame_adapter=self.pygame_adapter,
+            renderer=self.renderer.view(),
+            width=self.config.initial_width,
+            height=self.config.initial_height,
+            assets=self.assets,
+        )
+        self.scene_manager.register_scene("game_over", game_over_scene)
 
     def _create_initial_entities(self) -> None:
         """Create initial game entities using prefabs."""
@@ -206,16 +256,10 @@ class ECSGameApp:
 
     def run(self) -> None:
         """Run the main game loop."""
-        if not self.world or not self.scene:
+        if not self.scene_manager:
             raise RuntimeError("Game not initialized. Call initialize() first.")
 
-        # show start menu
-        self._run_start_menu()
-
         self.running = True
-
-        # attach scene (initializes all systems)
-        self.scene.on_attach()
 
         # main game loop
         while self.running:
@@ -225,8 +269,11 @@ class ECSGameApp:
             # begin rendering frame (clears command queue)
             self.renderer.begin_frame(clear_color=(32, 32, 32, 255))  # dark gray
 
-            # update scene (runs all systems, which enqueue draw commands)
-            self.scene.update(dt_ms)
+            # update scene manager (handles scene transitions and updates)
+            self.scene_manager.update(dt_ms)
+
+            # render current scene
+            self.scene_manager.render()
 
             # execute all queued draw commands
             self.renderer.update()
@@ -239,9 +286,6 @@ class ECSGameApp:
 
     def quit(self) -> None:
         """Quit the game application."""
-        if self.scene:
-            self.scene.on_detach()
-
         self.running = False
 
         if self.pygame_adapter:

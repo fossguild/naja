@@ -28,6 +28,7 @@ from typing import Optional, Any, List
 
 import pygame
 
+from src.game.scenes.base_scene import BaseScene
 from src.ecs.world import World
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.systems.input import InputSystem
@@ -42,7 +43,7 @@ from src.ecs.systems.validation import ValidationSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
 
 
-class GameplayScene:
+class GameplayScene(BaseScene):
     """Gameplay scene that manages all game systems.
 
     This scene is responsible for:
@@ -70,9 +71,11 @@ class GameplayScene:
 
     def __init__(
         self,
+        pygame_adapter,
+        renderer,
+        width: int,
+        height: int,
         world: World,
-        pygame_adapter: Optional[Any] = None,
-        renderer: Optional[Any] = None,
         config: Optional[Any] = None,
         settings: Optional[Any] = None,
         assets: Optional[Any] = None,
@@ -80,24 +83,23 @@ class GameplayScene:
         """Initialize the gameplay scene.
 
         Args:
-            world: ECS world instance
             pygame_adapter: Pygame IO adapter for input/output
             renderer: Renderer for drawing (RenderEnqueue view)
+            width: Scene width
+            height: Scene height
+            world: ECS world instance
             config: Game configuration
             settings: Game settings
             assets: Game assets (fonts, sounds, etc.)
         """
+        super().__init__(pygame_adapter, renderer, width, height)
         self._world = world
-        self._pygame_adapter = pygame_adapter
-        self._renderer = renderer
         self._config = config
         self._settings = settings
         self._assets = assets
         self._systems: List[BaseSystem] = []
         self._attached = False
         self._paused = False
-        self._game_over = False
-        self._death_reason = ""
         self._board_render_system: Optional[BoardRenderSystem] = None
 
     def on_attach(self) -> None:
@@ -228,7 +230,7 @@ class GameplayScene:
         self._systems.clear()
         self._attached = False
 
-    def update(self, dt_ms: float) -> None:
+    def update(self, dt_ms: float) -> Optional[str]:
         """Update all systems in execution order.
 
         This method is called every frame/tick to update the game state.
@@ -236,28 +238,17 @@ class GameplayScene:
         Args:
             dt_ms: Delta time in milliseconds since last update
                    (currently unused, systems get delta time from world.clock)
+                   
+        Returns:
+            Next scene name or None to stay in current scene
         """
         if not self._attached:
-            return
+            return None
 
         # note: dt_ms is currently unused because systems get timing from world.clock
         # this will be refactored when we unify timing across all systems
         # for now, we maintain the signature for future compatibility
         _ = dt_ms  # suppress unused warning
-
-        # check if game is over
-        if self._game_over:
-            # draw game over screen first
-            if self._renderer:
-                surface = pygame.display.get_surface()
-                if surface:
-                    self._draw_game_over_overlay(
-                        surface.get_width(), surface.get_height()
-                    )
-
-            # then handle input
-            self._handle_game_over_input()
-            return
 
         # update all systems in order
         # note: input and rendering systems run even when paused
@@ -276,6 +267,27 @@ class GameplayScene:
                 self._board_render_system.draw_pause_overlay(
                     surface.get_width(), surface.get_height()
                 )
+                
+        # return next scene if set
+        return self.get_next_scene()
+                
+    def on_enter(self) -> None:
+        """Called when entering gameplay scene."""
+        print("Entering GameplayScene")
+        self.on_attach()
+        print("GameplayScene attached")
+        
+    def on_exit(self) -> None:
+        """Called when exiting gameplay scene."""
+        print("Exiting GameplayScene")
+        self.on_detach()
+        print("GameplayScene detached")
+        
+    def render(self) -> None:
+        """Render the gameplay scene."""
+        # Rendering is handled by the BoardRenderSystem in update()
+        # This method is here for BaseScene compatibility
+        pass
 
     def get_systems(self) -> List[BaseSystem]:
         """Get list of all registered systems.
@@ -340,9 +352,8 @@ class GameplayScene:
 
     def _handle_quit(self) -> None:
         """Handle quit request."""
-        if self._pygame_adapter:
-            self._pygame_adapter.quit()
-        sys.exit()
+        # transition to menu instead of quitting
+        self.set_next_scene("menu")
 
     def _handle_pause(self) -> None:
         """Handle pause toggle."""
@@ -350,38 +361,9 @@ class GameplayScene:
 
     def _handle_menu(self) -> None:
         """Handle menu open request."""
-        from kobra import run_settings_menu
-
-        # pause game while in menu
-        was_paused = self._paused
+        # pause game and transition to settings scene
         self._paused = True
-
-        # create minimal state object
-        class MenuState:
-            def __init__(self, surface, config):
-                self.width = surface.get_width()
-                self.height = surface.get_height()
-                self.grid_size = config.initial_grid_size
-                self.arena = surface
-
-        # get surface from pygame
-        surface = pygame.display.get_surface()
-        if not surface:
-            return
-
-        menu_state = MenuState(surface, self._config)
-
-        # show settings menu
-        run_settings_menu(menu_state, self._assets, self._settings)
-
-        # apply settings immediately
-        if self._settings.get("background_music"):
-            pygame.mixer.music.unpause()
-        else:
-            pygame.mixer.music.pause()
-
-        # restore pause state
-        self._paused = was_paused
+        self.set_next_scene("settings")
 
     def _handle_music_toggle(self) -> None:
         """Handle music toggle."""
@@ -492,6 +474,9 @@ class GameplayScene:
         self._death_reason = reason
 
         print(f"GAME OVER: {reason}")
+        
+        # transition to game over scene
+        self.set_next_scene("game_over")
 
     def _handle_apple_eaten(
         self, apple_entity, apple_position: tuple[int, int]
@@ -545,130 +530,3 @@ class GameplayScene:
             if hasattr(snake, "velocity"):
                 snake.velocity.speed = new_speed
                 break
-
-    def _draw_game_over_overlay(self, surface_width: int, surface_height: int) -> None:
-        """Draw game over screen overlay (exactly like old code).
-
-        Args:
-            surface_width: Width of the surface
-            surface_height: Height of the surface
-        """
-        # old code: state.arena.fill(ARENA_COLOR) - no overlay, just background
-        # the background is already filled by BoardRenderSystem with ARENA_COLOR
-
-        # add game over text (exactly like old code)
-        try:
-            # calculate font sizes (adjusted for better fit)
-            big_font_size = int(surface_width / 8)
-            small_font_size = int(surface_width / 25)  # smaller for better fit
-
-            # create fonts with same font file as old code
-            font_path = "assets/font/GetVoIP-Grotesque.ttf"
-
-            try:
-                big_font = pygame.font.Font(font_path, big_font_size)
-                small_font = pygame.font.Font(font_path, small_font_size)
-            except Exception:
-                big_font = pygame.font.Font(None, big_font_size)
-                small_font = pygame.font.Font(None, small_font_size)
-
-            # MESSAGE_COLOR from old code: "#808080" (gray)
-            message_color = (128, 128, 128)  # #808080
-
-            # "Game Over" text (exactly like old code)
-            # old code: center=(state.width / 2, state.height / 2.6)
-            game_over_text = big_font.render("Game Over", True, message_color)
-            game_over_rect = game_over_text.get_rect(
-                center=(surface_width // 2, surface_height / 2.6)
-            )
-
-            # "Press Enter/Space to restart • Q to exit" text (exactly like old code)
-            # old code: center=(state.width / 2, state.height / 1.8)
-            restart_text = small_font.render(
-                "Press Enter/Space to restart  •  Q to exit", True, message_color
-            )
-            restart_rect = restart_text.get_rect(
-                center=(surface_width // 2, surface_height / 1.8)
-            )
-
-            # blit text to main surface
-            self._renderer.blit(game_over_text, game_over_rect)
-            self._renderer.blit(restart_text, restart_rect)
-
-        except Exception:
-            # if font loading fails, just show background
-            pass
-
-    def _handle_game_over_input(self) -> None:
-        """Handle input during game over screen (exactly like old code)."""
-        if not self._pygame_adapter:
-            return
-
-        # check for key presses (same controls as old code)
-        keys = pygame.key.get_pressed()
-
-        # Enter or Space - restart game (like old code)
-        if keys[pygame.K_RETURN] or keys[pygame.K_SPACE]:
-            self._restart_game()
-
-        # Q key - exit game (like old code)
-        if keys[pygame.K_q]:
-            self._exit_game()
-
-    def _restart_game(self) -> None:
-        """Restart the game."""
-        # reset game state
-        self._game_over = False
-        self._death_reason = ""
-
-        # reset snake
-        from src.ecs.entities.entity import EntityType
-
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "body"):
-                snake.body.alive = True
-                snake.body.size = 3  # reset to initial size
-            if hasattr(snake, "position"):
-                # reset to center
-                snake.position.x = self._world.board.width // 2
-                snake.position.y = self._world.board.height // 2
-            if hasattr(snake, "velocity"):
-                snake.velocity.dx = 1
-                snake.velocity.dy = 0
-                snake.velocity.speed = 4.0
-
-        # clear all apples and obstacles
-        apples = self._world.registry.query_by_type(EntityType.APPLE)
-        for apple_id in list(apples.keys()):
-            self._world.registry.remove(apple_id)
-
-        obstacles = self._world.registry.query_by_type(EntityType.OBSTACLE)
-        for obstacle_id in list(obstacles.keys()):
-            self._world.registry.remove(obstacle_id)
-
-        # spawn new apple
-        from src.ecs.prefabs.apple import create_apple
-        import random
-
-        grid_size = self._world.board.cell_size
-        new_x = random.randint(0, self._world.board.width - 1)
-        new_y = random.randint(0, self._world.board.height - 1)
-        create_apple(self._world, x=new_x, y=new_y, grid_size=grid_size)
-
-        # restore background music
-        try:
-            import pygame
-
-            pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
-            pygame.mixer.music.play(-1)  # loop background music
-        except Exception:
-            pass  # ignore if music file not found
-
-        print("Game restarted!")
-
-    def _exit_game(self) -> None:
-        """Exit the game."""
-        if self._pygame_adapter:
-            self._pygame_adapter.quit()
-        sys.exit()
