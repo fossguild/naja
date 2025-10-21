@@ -1,0 +1,525 @@
+---
+description: "Plano detalhado de migração para arquitetura ECS"
+globs: ["**/*"]
+---
+
+# ECS Migration Plan
+
+## Overview
+
+This document outlines the step-by-step plan to migrate Naja from its current monolithic architecture to an ECS (Entity-Component-System) architecture while maintaining identical gameplay behavior.
+
+## Guiding Principles
+
+1. **Incremental migration**: Small commits, game stays playable after each step
+2. **Test coverage**: Add tests before refactoring when possible
+3. **Feature parity**: No feature additions during migration
+4. **Documentation**: Update docs as architecture changes
+
+## Migration Steps
+
+### Step 1: Create ECS Infrastructure
+**Goal**: Establish basic ECS framework without changing game behavior
+
+**Tasks**:
+- Create `src/ecs/world.py` with entity registry and component storage
+- Create empty component dataclasses in `src/ecs/components/`
+- Create abstract `GameSystem` base class
+- Create empty system classes in `src/ecs/systems/`
+- Write unit tests for world registry (add, remove, query entities)
+
+**Acceptance Criteria**:
+- All new files compile without errors
+- Tests for world registry pass
+- Game still runs with old code
+- No gameplay changes
+
+---
+
+### Step 2: Migrate Core Loop
+**Goal**: Move game loop to `src/core/app.py`, keep game logic unchanged
+
+**Tasks**:
+- Create `src/core/app.py` with main game loop
+- Create `src/core/clock.py` with fixed timestep logic
+- Update `kobra.py` to bootstrap app and run loop
+- Move frame limiting and delta time calculation to core
+
+---
+
+### Step 3: Create Pygame IO Adapter
+**Goal**: Wrap pygame-specific code for testability
+
+**Tasks**:
+- Create `src/core/io/pygame_adapter.py`
+- Move event polling wrapper
+- Move screen initialization wrapper
+- Move basic drawing primitives (rect, circle, line)
+- No game logic, pure IO
+
+**Acceptance Criteria**:
+- Game renders identically
+- Events processed same way
+- No visual or behavioral changes
+
+---
+
+### Step 4: Define All Components
+**Goal**: Create all component dataclasses as pure data
+
+**Tasks**:
+- Implement each component in `src/ecs/components/`
+- Add docstrings explaining purpose and usage
+- Add type hints for all fields
+- Keep components frozen where data doesn't change
+- Write unit tests for component creation
+
+**Acceptance Criteria**:
+- All component files created
+- All tests pass
+- Components are pure data (no methods)
+- Game still uses old classes
+---
+
+### Step 5: Implement GameSystem Base Class
+**Goal**: Create abstract base with shared context
+
+**Tasks**:
+- Implement `GameSystem` abstract class
+- Add constructor with dependency injection (state, settings, config, assets, surface)
+- Add lifecycle hooks (on_attach, on_detach, before_frame, update, after_frame, dispose)
+- Add property getters for shared context
+- Add guard helpers (require_running_pygame, require_not_paused)
+
+**Acceptance Criteria**:
+- GameSystem class is abstract (cannot instantiate)
+- Child classes can access shared context via properties
+- Game still uses old systems
+
+---
+
+### Step 6: Migrate RenderSystem (Part 1)
+**Goal**: Extract rendering logic into RenderSystem, keep visuals identical
+
+**Tasks**:
+- Create `RenderSystem` inheriting `GameSystem`
+- Move grid drawing logic from `kobra.py`
+- Move obstacle drawing logic
+- Move apple drawing logic
+- Keep rendering exactly the same (no interpolation yet)
+
+**Acceptance Criteria**:
+- RenderSystem draws game board, grid, obstacles, apples
+- Visual output identical to before (screenshot comparison)
+- RenderSystem is read-only (doesn't modify game state)
+- Old rendering code marked as deprecated
+
+**Estimated Effort**: 2-3 days
+
+**Commit Message**: `code: migrate basic rendering to RenderSystem`
+
+---
+
+### Step 7: Migrate RenderSystem (Part 2)
+**Goal**: Add snake rendering with interpolation to RenderSystem
+
+**Tasks**:
+- Move snake drawing logic from `kobra.py`
+- Implement interpolation for smooth movement
+- Handle edge wrapping for smooth visual wrap
+
+**Acceptance Criteria**:
+- Snake renders smoothly with interpolation
+- Edge wrapping looks smooth (no visual jump)
+- Visual output identical to before
+---
+
+### Step 8: Migrate UISystem (Part 1)
+**Goal**: Extract menu logic into UISystem, delegate rendering to RenderSystem
+
+**Tasks**:
+- Create `UISystem` inheriting `GameSystem`
+- Move start menu loop from `kobra.py`
+- Implement `run_start_menu()` returning decision enum
+- Delegate menu rendering to RenderSystem
+- Add menu navigation tests
+
+**Acceptance Criteria**:
+- Start menu works identically
+- Menu navigation unchanged
+- UISystem returns decisions, doesn't execute them
+- Menu rendering still handled by RenderSystem
+---
+
+### Step 9: Migrate UISystem (Part 2)
+**Goal**: Extract settings menu and dialogs into UISystem
+
+**Tasks**:
+- Move settings menu loop from `kobra.py`
+- Implement `run_settings_menu()` returning result struct
+- Move reset warning dialog
+- Implement `prompt_reset_warning()` returning decision
+- Move game over prompt
+- Implement `prompt_game_over()` returning decision
+
+**Acceptance Criteria**:
+- All menus and dialogs work identically
+- UISystem returns decisions, doesn't execute them
+- Settings changes detected correctly (needs_reset logic)
+- Rendering delegated to RenderSystem
+---
+
+### Step 10: Implement Command Protocol
+**Goal**: Create typed commands for user actions
+
+**Tasks**:
+- Create command dataclasses (Move, Pause, Quit, etc.)
+- Implement `handle_in_game_event()` in UISystem
+- Update main loop to process commands
+- Apply commands in consistent order
+
+**Acceptance Criteria**:
+- All input converted to commands
+- Main loop applies commands deterministically
+- Game behavior unchanged
+- Commands are testable in isolation
+
+---
+
+### Step 11: Migrate Settings Application
+**Goal**: Extract settings application logic into UISystem
+
+**Tasks**:
+- Implement `apply_settings(reset_objects)` in UISystem
+- Move window resize logic
+- Move font reload logic
+- Move entity recreation logic
+- Implement `needs_reset()` detection
+
+**Acceptance Criteria**:
+- Settings apply correctly
+- Window resize works
+- Entity recreation works
+- Reset detection works
+- Score preserved across settings changes
+
+---
+
+### Step 12: Migrate InputSystem
+**Goal**: Extract input handling into dedicated system
+
+**Tasks**:
+- Create `InputSystem` inheriting `GameSystem`
+- Move direction input handling (arrows, WASD)
+- Move pause handling (P key)
+- Move quit handling (Q key)
+- Move menu handling (M, ESC keys)
+- Move music toggle (N key)
+- Move palette randomize (C key)
+
+**Acceptance Criteria**:
+- All input works identically
+- InputSystem emits commands, doesn't execute
+
+---
+
+### Step 13: Migrate MovementSystem
+**Goal**: Extract movement logic into dedicated system
+
+**Tasks**:
+- Create `MovementSystem` inheriting `GameSystem`
+- Extract snake movement from old `Snake` class
+- Implement grid wrapping logic
+- Handle body segment following
+- Respect pause flag
+
+**Acceptance Criteria**:
+- Snake moves identically to before
+- Wrapping works correctly
+- Body segments follow head correctly
+- Movement stops when paused
+- No visual or behavioral differences
+
+---
+
+### Step 14: Migrate CollisionSystem
+**Goal**: Extract collision detection into dedicated system
+
+**Tasks**:
+- Create `CollisionSystem` inheriting `GameSystem`
+- Extract apple collision detection
+- Extract wall collision detection (electric mode)
+- Extract obstacle collision detection
+- Extract self-collision detection
+- Emit collision events instead of direct state changes
+
+**Acceptance Criteria**:
+- All collision types detected correctly
+- Apple eating works
+- Death conditions work (electric walls, self-collision, obstacles)
+- Events emitted correctly
+- Collision behavior unchanged
+
+---
+
+### Step 15: Migrate SpawnSystem
+**Goal**: Extract spawning logic into dedicated system
+
+**Tasks**:
+- Create `SpawnSystem` inheriting `GameSystem`
+- Extract apple spawning logic
+- Implement free cell detection
+- Handle spawn retry logic
+- Respond to spawn events from CollisionSystem
+
+**Acceptance Criteria**:
+- Apples spawn at valid positions
+- Never spawn on occupied cells
+- Spawn rate unchanged
+---
+
+### Step 16: Migrate ObstacleGenerationSystem
+**Goal**: Extract obstacle generation with connectivity guarantees
+
+**Tasks**:
+- Create `ObstacleGenerationSystem` inheriting `GameSystem`
+- Extract constructive generation from `src/state.py`
+- Extract connectivity check (flood fill)
+- Extract trap detection logic
+
+**Acceptance Criteria**:
+- Obstacles generate with same algorithm
+- Grid connectivity maintained
+- No inescapable traps created
+- Generation is deterministic with seed
+---
+
+### Step 17: Migrate ScoringSystem
+**Goal**: Extract score updates into dedicated system
+
+**Tasks**:
+- Create `ScoringSystem` inheriting `GameSystem`
+- Listen for ate_apple events
+- Update score component
+- Update high score component
+- Preserve score across settings changes
+
+**Acceptance Criteria**:
+- Score increments correctly when eating apples
+- High score updates correctly
+- Score never goes negative
+- Score preserved across non-reset settings changes
+---
+
+### Step 18: Migrate AudioSystem
+**Goal**: Extract audio playback into dedicated system
+
+**Tasks**:
+- Create `AudioSystem` inheriting `GameSystem`
+- Implement SFX queue processing
+- Implement music control (play, pause, stop, next)
+- Handle multiple simultaneous SFX via mixer channels
+- Respect music enabled flag
+
+**Acceptance Criteria**:
+- SFX play correctly
+- Multiple SFX can overlap
+- Music toggle works
+- Audio never blocks game loop
+
+---
+
+### Step 19: Migrate InterpolationSystem
+**Goal**: Extract interpolation calculation into dedicated system
+
+**Tasks**:
+- Create `InterpolationSystem` inheriting `GameSystem`
+- Calculate interpolation alpha based on time since tick
+- Detect edge wrapping for special handling
+- Update Interpolation component for RenderSystem
+
+**Acceptance Criteria**:
+- Smooth movement between ticks
+- Edge wrapping looks smooth
+- Interpolation doesn't affect game logic
+- Visual smoothness unchanged
+
+---
+
+### Step 20: Migrate ValidationSystem
+**Goal**: Extract state validation into dedicated system
+
+**Tasks**:
+- Create `ValidationSystem` inheriting `GameSystem`
+- Verify exactly one apple exists
+- Verify snake position in bounds
+- Verify no invalid entity overlap
+- Log warnings for anomalies
+
+**Acceptance Criteria**:
+- Validation runs in debug mode
+- Warnings logged for problems
+- No false positives
+- Doesn't affect game flow
+
+---
+
+### Step 21: Migrate ResizeSystem
+**Goal**: Extract window resize handling into dedicated system
+
+**Tasks**:
+- Create `ResizeSystem` inheriting `GameSystem`
+- Detect window resize events
+- Recalculate cell size
+- Update grid component
+- Trigger asset reload if needed
+
+**Acceptance Criteria**:
+- Window resize works
+- Cell size recalculated correctly
+- Grid dimensions maintained
+- Aspect ratio preserved
+---
+
+### Step 22: Create Prefabs
+**Goal**: Create entity factories for common entity types
+
+**Tasks**:
+- Implement `create_snake()` in `src/ecs/prefabs/snake.py`
+- Implement `create_apple()` in `src/ecs/prefabs/apple.py`
+- Implement `create_obstacles()` in `src/ecs/prefabs/obstacle_field.py`
+- Replace old class constructors with prefab calls
+
+**Acceptance Criteria**:
+- Prefabs create entities with correct components
+- Entities registered in world correctly
+- Old Snake, Apple, Obstacle classes deprecated
+- Game behavior unchanged
+
+---
+
+### Step 23: Wire Systems in Gameplay Scene
+**Goal**: Register all systems in correct order in gameplay scene
+
+**Tasks**:
+- Create `src/game/scenes/gameplay.py`
+- Register systems in execution order (input, movement, collision, spawn, etc.)
+- Call lifecycle hooks (on_attach)
+- Update main loop to use scene
+
+**Acceptance Criteria**:
+- All systems registered
+- System execution order is correct
+- Lifecycle hooks called
+- Game loop simplified
+
+---
+
+### Step 24: Remove Old Code
+**Goal**: Delete deprecated files and code
+
+**Tasks**:
+- Remove `src/entities.py`
+- Remove `src/state.py`
+- Remove old rendering code from `kobra.py`
+- Remove old input handling from `kobra.py`
+- Remove deprecation comments
+
+**Acceptance Criteria**:
+- All deprecated files deleted
+- No references to old code
+- Game still runs identically
+- Tests all pass
+
+---
+
+### Step 25: Add System Tests
+**Goal**: Achieve good test coverage for systems
+
+**Tasks**:
+- Write unit tests for MovementSystem
+- Write unit tests for CollisionSystem
+- Write unit tests for SpawnSystem
+- Write unit tests for ScoringSystem
+- Write unit tests for InterpolationSystem
+- Write integration tests for full game flow
+
+**Acceptance Criteria**:
+- All systems have unit tests
+- Tests run without opening window
+- Tests use mocked dependencies
+---
+
+### Step 26: Documentation Updates
+**Goal**: Update all documentation to reflect ECS architecture
+
+**Tasks**:
+- Write `docs/architecture.md` explaining ECS
+- Write `docs/adr/0001-choose-ecs.md` with rationale
+- Update `docs/manual.md` with any new information
+- Update `docs/CONTRIBUTING.md` with ECS guidelines
+- Update README.md with architecture overview
+
+**Acceptance Criteria**:
+- Architecture clearly explained
+- ADR documents decision and trade-offs
+- Contributing guide updated for ECS
+- README mentions ECS
+
+---
+
+
+### Step 27: Final Verification
+**Goal**: Verify complete feature parity with original
+
+**Tasks**:
+- Manual testing: play full game, eat apples, hit walls, pause, quit
+- Test all menus: start, settings, dialogs
+- Test all settings: grid size, difficulty, colors, music, hints
+- Test edge cases: wrapping, electric walls, obstacles
+- Compare screenshots with original for visual regression
+- Performance testing: verify frame rate unchanged
+
+**Acceptance Criteria**:
+- All features work identically
+- No visual regressions
+- No performance regressions
+- All edge cases handled
+- Game feels the same
+
+---
+
+## Total Estimated Effort
+
+## Risk Mitigation
+
+### Risk: Breaking existing functionality
+**Mitigation**: Small commits, test after each step, screenshot comparison
+
+### Risk: Performance regression
+**Mitigation**: Profile before and after, optimize hot paths, use caching
+
+### Risk: Testing burden too high
+**Mitigation**: Focus on critical systems first, add tests incrementally
+
+### Risk: Team unfamiliar with ECS
+**Mitigation**: Document thoroughly, pair programming, code reviews
+
+## Success Criteria
+
+The migration is complete when:
+1. All features work identically to original
+2. Code quality standards met (black, ruff clean)
+3. Documentation updated
+4. Old code removed
+5. Game is playable and fun
+
+## Post-Migration Benefits
+
+After migration, we will have:
+- Modular, testable systems
+- Clear separation of concerns
+- Easy to add new features (new components, new systems)
+- Reduced merge conflicts (small files, focused changes)
+- Better performance potential (data-oriented design)
+- Educational value for contributors learning ECS

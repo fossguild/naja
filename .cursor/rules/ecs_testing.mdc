@@ -1,0 +1,463 @@
+---
+description: "Estratégias de teste para arquitetura ECS"
+globs: ["tests/**/*", "src/**/*"]
+---
+
+# ECS Testing Strategies
+
+## Testing Philosophy
+
+### Goals
+- Test systems in isolation without running full game
+- Test components as pure data
+- Test game logic without opening pygame window
+- Achieve >80% code coverage
+- Fast test execution (subsecond for unit tests)
+
+### Test Pyramid
+```
+       /\
+      /  \    E2E Tests (few, slow, full game)
+     /----\
+    /      \  Integration Tests (some, medium, multiple systems)
+   /--------\
+  /          \ Unit Tests (many, fast, single system)
+ /____________\
+```
+
+## Unit Testing Systems
+
+### Setup Pattern
+```
+create mock GameSystem context
+create World instance
+create test entities with components
+instantiate system under test
+call system.update()
+assert component changes
+```
+
+### Example: MovementSystem Test
+```
+def test_movement_system_moves_snake_forward():
+    # arrange
+    world = World()
+    context = MockGameContext()
+
+    entity_id = world.create_entity()
+    world.add_component(entity_id, Position(5, 5))
+    world.add_component(entity_id, Velocity(1, 0))
+
+    system = MovementSystem(context)
+
+    # act
+    system.update(16.0)  # one tick
+
+    # assert
+    pos = world.get_component(entity_id, Position)
+    assert pos.x == 6
+    assert pos.y == 5
+```
+
+### Mock GameSystem Context
+```
+class MockGameContext:
+    """Minimal context for testing systems."""
+
+    def __init__(self):
+        self.state = MockGameState()
+        self.settings = GameSettings()
+        self.config = GameConfig()
+        self.assets = MockAssets()
+        self.surface = MockSurface()
+        self.logger = lambda msg: None  # no-op logger
+        self.rng = random.Random(42)  # deterministic
+```
+
+### Testing Read/Write Boundaries
+```
+def test_render_system_does_not_modify_position():
+    # arrange
+    world = World()
+    entity_id = world.create_entity()
+    world.add_component(entity_id, Position(5, 5))
+    world.add_component(entity_id, Renderable(...))
+
+    system = RenderSystem(context)
+
+    # act
+    system.update(16.0)
+
+    # assert: position unchanged
+    pos = world.get_component(entity_id, Position)
+    assert pos.x == 5
+    assert pos.y == 5
+```
+
+## Testing Components
+
+### Pure Data Tests
+```
+def test_position_component_immutable():
+    pos = Position(5, 5)
+
+    # should not be able to modify
+    with pytest.raises(AttributeError):
+        pos.x = 10
+```
+
+### Component Validation
+```
+def test_velocity_component_validates_direction():
+    # valid directions
+    vel = Velocity(1, 0)  # right
+    vel = Velocity(0, -1)  # up
+
+    # invalid direction should raise
+    with pytest.raises(ValueError):
+        vel = Velocity(2, 0)  # magnitude > 1
+```
+
+## Testing Prefabs
+
+### Entity Creation
+```
+def test_create_snake_prefab_adds_correct_components():
+    world = World()
+
+    entity_id = create_snake(world, (5, 5))
+
+    # verify entity has all required components
+    assert world.has_component(entity_id, Position)
+    assert world.has_component(entity_id, Velocity)
+    assert world.has_component(entity_id, SnakeBody)
+    assert world.has_component(entity_id, Collider)
+    assert world.has_component(entity_id, Renderable)
+```
+
+### Prefab Configuration
+```
+def test_create_snake_prefab_sets_initial_position():
+    world = World()
+
+    entity_id = create_snake(world, (10, 15))
+
+    pos = world.get_component(entity_id, Position)
+    assert pos.x == 10
+    assert pos.y == 15
+```
+
+## Integration Testing
+
+### Multiple Systems
+```
+def test_movement_and_collision_integration():
+    # arrange: snake moving toward apple
+    world = World()
+    context = MockGameContext()
+
+    snake_id = create_snake(world, (5, 5))
+    apple_id = create_apple(world, (6, 5))
+
+    # set snake moving right
+    world.get_component(snake_id, Velocity).dx = 1
+
+    movement = MovementSystem(context)
+    collision = CollisionSystem(context)
+
+    # act: one tick
+    movement.update(16.0)
+    collision.update(16.0)
+
+    # assert: collision detected
+    events = world.get_events(AppleEatenEvent)
+    assert len(events) == 1
+    assert events[0].entity_id == apple_id
+```
+
+### Full Tick Cycle
+```
+def test_full_tick_cycle_spawns_apple_after_eating():
+    # arrange: full system pipeline
+    world = World()
+    context = MockGameContext()
+
+    systems = [
+        InputSystem(context),
+        MovementSystem(context),
+        CollisionSystem(context),
+        SpawnSystem(context),
+        ScoringSystem(context),
+    ]
+
+    # setup: snake about to eat apple
+    snake_id = create_snake(world, (5, 5))
+    apple_id = create_apple(world, (6, 5))
+    world.get_component(snake_id, Velocity).dx = 1
+
+    # act: run all systems
+    for system in systems:
+        system.update(16.0)
+
+    # assert: old apple gone, new apple spawned
+    assert not world.entity_exists(apple_id)
+    new_apple_ids = world.query(Edible)
+    assert len(new_apple_ids) == 1
+```
+
+## Testing Without Pygame Window
+
+### Mock Pygame Surface
+```
+class MockSurface:
+    """Fake pygame surface for testing rendering."""
+
+    def __init__(self, width=800, height=600):
+        self.width = width
+        self.height = height
+        self.calls = []  # record draw calls
+
+    def fill(self, color):
+        self.calls.append(('fill', color))
+
+    def blit(self, source, dest):
+        self.calls.append(('blit', source, dest))
+
+    def get_rect(self):
+        return MockRect(0, 0, self.width, self.height)
+```
+
+### Verify Rendering Calls
+```
+def test_render_system_draws_snake():
+    # arrange
+    world = World()
+    context = MockGameContext()
+    context.surface = MockSurface()
+
+    snake_id = create_snake(world, (5, 5))
+
+    system = RenderSystem(context)
+
+    # act
+    system.update(16.0)
+
+    # assert: surface received draw calls
+    assert len(context.surface.calls) > 0
+    # verify specific draw operations if needed
+```
+
+## Testing Randomness
+
+### Deterministic RNG
+```
+def test_spawn_system_reproducible_with_seed():
+    # arrange: two worlds with same seed
+    world1 = World()
+    world2 = World()
+
+    context1 = MockGameContext()
+    context1.rng = random.Random(42)
+
+    context2 = MockGameContext()
+    context2.rng = random.Random(42)
+
+    system1 = SpawnSystem(context1)
+    system2 = SpawnSystem(context2)
+
+    # act: spawn apples
+    apple1 = system1.spawn_apple(world1)
+    apple2 = system2.spawn_apple(world2)
+
+    # assert: same position
+    pos1 = world1.get_component(apple1, Position)
+    pos2 = world2.get_component(apple2, Position)
+    assert pos1.x == pos2.x
+    assert pos1.y == pos2.y
+```
+
+## Testing Settings Application
+
+### Settings Change Detection
+```
+def test_ui_system_detects_grid_size_change_needs_reset():
+    # arrange
+    context = MockGameContext()
+    context.settings.grid_cols = 20
+    context.settings.grid_rows = 20
+
+    system = UISystem(context)
+
+    # act: change grid size
+    context.settings.grid_cols = 30
+
+    # assert: needs reset
+    assert system.needs_reset() is True
+```
+
+### Settings Application
+```
+def test_ui_system_applies_color_change_without_reset():
+    # arrange
+    world = World()
+    context = MockGameContext()
+    system = UISystem(context)
+
+    game_entity = create_game(world)
+    old_color = world.get_component(game_entity, Palette).snake_head_color
+
+    # act: change color
+    context.settings.snake_head_color = (255, 0, 0)
+    system.apply_settings(world, reset_objects=False)
+
+    # assert: color updated, entities not recreated
+    new_color = world.get_component(game_entity, Palette).snake_head_color
+    assert new_color == (255, 0, 0)
+    assert new_color != old_color
+```
+
+## Visual Regression Testing
+
+### Screenshot Comparison
+```
+def test_render_system_visual_regression():
+    # arrange: known game state
+    world = create_test_world_state()
+    context = RealGameContext()  # uses real pygame
+
+    # act: render frame
+    system = RenderSystem(context)
+    system.update(16.0)
+
+    # capture screenshot
+    screenshot = pygame.image.save(context.surface, "test_frame.png")
+
+    # assert: compare to golden image
+    assert images_match("test_frame.png", "golden/expected_frame.png")
+```
+
+## Performance Testing
+
+### System Execution Time
+```
+def test_movement_system_performance():
+    # arrange: large number of entities
+    world = World()
+    for i in range(1000):
+        entity = world.create_entity()
+        world.add_component(entity, Position(i, i))
+        world.add_component(entity, Velocity(1, 0))
+
+    system = MovementSystem(context)
+
+    # act: measure execution time
+    start = time.perf_counter()
+    system.update(16.0)
+    duration = time.perf_counter() - start
+
+    # assert: runs within budget (e.g., < 1ms)
+    assert duration < 0.001
+```
+
+## Test Organization
+
+### Directory Structure
+```
+tests/
+├── ecs/
+│   ├── test_world.py              # world registry tests
+│   ├── test_components.py         # component data tests
+│   ├── test_movement_system.py    # movement logic
+│   ├── test_collision_system.py   # collision detection
+│   ├── test_spawn_system.py       # spawning logic
+│   └── test_interpolation.py      # interpolation math
+├── game/
+│   ├── test_prefabs.py            # entity factories
+│   ├── test_settings.py           # settings validation
+│   └── test_integration.py        # full game flows
+├── conftest.py                    # pytest fixtures
+└── helpers.py                     # test utilities
+```
+
+### Shared Fixtures
+```
+# conftest.py
+import pytest
+
+@pytest.fixture
+def world():
+    return World()
+
+@pytest.fixture
+def mock_context():
+    return MockGameContext()
+
+@pytest.fixture
+def simple_snake(world):
+    return create_snake(world, (5, 5))
+```
+
+## Continuous Integration
+
+### Test Commands
+```
+make test          # run all tests
+make test-unit     # unit tests only
+make test-fast     # skip slow tests
+make test-cov      # with coverage report
+```
+
+### Coverage Goals
+- Overall: >80%
+- Systems: >90% (core logic)
+- Components: 100% (simple data)
+- Prefabs: >80%
+
+### CI Pipeline
+```
+1. Lint (ruff)
+2. Format check (black)
+3. Type check (mypy, optional)
+4. Unit tests
+5. Integration tests
+6. Coverage report
+7. Performance benchmarks (track regressions)
+```
+
+## Testing Best Practices
+
+### Naming
+- `test_<system>_<scenario>_<expected_result>`
+- Descriptive, not abbreviated
+- Example: `test_collision_system_detects_self_collision_when_snake_length_greater_than_one`
+
+### Structure (AAA Pattern)
+```
+def test_example():
+    # Arrange: setup test data
+    world = World()
+    entity = create_test_entity(world)
+
+    # Act: execute system under test
+    system = SystemUnderTest(context)
+    system.update(16.0)
+
+    # Assert: verify results
+    component = world.get_component(entity, SomeComponent)
+    assert component.value == expected_value
+```
+
+### One Assertion Per Test (Guideline)
+- Prefer focused tests with single assertion
+- Multiple assertions OK if testing same concept
+- Split complex tests into multiple test functions
+
+### Test Independence
+- Each test should be runnable in isolation
+- No shared mutable state between tests
+- Use fixtures for common setup
+
+### Fast Tests
+- Unit tests should be subsecond
+- Mock slow operations (file IO, network)
+- Run slow tests separately or mark with `@pytest.mark.slow`

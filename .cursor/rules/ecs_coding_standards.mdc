@@ -1,0 +1,411 @@
+---
+description: "Padrões de código para arquitetura ECS"
+globs: ["src/**/*"]
+---
+
+# ECS Coding Standards
+
+## General Code Style
+
+### Comments
+- **Always start with lowercase letter**
+- Use proper English grammar and punctuation
+- Explain "why", not "what"
+- Example: `# calculate smooth position between ticks for rendering`
+
+
+### Formatting
+- **Black** for automatic formatting
+- **Ruff** for linting
+- Line length: 88 characters (black default)
+- Use double quotes for strings
+
+## Component Design
+
+### Structure
+```
+Pure data only, no methods except simple property getters
+Use @dataclass decorator
+Type hints required for all fields
+Frozen=True for immutable data
+```
+
+### Example Good Component
+```
+@dataclass(frozen=True)
+class Position:
+    """Grid position of an entity."""
+    x: float
+    y: float
+    space: Space = Space.GRID  # enum for GRID or SCREEN
+```
+
+### Example Bad Component
+```
+class Position:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def move(self, dx, dy):  # NO METHODS
+        self.x += dx
+        self.y += dy
+```
+
+## System Design
+
+### Structure
+```
+Inherit from GameSystem
+Override update(dt_ms) method
+Document reads, writes, queries in docstring
+Keep under 300 lines
+Single responsibility
+```
+
+### Example Good System
+```
+class MovementSystem(GameSystem):
+    """Updates entity positions based on velocity.
+
+    Reads: Position, Velocity, Grid
+    Writes: Position
+    Queries: entities with Position and Velocity
+    """
+
+    def update(self, dt_ms: float) -> None:
+        if self.state.paused:
+            return
+
+        for entity in self.get_world().query(Position, Velocity):
+            # update logic
+```
+
+### System Responsibilities
+- **Read** components to get current state
+- **Write** components to update state
+- **Emit** events for inter-system communication
+- **Never** call methods on other systems directly
+
+## Naming Conventions
+
+### Components
+- Noun or adjective: `Position`, `Velocity`, `Renderable`
+- Suffix optional: `PositionComponent` or just `Position`
+- Tag components: `ObstacleTag`, `WallTag`
+
+### Systems
+- Noun + "System": `MovementSystem`, `RenderSystem`
+- Verb + "System" for actions: `SpawnSystem`, `ValidationSystem`
+
+### Prefabs
+- Verb + noun: `create_snake()`, `create_apple()`
+- Returns entity ID
+- Registers entity with world
+
+### Variables
+- snake_case for local variables
+- Descriptive names: `entity_id`, `selected_index`, `needs_reset`
+- Avoid abbreviations: use `position` not `pos`
+
+### Constants
+- UPPER_SNAKE_CASE
+- Defined in `constants.py`
+- Examples: `DEFAULT_CELL_SIZE`, `MAX_OBSTACLES`
+
+## Type Hints
+
+Required on:
+- All function signatures
+- All class attributes
+- Public interfaces
+
+Optional on:
+- Local variables (if type is obvious)
+- Private helper functions
+
+Example:
+```
+def create_snake(world: World, start_pos: tuple[int, int]) -> int:
+    """Create snake entity with starting position.
+
+    Args:
+        world: ECS world registry
+        start_pos: (x, y) grid position
+
+    Returns:
+        Entity ID of created snake
+    """
+    entity_id = world.create_entity()
+    # ...
+    return entity_id
+```
+
+## Imports
+
+### Order
+1. Standard library
+2. Third-party (pygame)
+3. Local (src.ecs, src.game)
+4. Blank line between groups
+
+### Example
+```
+import sys
+from pathlib import Path
+
+import pygame
+
+from src.ecs.world import World
+from src.ecs.components.position import Position
+from src.game.constants import CELL_SIZE
+```
+
+### Avoid
+- Wildcard imports: `from module import *`
+- Relative imports: `from ..components import Position`
+- Circular imports: restructure if needed
+
+## Error Handling
+
+### Validation
+- Validate inputs at system boundaries
+- Use assertions for invariants
+- Raise ValueError for invalid user input
+- Log warnings for recoverable issues
+
+### Example
+```
+def spawn_apple(self, position: tuple[int, int]) -> int:
+    x, y = position
+
+    # validate input
+    if not (0 <= x < self.config.grid_cols):
+        raise ValueError(f"x={x} out of grid bounds")
+
+    # assert invariant
+    assert self._count_apples() == 0, "apple already exists"
+
+    # create entity
+    entity_id = self._create_apple_entity(x, y)
+    return entity_id
+```
+
+## Documentation
+
+### Module Docstring
+Every file needs module-level docstring:
+```
+"""Brief description of module purpose.
+
+More detailed explanation if needed.
+Lists main classes/functions.
+"""
+```
+
+### Class Docstring
+```
+class MovementSystem(GameSystem):
+    """Updates entity positions based on velocity.
+
+    This system runs on every tick and moves entities
+    with Position and Velocity components.
+
+    Reads: Position, Velocity, Grid
+    Writes: Position
+    """
+```
+
+### Function Docstring
+```
+def create_snake(world: World, start_pos: tuple[int, int]) -> int:
+    """Create snake entity with starting position.
+
+    Args:
+        world: ECS world registry
+        start_pos: (x, y) grid position
+
+    Returns:
+        Entity ID of created snake
+    """
+```
+
+## File Organization
+
+### File Size
+- Components: under 50 lines
+- Systems: under 300 lines
+- Prefabs: under 100 lines
+- Split if exceeding guideline
+
+### Module Structure
+```
+1. Module docstring
+2. Imports (grouped)
+3. Constants (if any)
+4. Classes
+5. Functions
+6. Main guard (if executable)
+```
+
+## Testing Requirements
+
+### Unit Tests
+- Test systems in isolation
+- Mock component data
+- No pygame window required
+- Use deterministic RNG
+
+### Test Naming
+```
+test_<system>_<scenario>_<expected_result>
+
+Examples:
+- test_movement_system_moves_snake_forward
+- test_collision_system_detects_apple_eat
+- test_spawn_system_retries_on_occupied_cell
+```
+
+### Test Structure
+```
+def test_movement_system_moves_snake_forward():
+    # arrange: create mock world, components
+    world = World()
+    entity_id = world.create_entity()
+    world.add_component(entity_id, Position(5, 5))
+    world.add_component(entity_id, Velocity(1, 0))
+
+    # act: run system
+    system = MovementSystem(mock_context)
+    system.update(16.0)
+
+    # assert: verify result
+    pos = world.get_component(entity_id, Position)
+    assert pos.x == 6
+    assert pos.y == 5
+```
+
+## Performance Guidelines
+
+### Optimization Strategy
+1. Write correct code first
+2. Profile to find bottlenecks
+3. Optimize hot paths only
+4. Maintain readability
+
+### Common Optimizations
+- Cache expensive calculations (font rendering)
+- Use component queries efficiently (don't query every frame if data doesn't change)
+- Minimize allocations in hot loops
+- Pre-calculate constants
+
+### When to Optimize
+- Measured performance issue
+- Profiler shows hot spot
+- User-visible lag
+
+### When NOT to Optimize
+- Premature optimization
+- Readability suffers significantly
+- No measured benefit
+
+## Common Patterns
+
+### Query Pattern
+```
+for entity_id in world.query(Position, Velocity):
+    pos = world.get_component(entity_id, Position)
+    vel = world.get_component(entity_id, Velocity)
+    # update logic
+```
+
+### Event Pattern
+```
+# emitter system
+event = AppleEatenEvent(entity_id=apple_id, score=10)
+world.emit_event(event)
+
+# consumer system
+for event in world.get_events(AppleEatenEvent):
+    self._update_score(event.score)
+```
+
+### Singleton Component Pattern
+```
+# game entity has unique components
+game_entity = world.get_singleton_entity("game")
+score = world.get_component(game_entity, Score)
+```
+
+## Anti-Patterns to Avoid
+
+### Mixing Logic and Data
+```
+# BAD: component with method
+class Position:
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+# GOOD: system with logic
+class MovementSystem:
+    def update(self, dt_ms):
+        for entity in world.query(Position, Velocity):
+            pos.x += vel.dx
+            pos.y += vel.dy
+```
+
+### System Cross-References
+```
+# BAD: systems calling each other
+class UISystem:
+    def update(self, dt_ms):
+        self.render_system.draw_menu()  # NO
+
+# GOOD: shared components
+class UISystem:
+    def update(self, dt_ms):
+        world.set_component(hud_entity, UiState(show_menu=True))
+
+class RenderSystem:
+    def update(self, dt_ms):
+        ui_state = world.get_component(hud_entity, UiState)
+        if ui_state.show_menu:
+            self._draw_menu()
+```
+
+### God System
+```
+# BAD: system doing too much
+class GameSystem:
+    def update(self, dt_ms):
+        self._handle_input()
+        self._update_movement()
+        self._check_collisions()
+        self._update_score()
+        self._render_everything()  # TOO MUCH
+
+# GOOD: focused systems
+class InputSystem:
+    def update(self, dt_ms):
+        self._handle_input()
+
+class MovementSystem:
+    def update(self, dt_ms):
+        self._update_movement()
+```
+
+## Code Review Checklist
+
+Before submitting code:
+- [ ] Black formatted
+- [ ] Ruff linting clean
+- [ ] Comments start lowercase
+- [ ] No em dash characters
+- [ ] Type hints on public interfaces
+- [ ] Docstrings on classes and public functions
+- [ ] GPL header on new files
+- [ ] Tests written and passing
+- [ ] No mixing of logic and data
+- [ ] Systems have single responsibility
+- [ ] Components are pure data
