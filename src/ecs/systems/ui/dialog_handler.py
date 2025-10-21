@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#   Copyright (c) 2024, Felipe Diniz <lfelipediniz@usp.br>
+
 #
 #   This file is part of Naja.
 #
