@@ -6,7 +6,7 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ✅ Issue #200: Create ECS Infrastructure (Step 1) 
 - ✅ Issue #201: Migrate Core Game Loop (Step 2) 
 - ✅ Issue #202: Create Pygame IO Adapter (Step 3) 
-- ❌ Issue #204: Define All Components (Step 4) 
+- ✅ Issue #204: Define All Components (Step 4) 
 - - Divided into subissues: 
     - ✅ #205 (Visual) - Position ✅, Renderable ✅, Interpolation ✅, Grid ✅ 
     - ✅ #210 (UI) - UIState ✅, MenuItem ✅, Dialog ✅, InputState ✅ 
