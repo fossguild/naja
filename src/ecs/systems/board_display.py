@@ -22,6 +22,7 @@
 from typing import TYPE_CHECKING
 
 import pygame
+
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.board import Tile
@@ -170,6 +171,7 @@ class BoardRenderSystem(BaseSystem):
         2. Draw the grid
         3. Draw all board tiles
         4. Draw ECS entities with components (if available)
+        5. Draw UI elements (score, etc.)
 
         Args:
             world: Game world to render
@@ -178,6 +180,7 @@ class BoardRenderSystem(BaseSystem):
         self.draw_grid(world)
         self.draw_board(world)
         self.draw_ecs_entities(world)
+        self.draw_ui(world)
 
     def draw_ecs_entities(self, world: World) -> None:
         """Draw all ECS entities with renderable components.
@@ -191,14 +194,17 @@ class BoardRenderSystem(BaseSystem):
         # Import components locally to avoid circular imports
         from src.ecs.entities.entity import EntityType
 
-        # Render snakes with interpolation
-        for entity_id in world.registry.get_entities():
-            entity = world.registry.get_entity(entity_id)
+        # Render all entities based on type
+        cell_size = world.board.cell_size
+
+        for entity_id, entity in world.registry.get_all().items():
             if entity is None:
                 continue
 
-            # Check if this is a snake entity
-            if entity.get_type() == EntityType.SNAKE:
+            # Check entity type and render accordingly
+            entity_type = entity.get_type()
+
+            if entity_type == EntityType.SNAKE:
                 position = getattr(entity, "position", None)
                 body = getattr(entity, "body", None)
                 interpolation = getattr(entity, "interpolation", None)
@@ -206,6 +212,26 @@ class BoardRenderSystem(BaseSystem):
 
                 if position and body and interpolation:
                     self.draw_snake(world, position, body, interpolation, palette)
+
+            elif entity_type == EntityType.APPLE:
+                position = getattr(entity, "position", None)
+                if position:
+                    # draw apple as red square
+                    pixel_x = position.x * cell_size
+                    pixel_y = position.y * cell_size
+                    apple_rect = pygame.Rect(pixel_x, pixel_y, cell_size, cell_size)
+                    apple_color = self.get_color("apple").to_tuple()
+                    self._renderer.draw_rect(apple_color, apple_rect, 0)
+
+            elif entity_type == EntityType.OBSTACLE:
+                position = getattr(entity, "position", None)
+                if position:
+                    # draw obstacle as gray square
+                    pixel_x = position.x * cell_size
+                    pixel_y = position.y * cell_size
+                    obstacle_rect = pygame.Rect(pixel_x, pixel_y, cell_size, cell_size)
+                    obstacle_color = self.get_color("obstacle").to_tuple()
+                    self._renderer.draw_rect(obstacle_color, obstacle_rect, 0)
 
     def draw_snake(
         self,
@@ -274,22 +300,13 @@ class BoardRenderSystem(BaseSystem):
             grid_height: Total grid height in pixels
             color: Head color as (r, g, b) tuple
         """
-        # Calculate interpolated position
-        draw_x, draw_y = self._calculate_interpolated_position(
-            position.x,
-            position.y,
-            position.prev_x,
-            position.prev_y,
-            interpolation.alpha,
-            interpolation.wrapped_axis,
-            cell_size,
-            grid_width,
-            grid_height,
-        )
+        # draw head at exact grid position (simplified for now)
+        pixel_x = position.x * cell_size
+        pixel_y = position.y * cell_size
 
         # Draw head rectangle
-        rect = pygame.Rect(round(draw_x), round(draw_y), cell_size, cell_size)
-        self._renderer.draw_rect(color, rect)
+        rect = pygame.Rect(pixel_x, pixel_y, cell_size, cell_size)
+        self._renderer.draw_rect(color, rect, 0)
 
     def _draw_snake_tail(
         self,
@@ -316,54 +333,18 @@ class BoardRenderSystem(BaseSystem):
         if not body.segments:
             return
 
-        alpha = interpolation.alpha
+        # draw each tail segment at exact grid position (simplified for now)
+        for segment in body.segments:
+            pixel_x = segment.x * cell_size
+            pixel_y = segment.y * cell_size
 
-        # Draw each tail segment with interpolation
-        for i, segment in enumerate(body.segments):
-            # Determine the previous position for this segment
-            if i == 0:
-                # First segment follows the head
-                prev_pos = head_position
-            else:
-                # Subsequent segments follow the previous segment
-                prev_pos = body.segments[i - 1]
-
-            # Calculate interpolated position for this segment
-            # When alpha > 0, the segment is moving from prev_pos toward segment
-            # When alpha = 0, the segment is at its exact grid position
-            draw_x = segment.x + (prev_pos.x - segment.x) * alpha
-            draw_y = segment.y + (prev_pos.y - segment.y) * alpha
-
-            # Handle wrapping for this segment if needed
-            if interpolation.wrapped_axis in ("x", "both"):
-                # Check if there's a wrap between prev_pos and segment
-                if abs(prev_pos.x - segment.x) > grid_width / 2:
-                    # Wrapped! Adjust interpolation
-                    if prev_pos.x < segment.x:
-                        # Wrapped from right to left
-                        draw_x = prev_pos.x + alpha * cell_size
-                    else:
-                        # Wrapped from left to right
-                        draw_x = prev_pos.x - alpha * cell_size
-
-            if interpolation.wrapped_axis in ("y", "both"):
-                # Check if there's a wrap between prev_pos and segment
-                if abs(prev_pos.y - segment.y) > grid_height / 2:
-                    # Wrapped! Adjust interpolation
-                    if prev_pos.y < segment.y:
-                        # Wrapped from bottom to top
-                        draw_y = prev_pos.y + alpha * cell_size
-                    else:
-                        # Wrapped from top to bottom
-                        draw_y = prev_pos.y - alpha * cell_size
-
-            # Wrap coordinates to grid bounds
-            draw_x = draw_x % grid_width
-            draw_y = draw_y % grid_height
-
-            # Draw segment rectangle
-            rect = pygame.Rect(round(draw_x), round(draw_y), cell_size, cell_size)
-            self._renderer.draw_rect(color, rect)
+            segment_rect = pygame.Rect(
+                pixel_x,
+                pixel_y,
+                cell_size,
+                cell_size,
+            )
+            self._renderer.draw_rect(color, segment_rect, 0)
 
     def _calculate_interpolated_position(
         self,
@@ -426,6 +407,79 @@ class BoardRenderSystem(BaseSystem):
 
         return (draw_x, draw_y)
 
+    def draw_ui(self, world: World) -> None:
+        """Draw UI elements like score.
+
+        Args:
+            world: Game world
+        """
+        # TODO: implement score rendering using assets
+        # For now, skip UI rendering
+        pass
+
+    def draw_pause_overlay(self, surface_width: int, surface_height: int) -> None:
+        """Draw pause screen overlay.
+
+        Args:
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        # create semi-transparent overlay
+        overlay_surface = pygame.Surface(
+            (surface_width, surface_height), pygame.SRCALPHA
+        )
+        overlay_surface.fill((32, 32, 32, 180))  # dark gray, semi-transparent
+
+        # blit overlay to main surface
+        self._renderer.blit(overlay_surface, (0, 0))
+
+        # add pause text (exactly like old code)
+        try:
+            # get surface dimensions for font sizing (like old code)
+            surface_width, surface_height = surface_width, surface_height
+
+            # calculate font sizes (same as old code)
+            big_font_size = int(surface_width / 8)
+            small_font_size = int(surface_width / 20)
+
+            # create fonts with same font file and sizing as old code
+            # old code: FONT_PATH = "assets/font/GetVoIP-Grotesque.ttf"
+            font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+            try:
+                # try to load the same font as old code
+                big_font = pygame.font.Font(font_path, big_font_size)
+                small_font = pygame.font.Font(font_path, small_font_size)
+            except Exception:
+                # fallback to default font if GetVoIP font not found
+                big_font = pygame.font.Font(None, big_font_size)
+                small_font = pygame.font.Font(None, small_font_size)
+
+            # MESSAGE_COLOR from old code: "#808080" (gray)
+            message_color = (128, 128, 128)  # #808080
+
+            # "Paused" text centered (exactly like old code)
+            paused_text = big_font.render("Paused", True, message_color)
+            paused_rect = paused_text.get_rect(
+                center=(surface_width // 2, surface_height // 2)
+            )
+
+            # "Press P to continue" text below (exactly like old code)
+            continue_text = small_font.render(
+                "Press P to continue", True, message_color
+            )
+            continue_rect = continue_text.get_rect(
+                center=(surface_width // 2, surface_height * 2 // 3)
+            )
+
+            # blit text to main surface
+            self._renderer.blit(paused_text, paused_rect)
+            self._renderer.blit(continue_text, continue_rect)
+
+        except Exception:
+            # if font loading fails, just show overlay
+            pass
+
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
 
@@ -435,4 +489,22 @@ class BoardRenderSystem(BaseSystem):
         Args:
             world: Game world to render
         """
+        # check if game is over - don't render game world if dead
+        from src.ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        game_over = False
+        for _, snake in snakes.items():
+            if hasattr(snake, "body") and not snake.body.alive:
+                game_over = True
+                break
+
+        # if game is over, render arena background (like old code)
+        if game_over:
+            # ARENA_COLOR from old code: "#202020" (dark gray)
+            arena_color = (32, 32, 32)  # #202020
+            self._renderer.fill(arena_color)
+            return
+
+        # render normal game world
         self.render_frame(world)
