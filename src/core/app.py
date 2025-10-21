@@ -109,7 +109,7 @@ class ECSGameApp:
 
         # create scene manager
         self.scene_manager = SceneManager()
-        
+
         # create and register scenes
         self._create_scenes()
 
@@ -118,10 +118,10 @@ class ECSGameApp:
 
         # create initial entities
         self._create_initial_entities()
-        
+
         # start with menu scene
         self.scene_manager.set_scene("menu")
-        
+
     def _create_scenes(self) -> None:
         """Create and register all game scenes."""
         # Menu scene
@@ -134,7 +134,7 @@ class ECSGameApp:
             settings=self.settings,
         )
         self.scene_manager.register_scene("menu", menu_scene)
-        
+
         # Settings scene
         settings_scene = SettingsScene(
             pygame_adapter=self.pygame_adapter,
@@ -145,7 +145,7 @@ class ECSGameApp:
             settings=self.settings,
         )
         self.scene_manager.register_scene("settings", settings_scene)
-        
+
         # Gameplay scene
         gameplay_scene = GameplayScene(
             pygame_adapter=self.pygame_adapter,
@@ -158,7 +158,7 @@ class ECSGameApp:
             assets=self.assets,
         )
         self.scene_manager.register_scene("gameplay", gameplay_scene)
-        
+
         # Game over scene
         game_over_scene = GameOverScene(
             pygame_adapter=self.pygame_adapter,

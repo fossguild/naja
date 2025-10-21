@@ -75,15 +75,15 @@ class InterpolationSystem(BaseSystem):
             # increment alpha smoothly over time
             # this creates smooth movement between grid positions
             # alpha goes from 0.0 (at previous position) to 1.0 (at current position)
-            
+
             # increment by a fixed amount per frame (60fps assumed)
             # to complete the interpolation in 12 frames (matching MovementSystem)
             increment = 1.0 / 12.0
-            
+
             snake.interpolation.alpha = min(1.0, snake.interpolation.alpha + increment)
-            
+
             # detect edge wrapping for special rendering
-            if hasattr(snake, 'position'):
+            if hasattr(snake, "position"):
                 pos = snake.position
                 # check if movement wrapped around edges
                 wrapped_x = self._detect_wrapping(
@@ -122,7 +122,7 @@ class InterpolationSystem(BaseSystem):
             - wrapped_axis: "none", "x", "y", or "both"
         """
         _ = entity_id  # reserved for future use
-        
+
         # if already at target, no interpolation needed
         if current_x == target_x and current_y == target_y:
             return 0.0, "none"

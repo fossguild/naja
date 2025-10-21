@@ -102,7 +102,7 @@ class MovementSystem(BaseSystem):
 
             position.x = new_x
             position.y = new_y
-            
+
             # Reset interpolation alpha to 0.0 for smooth animation from old to new position
-            if hasattr(snake, 'interpolation'):
+            if hasattr(snake, "interpolation"):
                 snake.interpolation.alpha = 0.0

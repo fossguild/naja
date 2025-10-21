@@ -23,7 +23,6 @@ It acts as the integration point for the ECS architecture, ensuring all systems
 work together harmoniously.
 """
 
-import sys
 from typing import Optional, Any, List
 
 import pygame
@@ -238,7 +237,7 @@ class GameplayScene(BaseScene):
         Args:
             dt_ms: Delta time in milliseconds since last update
                    (currently unused, systems get delta time from world.clock)
-                   
+
         Returns:
             Next scene name or None to stay in current scene
         """
@@ -267,22 +266,22 @@ class GameplayScene(BaseScene):
                 self._board_render_system.draw_pause_overlay(
                     surface.get_width(), surface.get_height()
                 )
-                
+
         # return next scene if set
         return self.get_next_scene()
-                
+
     def on_enter(self) -> None:
         """Called when entering gameplay scene."""
         print("Entering GameplayScene")
         self.on_attach()
         print("GameplayScene attached")
-        
+
     def on_exit(self) -> None:
         """Called when exiting gameplay scene."""
         print("Exiting GameplayScene")
         self.on_detach()
         print("GameplayScene detached")
-        
+
     def render(self) -> None:
         """Render the gameplay scene."""
         # Rendering is handled by the BoardRenderSystem in update()
@@ -474,7 +473,7 @@ class GameplayScene(BaseScene):
         self._death_reason = reason
 
         print(f"GAME OVER: {reason}")
-        
+
         # transition to game over scene
         self.set_next_scene("game_over")
 

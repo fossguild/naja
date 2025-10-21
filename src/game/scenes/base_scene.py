@@ -30,11 +30,11 @@ from src.core.rendering.pygame_surface_renderer import RenderEnqueue
 
 class BaseScene(ABC):
     """Base class for all game scenes.
-    
+
     Each scene represents a different state of the game (menu, gameplay, game over, etc.)
     and handles its own input, update, and rendering logic.
     """
-    
+
     def __init__(
         self,
         pygame_adapter: PygameIOAdapter,
@@ -43,7 +43,7 @@ class BaseScene(ABC):
         height: int,
     ):
         """Initialize the base scene.
-        
+
         Args:
             pygame_adapter: Pygame IO adapter for input handling
             renderer: Renderer for drawing operations
@@ -55,43 +55,43 @@ class BaseScene(ABC):
         self._width = width
         self._height = height
         self._next_scene: Optional[str] = None
-        
+
     @abstractmethod
     def update(self, dt_ms: float) -> Optional[str]:
         """Update the scene logic.
-        
+
         Args:
             dt_ms: Delta time in milliseconds since last update
-            
+
         Returns:
             Name of next scene to transition to, or None to stay in current scene
         """
         pass
-        
+
     @abstractmethod
     def render(self) -> None:
         """Render the scene."""
         pass
-        
+
     def on_enter(self) -> None:
         """Called when entering this scene."""
         pass
-        
+
     def on_exit(self) -> None:
         """Called when exiting this scene."""
         pass
-        
+
     def get_next_scene(self) -> Optional[str]:
         """Get the next scene to transition to.
-        
+
         Returns:
             Name of next scene, or None if no transition
         """
         return self._next_scene
-        
+
     def set_next_scene(self, scene_name: Optional[str]) -> None:
         """Set the next scene to transition to.
-        
+
         Args:
             scene_name: Name of next scene, or None for no transition
         """

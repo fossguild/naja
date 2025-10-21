@@ -32,7 +32,7 @@ from src.game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COL
 
 class SettingsScene(BaseScene):
     """Settings scene."""
-    
+
     def __init__(
         self,
         pygame_adapter,
@@ -43,7 +43,7 @@ class SettingsScene(BaseScene):
         settings: GameSettings,
     ):
         """Initialize the settings scene.
-        
+
         Args:
             pygame_adapter: Pygame IO adapter
             renderer: Renderer for drawing
@@ -56,13 +56,13 @@ class SettingsScene(BaseScene):
         self._assets = assets
         self._settings = settings
         self._selected_index = 0
-        
+
     def update(self, dt_ms: float) -> Optional[str]:
         """Update settings logic.
-        
+
         Args:
             dt_ms: Delta time in milliseconds
-            
+
         Returns:
             Next scene name or None
         """
@@ -71,57 +71,78 @@ class SettingsScene(BaseScene):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-                
+
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
                     return "menu"  # back to menu
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
-                    self._selected_index = (self._selected_index + 1) % len(self._settings.MENU_FIELDS)
+                    self._selected_index = (self._selected_index + 1) % len(
+                        self._settings.MENU_FIELDS
+                    )
                 elif event.key in (pygame.K_UP, pygame.K_w):
-                    self._selected_index = (self._selected_index - 1) % len(self._settings.MENU_FIELDS)
+                    self._selected_index = (self._selected_index - 1) % len(
+                        self._settings.MENU_FIELDS
+                    )
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
-                    self._settings.step_setting(self._settings.MENU_FIELDS[self._selected_index], -1)
+                    self._settings.step_setting(
+                        self._settings.MENU_FIELDS[self._selected_index], -1
+                    )
                     # apply music setting immediately if changed
-                    if self._settings.MENU_FIELDS[self._selected_index]["key"] == "background_music":
+                    if (
+                        self._settings.MENU_FIELDS[self._selected_index]["key"]
+                        == "background_music"
+                    ):
                         if self._settings.get("background_music"):
                             pygame.mixer.music.unpause()
                         else:
                             pygame.mixer.music.pause()
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                    self._settings.step_setting(self._settings.MENU_FIELDS[self._selected_index], +1)
+                    self._settings.step_setting(
+                        self._settings.MENU_FIELDS[self._selected_index], +1
+                    )
                     # apply music setting immediately if changed
-                    if self._settings.MENU_FIELDS[self._selected_index]["key"] == "background_music":
+                    if (
+                        self._settings.MENU_FIELDS[self._selected_index]["key"]
+                        == "background_music"
+                    ):
                         if self._settings.get("background_music"):
                             pygame.mixer.music.unpause()
                         else:
                             pygame.mixer.music.pause()
-                    
+
         return None
-        
+
     def render(self) -> None:
         """Render the settings screen."""
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
-        
+
         # Draw title
-        title = self._assets.render_custom("Settings", MESSAGE_COLOR, int(self._width / 12))
+        title = self._assets.render_custom(
+            "Settings", MESSAGE_COLOR, int(self._width / 12)
+        )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
         self._renderer.blit(title, title_rect)
-        
+
         # Spacing and scroll parameters
         row_h = int(self._height * 0.06)
         visible_rows = int(self._height * 0.70 // row_h)
         top_index = max(0, self._selected_index - visible_rows + 3)
         padding_y = int(self._height * 0.22)
-        
+
         # Draw visible rows
-        for draw_i, field_i in enumerate(range(top_index, len(self._settings.MENU_FIELDS))):
+        for draw_i, field_i in enumerate(
+            range(top_index, len(self._settings.MENU_FIELDS))
+        ):
             if draw_i >= visible_rows:
                 break
             f = self._settings.MENU_FIELDS[field_i]
             val = self._settings.get(f["key"])
             formatted_val = self._settings.format_setting_value(
-                f, val, self._width, 20  # grid_size placeholder
+                f,
+                val,
+                self._width,
+                20,  # grid_size placeholder
             )
             text = self._assets.render_custom(
                 f"{f['label']}: {formatted_val}",
@@ -132,12 +153,14 @@ class SettingsScene(BaseScene):
             rect.left = int(self._width * 0.10)
             rect.top = padding_y + draw_i * row_h
             self._renderer.blit(text, rect)
-            
+
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
         hint = self._assets.render_custom(hint_text, GRID_COLOR, int(self._width / 50))
-        self._renderer.blit(hint, hint.get_rect(center=(self._width / 2, self._height * 0.95)))
-            
+        self._renderer.blit(
+            hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
+        )
+
     def on_enter(self) -> None:
         """Called when entering settings."""
         self._selected_index = 0
