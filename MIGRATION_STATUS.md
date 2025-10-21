@@ -16,8 +16,8 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ✅ Issue #203: Implement GameSystem Base Class (Step 5) 
 - ✅ Issue #206: RenderSystem (basic) (Step 6) 
 - ✅ Issue #207: RenderSystem (snake) (Step 7) 
-- ❌ Issue #211: UISystem (start menu) (Step 8) 
-- ❌ Issue #212: UISystem (dialogs/settings) (Step 9) 
+- ✅ Issue #211: UISystem (start menu) (Step 8) 
+- ✅ Issue #212: UISystem (dialogs/settings) (Step 9) 
 - ❌ Issue #213: Command protocol (Step 10) 
 - ❌ Issue #214: Settings application (Step 11) - 
 - ✅ Issue #215: InputSystem (Step 12) 

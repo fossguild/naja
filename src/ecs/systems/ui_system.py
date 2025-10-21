@@ -19,6 +19,7 @@
 
 """UISystem - handles all user interaction flows and menu navigation."""
 
+import pygame
 from enum import Enum
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
@@ -88,6 +89,46 @@ class UISystem(BaseSystem):
         self._setting_snapshots = {}
         self._menu_active = False
         self._pending_decision = None
+
+    def run_start_menu(self, io_adapter) -> StartDecision:
+        """Run the start menu loop until user makes a decision.
+
+        This method runs the complete menu interaction cycle and returns
+        the user's decision. It handles its own event loop internally.
+
+        Args:
+            io_adapter: PygameIOAdapter instance for event handling and display updates
+
+        Returns:
+            StartDecision: The decision made by the user (START_GAME, OPEN_SETTINGS, or QUIT)
+        """
+        # Start the menu loop
+        self.start_menu_loop()
+
+        # Event loop - wait for user decision
+        while self._pending_decision is None:
+            # Render current menu state
+            self._render_menu_frame()
+            io_adapter.update_display()
+
+            # Process events
+            for event in io_adapter.get_events():
+                if event.type == pygame.QUIT:
+                    self.handle_app_quit()
+                    break
+
+                if event.type == pygame.KEYDOWN:
+                    key = event.key
+                    if key in (pygame.K_UP, pygame.K_w):
+                        self.handle_menu_up()
+                    elif key in (pygame.K_DOWN, pygame.K_s):
+                        self.handle_menu_down()
+                    elif key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.handle_menu_select()
+                    elif key == pygame.K_ESCAPE:
+                        self.handle_menu_quit()
+
+        return self._pending_decision
 
     def start_menu_loop(self) -> None:
         """Start the menu loop and activate menu state.
@@ -161,45 +202,194 @@ class UISystem(BaseSystem):
         self._pending_decision = StartDecision.QUIT
         self._menu_active = False
 
-    def run_settings_menu(self) -> SettingsResult:
+    def run_settings_menu(self, io_adapter, settings) -> SettingsResult:
         """Run the settings menu loop until user confirms or cancels.
+
+        Args:
+            io_adapter: PygameIOAdapter instance for event handling and display updates
+            settings: GameSettings instance to modify
 
         Returns:
             SettingsResult: Contains needs_reset and canceled flags
         """
-        # TODO: Implement settings menu
-        # For now, return a placeholder result
-        return SettingsResult(needs_reset=False, canceled=True)
+        selected_index = 0
 
-    def prompt_reset_warning(self) -> ResetDecision:
+        # Snapshot original values of critical settings that need reset
+        critical_settings = [
+            "cells_per_side",
+            "obstacle_difficulty",
+            "initial_speed",
+            "number_of_apples",
+            "electric_walls",
+        ]
+        original_values = {key: settings.get(key) for key in critical_settings}
+
+        # Event loop
+        while True:
+            # Get current settings values as dict for renderer
+            settings_values = {
+                field["key"]: settings.get(field["key"])
+                for field in settings.MENU_FIELDS
+            }
+
+            # Render settings menu using renderer's built-in method
+            self._renderer.draw_settings_menu(
+                settings.MENU_FIELDS, selected_index, settings_values
+            )
+            io_adapter.update_display()
+
+            # Process events
+            for event in io_adapter.get_events():
+                if event.type == pygame.QUIT:
+                    # User closed window - revert changes
+                    for key, value in original_values.items():
+                        settings.set(key, value)
+                    return SettingsResult(needs_reset=False, canceled=True)
+
+                if event.type == pygame.KEYDOWN:
+                    key = event.key
+
+                    # Exit menu (save changes)
+                    if key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                        # Check if critical settings changed
+                        needs_reset = any(
+                            settings.get(k) != original_values[k]
+                            for k in critical_settings
+                        )
+                        return SettingsResult(needs_reset=needs_reset, canceled=False)
+
+                    # Navigate down
+                    elif key in (pygame.K_DOWN, pygame.K_s):
+                        selected_index = (selected_index + 1) % len(
+                            settings.MENU_FIELDS
+                        )
+
+                    # Navigate up
+                    elif key in (pygame.K_UP, pygame.K_w):
+                        selected_index = (selected_index - 1) % len(
+                            settings.MENU_FIELDS
+                        )
+
+                    # Decrease value
+                    elif key in (pygame.K_LEFT, pygame.K_a):
+                        settings.step_setting(settings.MENU_FIELDS[selected_index], -1)
+
+                    # Increase value
+                    elif key in (pygame.K_RIGHT, pygame.K_d):
+                        settings.step_setting(settings.MENU_FIELDS[selected_index], +1)
+
+                    # Random colors (special key)
+                    elif key == pygame.K_c:
+                        settings.randomize_colors()
+
+    def prompt_reset_warning(self, io_adapter) -> ResetDecision:
         """Show dialog warning about game reset.
+
+        Args:
+            io_adapter: PygameIOAdapter instance for event handling and display updates
 
         Returns:
             ResetDecision: User's choice (RESET or CANCEL)
         """
-        # TODO: Implement reset warning dialog
-        # For now, return cancel
-        return ResetDecision.CANCEL
+        selected = 0
 
-    def prompt_game_over(self, final_score: int) -> GameOverDecision:
+        # Event loop
+        while True:
+            # Render warning dialog using renderer's built-in method
+            self._renderer.draw_reset_warning_dialog(selected)
+            io_adapter.update_display()
+
+            # Process events
+            for event in io_adapter.get_events():
+                if event.type == pygame.QUIT:
+                    # User closed window - cancel changes
+                    return ResetDecision.CANCEL
+
+                if event.type == pygame.KEYDOWN:
+                    key = event.key
+
+                    # Navigate up
+                    if key in (pygame.K_UP, pygame.K_w):
+                        selected = (selected - 1) % 2  # 2 options
+
+                    # Navigate down
+                    elif key in (pygame.K_DOWN, pygame.K_s):
+                        selected = (selected + 1) % 2  # 2 options
+
+                    # Confirm selection
+                    elif key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if selected == 0:  # Reset Now
+                            return ResetDecision.RESET
+                        else:  # Cancel Changes
+                            return ResetDecision.CANCEL
+
+                    # ESC always cancels
+                    elif key == pygame.K_ESCAPE:
+                        return ResetDecision.CANCEL
+
+    def prompt_game_over(
+        self, io_adapter, final_score: int, settings=None
+    ) -> GameOverDecision:
         """Show game over screen with final score.
 
         Args:
+            io_adapter: PygameIOAdapter instance for event handling and display updates
             final_score: Final score to display
+            settings: Optional GameSettings instance for sound/music control
 
         Returns:
             GameOverDecision: User's choice (RESTART or QUIT)
         """
-        # TODO: Implement game over prompt
-        # For now, return restart
-        return GameOverDecision.RESTART
+        # Play death sound effect if enabled
+        if settings and settings.get("death_sound"):
+            # Audio will be handled by AudioSystem in full ECS implementation
+            pass
+
+        # Switch to death music if enabled
+        if settings and settings.get("background_music"):
+            # Music will be handled by AudioSystem in full ECS implementation
+            pass
+
+        # No selection index for game over (just wait for key)
+        selected_option = 0  # 0 = restart, 1 = quit
+
+        # Event loop - wait for user decision
+        while True:
+            # Render game over screen using renderer's built-in method
+            self._renderer.draw_game_over_screen(final_score, selected_option)
+            io_adapter.update_display()
+
+            # Process events
+            for event in io_adapter.get_events():
+                if event.type == pygame.QUIT:
+                    if settings and settings.get("background_music"):
+                        # Music will be handled by AudioSystem
+                        pass
+                    return GameOverDecision.QUIT
+
+                if event.type == pygame.KEYDOWN:
+                    key = event.key
+
+                    # Restart game
+                    if key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if settings and settings.get("background_music"):
+                            # Music will be handled by AudioSystem
+                            pass
+                        return GameOverDecision.RESTART
+
+                    # Quit game
+                    elif key == pygame.K_q:
+                        if settings and settings.get("background_music"):
+                            # Music will be handled by AudioSystem
+                            pass
+                        return GameOverDecision.QUIT
 
     # Additional callback methods for InputSystem
 
     def handle_pause(self) -> None:
         """Handle pause toggle (called by InputSystem)."""
         # TODO: Implement pause logic
-        pass
+        ...
 
     def handle_quit(self) -> None:
         """Handle quit request (called by InputSystem)."""
@@ -209,7 +399,7 @@ class UISystem(BaseSystem):
     def handle_open_settings(self) -> None:
         """Handle open settings request (called by InputSystem)."""
         # TODO: Implement settings menu
-        pass
+        ...
 
     def apply_settings(self, reset_objects: bool = False) -> None:
         """Apply pending settings changes.
@@ -219,7 +409,7 @@ class UISystem(BaseSystem):
         """
         # TODO: Implement settings application
         # This should handle window resize, font reload, object recreation
-        pass
+        ...
 
     def needs_reset(self) -> bool:
         """Check if current settings changes require game reset.

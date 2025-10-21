@@ -41,12 +41,26 @@ class MockRenderEnqueue:
         self.height = 600
         self.fill_calls = []
         self.draw_start_menu_calls = []
+        self.draw_settings_menu_calls = []
+        self.draw_reset_warning_dialog_calls = []
+        self.draw_game_over_screen_calls = []
 
     def fill(self, color):
         self.fill_calls.append(color)
 
     def draw_start_menu(self, menu_items, selected_index):
         self.draw_start_menu_calls.append((menu_items, selected_index))
+
+    def draw_settings_menu(self, settings_fields, selected_index, settings_values):
+        self.draw_settings_menu_calls.append(
+            (settings_fields, selected_index, settings_values)
+        )
+
+    def draw_reset_warning_dialog(self, selected_option):
+        self.draw_reset_warning_dialog_calls.append(selected_option)
+
+    def draw_game_over_screen(self, final_score, selected_option):
+        self.draw_game_over_screen_calls.append((final_score, selected_option))
 
 
 class MockPygameAdapter:
@@ -239,28 +253,221 @@ class TestInGameEventHandling:
         # TODO: Add assertions when settings logic is implemented
 
 
-class TestOtherMenuMethods:
-    """Test other menu methods (placeholders for now)."""
+class TestSettingsMenu:
+    """Test run_settings_menu method."""
 
-    def test_run_settings_menu_placeholder(self, ui_system):
-        """Test settings menu returns placeholder result."""
-        result = ui_system.run_settings_menu()
+    def test_run_settings_menu_exit_without_changes(
+        self, ui_system, mock_pygame_adapter
+    ):
+        """Test settings menu exits with ESC without changes."""
+        import pygame
 
+        # Create mock settings
+        mock_settings = Mock()
+        mock_settings.MENU_FIELDS = [
+            {"key": "test_setting", "label": "Test", "type": "int"}
+        ]
+        mock_settings.get = Mock(return_value=10)
+
+        # Simulate ESC key
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)]
+
+        # Run menu
+        result = ui_system.run_settings_menu(mock_pygame_adapter, mock_settings)
+
+        # Should return with no reset needed and not canceled
         assert isinstance(result, SettingsResult)
         assert result.needs_reset is False
+        assert result.canceled is False
+
+    def test_run_settings_menu_exit_with_quit(self, ui_system, mock_pygame_adapter):
+        """Test settings menu reverts changes on window close."""
+        import pygame
+
+        # Create mock settings
+        mock_settings = Mock()
+        mock_settings.MENU_FIELDS = [
+            {"key": "cells_per_side", "label": "Cells", "type": "int"}
+        ]
+        # Need enough values for: 5 critical settings snapshot + 1 render call + revert
+        mock_settings.get = Mock(return_value=16)
+        mock_settings.set = Mock()
+
+        # Simulate QUIT event
+        mock_pygame_adapter.events = [Mock(type=pygame.QUIT)]
+
+        # Run menu
+        result = ui_system.run_settings_menu(mock_pygame_adapter, mock_settings)
+
+        # Should revert changes and return canceled
         assert result.canceled is True
+        assert mock_settings.set.call_count >= 5  # Should revert critical settings
 
-    def test_prompt_reset_warning_placeholder(self, ui_system):
-        """Test reset warning returns placeholder result."""
-        result = ui_system.prompt_reset_warning()
+    def test_run_settings_menu_navigation(self, ui_system, mock_pygame_adapter):
+        """Test settings menu navigation keys."""
+        import pygame
 
+        # Create mock settings with multiple fields
+        mock_settings = Mock()
+        mock_settings.MENU_FIELDS = [
+            {"key": "setting1", "label": "Setting 1", "type": "int"},
+            {"key": "setting2", "label": "Setting 2", "type": "int"},
+        ]
+        mock_settings.get = Mock(return_value=10)
+        mock_settings.step_setting = Mock()
+
+        # Simulate: DOWN, UP, LEFT, RIGHT, ENTER
+        mock_pygame_adapter.events = [
+            Mock(type=pygame.KEYDOWN, key=pygame.K_DOWN),
+            Mock(type=pygame.KEYDOWN, key=pygame.K_UP),
+            Mock(type=pygame.KEYDOWN, key=pygame.K_LEFT),
+            Mock(type=pygame.KEYDOWN, key=pygame.K_RIGHT),
+            Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN),
+        ]
+
+        # Run menu
+        ui_system.run_settings_menu(mock_pygame_adapter, mock_settings)
+
+        # Should have called step_setting for LEFT and RIGHT
+        assert mock_settings.step_setting.call_count == 2
+
+
+class TestResetWarning:
+    """Test prompt_reset_warning method."""
+
+    def test_prompt_reset_warning_selects_reset(self, ui_system, mock_pygame_adapter):
+        """Test reset warning returns RESET when user confirms."""
+        import pygame
+
+        # Simulate ENTER on first option (Reset Now)
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN)]
+
+        # Run dialog
+        result = ui_system.prompt_reset_warning(mock_pygame_adapter)
+
+        # Should return RESET
+        assert result == ResetDecision.RESET
+
+    def test_prompt_reset_warning_selects_cancel(self, ui_system, mock_pygame_adapter):
+        """Test reset warning returns CANCEL when user cancels."""
+        import pygame
+
+        # Simulate DOWN then ENTER (select Cancel Changes)
+        mock_pygame_adapter.events = [
+            Mock(type=pygame.KEYDOWN, key=pygame.K_DOWN),
+            Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN),
+        ]
+
+        # Run dialog
+        result = ui_system.prompt_reset_warning(mock_pygame_adapter)
+
+        # Should return CANCEL
         assert result == ResetDecision.CANCEL
 
-    def test_prompt_game_over_placeholder(self, ui_system):
-        """Test game over prompt returns placeholder result."""
-        result = ui_system.prompt_game_over(100)
+    def test_prompt_reset_warning_esc_cancels(self, ui_system, mock_pygame_adapter):
+        """Test reset warning returns CANCEL when user presses ESC."""
+        import pygame
 
+        # Simulate ESC
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)]
+
+        # Run dialog
+        result = ui_system.prompt_reset_warning(mock_pygame_adapter)
+
+        # Should return CANCEL
+        assert result == ResetDecision.CANCEL
+
+    def test_prompt_reset_warning_quit_cancels(self, ui_system, mock_pygame_adapter):
+        """Test reset warning returns CANCEL when user closes window."""
+        import pygame
+
+        # Simulate window close
+        mock_pygame_adapter.events = [Mock(type=pygame.QUIT)]
+
+        # Run dialog
+        result = ui_system.prompt_reset_warning(mock_pygame_adapter)
+
+        # Should return CANCEL
+        assert result == ResetDecision.CANCEL
+
+
+class TestGameOver:
+    """Test prompt_game_over method."""
+
+    def test_prompt_game_over_restart(self, ui_system, mock_pygame_adapter):
+        """Test game over returns RESTART when user presses ENTER."""
+        import pygame
+
+        # Simulate ENTER
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN)]
+
+        # Run dialog
+        result = ui_system.prompt_game_over(mock_pygame_adapter, 100)
+
+        # Should return RESTART
         assert result == GameOverDecision.RESTART
+
+    def test_prompt_game_over_restart_with_space(self, ui_system, mock_pygame_adapter):
+        """Test game over returns RESTART when user presses SPACE."""
+        import pygame
+
+        # Simulate SPACE
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_SPACE)]
+
+        # Run dialog
+        result = ui_system.prompt_game_over(mock_pygame_adapter, 100)
+
+        # Should return RESTART
+        assert result == GameOverDecision.RESTART
+
+    def test_prompt_game_over_quit(self, ui_system, mock_pygame_adapter):
+        """Test game over returns QUIT when user presses Q."""
+        import pygame
+
+        # Simulate Q key
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_q)]
+
+        # Run dialog
+        result = ui_system.prompt_game_over(mock_pygame_adapter, 100)
+
+        # Should return QUIT
+        assert result == GameOverDecision.QUIT
+
+    def test_prompt_game_over_quit_on_window_close(
+        self, ui_system, mock_pygame_adapter
+    ):
+        """Test game over returns QUIT when user closes window."""
+        import pygame
+
+        # Simulate window close
+        mock_pygame_adapter.events = [Mock(type=pygame.QUIT)]
+
+        # Run dialog
+        result = ui_system.prompt_game_over(mock_pygame_adapter, 100)
+
+        # Should return QUIT
+        assert result == GameOverDecision.QUIT
+
+    def test_prompt_game_over_with_settings(self, ui_system, mock_pygame_adapter):
+        """Test game over works with settings parameter."""
+        import pygame
+
+        # Create mock settings
+        mock_settings = Mock()
+        mock_settings.get = Mock(return_value=True)
+
+        # Simulate ENTER
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN)]
+
+        # Run dialog with settings
+        result = ui_system.prompt_game_over(mock_pygame_adapter, 100, mock_settings)
+
+        # Should return RESTART
+        assert result == GameOverDecision.RESTART
+
+
+class TestOtherMenuMethods:
+    """Test other menu methods."""
 
     def test_apply_settings_placeholder(self, ui_system):
         """Test settings application is placeholder."""
@@ -306,6 +513,130 @@ class TestMenuLoopMethods:
 
         ui_system._pending_decision = None
         assert ui_system.get_pending_decision() is None
+
+
+class TestRunStartMenu:
+    """Test run_start_menu method."""
+
+    def test_run_start_menu_returns_start_game_decision(
+        self, ui_system, mock_pygame_adapter
+    ):
+        """Test run_start_menu returns START_GAME when user selects start."""
+        import pygame
+
+        # Simulate user pressing ENTER on first item
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN)]
+
+        # Run menu
+        decision = ui_system.run_start_menu(mock_pygame_adapter)
+
+        # Should return START_GAME
+        assert decision == StartDecision.START_GAME
+        assert ui_system._menu_active is False
+
+    def test_run_start_menu_returns_settings_decision(
+        self, ui_system, mock_pygame_adapter
+    ):
+        """Test run_start_menu returns OPEN_SETTINGS when user selects settings."""
+        import pygame
+
+        # Simulate user pressing DOWN then ENTER
+        mock_pygame_adapter.events = [
+            Mock(type=pygame.KEYDOWN, key=pygame.K_DOWN),
+            Mock(type=pygame.KEYDOWN, key=pygame.K_RETURN),
+        ]
+
+        # Run menu with DOWN->ENTER sequence
+        decision = ui_system.run_start_menu(mock_pygame_adapter)
+
+        assert decision == StartDecision.OPEN_SETTINGS
+        assert ui_system._menu_active is False
+
+    def test_run_start_menu_returns_quit_decision(self, ui_system, mock_pygame_adapter):
+        """Test run_start_menu returns QUIT when user presses ESC."""
+        import pygame
+
+        # Simulate user pressing ESC
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)]
+
+        # Run menu
+        decision = ui_system.run_start_menu(mock_pygame_adapter)
+
+        # Should return QUIT
+        assert decision == StartDecision.QUIT
+        assert ui_system._menu_active is False
+
+    def test_run_start_menu_returns_quit_on_window_close(
+        self, ui_system, mock_pygame_adapter
+    ):
+        """Test run_start_menu returns QUIT when user closes window."""
+        import pygame
+
+        # Simulate user closing window
+        mock_pygame_adapter.events = [Mock(type=pygame.QUIT)]
+
+        # Run menu
+        decision = ui_system.run_start_menu(mock_pygame_adapter)
+
+        # Should return QUIT
+        assert decision == StartDecision.QUIT
+        assert ui_system._menu_active is False
+
+    def test_run_start_menu_handles_navigation_keys(
+        self, ui_system, mock_pygame_adapter
+    ):
+        """Test run_start_menu properly handles all navigation keys."""
+        import pygame
+
+        # Simulate complex navigation: DOWN, UP, W, S, SPACE
+        mock_pygame_adapter.events = [
+            Mock(type=pygame.KEYDOWN, key=pygame.K_DOWN),  # Move to Settings
+        ]
+
+        ui_system.start_menu_loop()
+        ui_system.handle_menu_down()
+        assert ui_system._selected_index == 1
+
+        # Now move back up with W key
+        ui_system.handle_menu_up()
+        assert ui_system._selected_index == 0
+
+        # Select with SPACE
+        ui_system.handle_menu_select()
+        assert ui_system._pending_decision == StartDecision.START_GAME
+
+    def test_run_start_menu_calls_renderer(self, ui_system, mock_pygame_adapter):
+        """Test run_start_menu calls renderer methods."""
+        import pygame
+
+        # Simulate quick menu exit
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)]
+
+        # Mock renderer methods
+        fill_mock = Mock()
+        draw_mock = Mock()
+        ui_system._renderer.fill = fill_mock
+        ui_system._renderer.draw_start_menu = draw_mock
+
+        # Run menu
+        ui_system.run_start_menu(mock_pygame_adapter)
+
+        # Should have called renderer methods at least once
+        assert fill_mock.call_count >= 1
+        assert draw_mock.call_count >= 1
+
+    def test_run_start_menu_updates_display(self, ui_system, mock_pygame_adapter):
+        """Test run_start_menu calls update_display."""
+        import pygame
+
+        # Simulate quick menu exit
+        mock_pygame_adapter.events = [Mock(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)]
+
+        # Run menu
+        ui_system.run_start_menu(mock_pygame_adapter)
+
+        # Should have called update_display at least once
+        assert mock_pygame_adapter.update_display_calls >= 1
 
 
 class TestUISystemUpdate:
