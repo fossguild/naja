@@ -28,7 +28,7 @@ See the detailed Issue ↔ Step map [here](.cursor/rules/ecs_migration_map.mdc).
 - ✅ Issue #220: ScoringSystem (Step 17) 
 - ✅ Issue #223: AudioSystem (Step 18) 
 - ✅ Issue #208: InterpolationSystem (Step 19) 
-- ❌ Issue #224: ValidationSystem (Step 20) 
+- ✅ Issue #224: ValidationSystem (Step 20) 
 - ❌ Issue #209: ResizeSystem (Step 21) 
 - ❌ Issue #225: Create prefabs (Step 22) 
 - ❌ Issue #204: Wire gameplay scene (Step 23) 
