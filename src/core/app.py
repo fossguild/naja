@@ -205,7 +205,6 @@ class GameApp:
             draw_grid,
             draw_music_indicator,
             draw_pause_screen,
-            draw_speed_bar,
         )
 
         show_pause_hint_end_time = pygame.time.get_ticks() + 2000  # 2 seconds
@@ -228,7 +227,6 @@ class GameApp:
                 draw_grid,
                 draw_music_indicator,
                 draw_pause_screen,
-                draw_speed_bar,
                 show_pause_hint_end_time,
             )
 
@@ -504,7 +502,6 @@ class GameApp:
         draw_grid,
         draw_music_indicator,
         draw_pause_screen,
-        draw_speed_bar,
         show_pause_hint_end_time: int,
     ) -> None:
         """Render one frame."""
@@ -522,9 +519,6 @@ class GameApp:
         # Draw all apples
         for apple in self.state.apples:
             apple.update(self.state.arena)
-
-        # Draw speed bar
-        draw_speed_bar(self.state, self.assets, self.settings)
 
         # TODO(Issue #228): This is OLD snake rendering code that will be replaced by ECS
         # The new ECS rendering is implemented in BoardRenderSystem but not yet integrated.

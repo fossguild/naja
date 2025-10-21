@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#   Copyright (c) 2024, Felipe Diniz <lfelipediniz@usp.br>
+
 #
 #   This file is part of Naja.
 #
@@ -27,7 +27,7 @@ This is a lightweight orchestrator that delegates to specialized handlers:
 - CommandConverter: Event-to-command translation
 """
 
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, Any
 import pygame
 
 from src.ecs.systems.base_system import BaseSystem
@@ -40,6 +40,7 @@ from .menu_handler import MenuHandler, StartDecision
 from .settings_handler import SettingsHandler, SettingsResult
 from .dialog_handler import DialogHandler, ResetDecision, GameOverDecision
 from .command_converter import CommandConverter
+from .settings_applicator import SettingsApplicator
 
 
 class UISystem(BaseSystem):
@@ -60,6 +61,9 @@ class UISystem(BaseSystem):
         renderer: RenderEnqueue,
         assets: AssetsSystem,
         get_current_direction: Optional[Callable[[], Tuple[int, int]]] = None,
+        pygame_adapter: Optional[Any] = None,
+        state: Optional[Any] = None,
+        config: Optional[Any] = None,
     ):
         """Initialize the UISystem.
 
@@ -67,6 +71,9 @@ class UISystem(BaseSystem):
             renderer: RenderEnqueue view to queue draw commands (enqueue-only access)
             assets: AssetsSystem instance for accessing fonts and sprites
             get_current_direction: Optional callback to get current snake direction (dx, dy)
+            pygame_adapter: Optional PygameIOAdapter for window operations (migration support)
+            state: Optional GameState for entity management (migration support)
+            config: Optional GameConfig for dimension calculations (migration support)
         """
         self._renderer = renderer
         self._assets = assets
@@ -76,6 +83,13 @@ class UISystem(BaseSystem):
         self._settings_handler = SettingsHandler(renderer, assets)
         self._dialog_handler = DialogHandler(renderer, assets)
         self._command_converter = CommandConverter(get_current_direction)
+
+        # Initialize settings applicator (for migration support)
+        self._settings_applicator: Optional[SettingsApplicator] = None
+        if pygame_adapter and state and config:
+            self._settings_applicator = SettingsApplicator(
+                pygame_adapter, state, assets, config
+            )
 
     # Compatibility properties for backward compatibility with tests
     # These delegate to the internal MenuHandler
@@ -239,24 +253,71 @@ class UISystem(BaseSystem):
         # TODO: Implement settings menu
         pass
 
-    def apply_settings(self, reset_objects: bool = False) -> None:
+    def apply_settings(self, settings: Any, reset_objects: bool = False) -> None:
         """Apply pending settings changes.
 
-        Args:
-            reset_objects: Whether to recreate game objects
-        """
-        # TODO: Implement settings application
-        # This should handle window resize, font reload, object recreation
-        pass
+        This method applies configuration changes to the game, handling:
+        - Window resizing if grid size changed
+        - Font reloading with new dimensions
+        - Entity recreation if reset_objects is True
+        - Music state changes
 
-    def needs_reset(self) -> bool:
+        Args:
+            settings: GameSettings instance with current configuration
+            reset_objects: Whether to recreate game objects (snake, apples, obstacles)
+
+        Raises:
+            RuntimeError: If settings applicator is not initialized
+        """
+        if self._settings_applicator is None:
+            raise RuntimeError(
+                "Settings applicator not initialized. "
+                "UISystem needs pygame_adapter, state, and config for settings application."
+            )
+
+        self._settings_applicator.apply_settings(settings, reset_objects)
+
+    def needs_reset(self, settings: Any) -> bool:
         """Check if current settings changes require game reset.
 
+        Compares current settings against a previously taken snapshot to determine
+        if critical settings (grid size, difficulty, speed, etc.) have changed.
+
+        Args:
+            settings: GameSettings instance to check
+
         Returns:
-            bool: True if reset is needed
+            bool: True if reset is needed due to critical setting changes
+
+        Raises:
+            RuntimeError: If settings applicator is not initialized
         """
-        # TODO: Implement reset detection logic
-        return False
+        if self._settings_applicator is None:
+            raise RuntimeError(
+                "Settings applicator not initialized. "
+                "UISystem needs pygame_adapter, state, and config for reset detection."
+            )
+
+        return self._settings_applicator.needs_reset(settings)
+
+    def snapshot_settings(self, settings: Any) -> None:
+        """Take a snapshot of critical settings before opening settings menu.
+
+        This snapshot is used to detect whether a reset is needed when settings are changed.
+
+        Args:
+            settings: GameSettings instance to snapshot
+
+        Raises:
+            RuntimeError: If settings applicator is not initialized
+        """
+        if self._settings_applicator is None:
+            raise RuntimeError(
+                "Settings applicator not initialized. "
+                "UISystem needs pygame_adapter, state, and config for settings snapshots."
+            )
+
+        self._settings_applicator.snapshot_critical_settings(settings)
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.

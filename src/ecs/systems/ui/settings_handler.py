@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#   Copyright (c) 2024, Felipe Diniz <lfelipediniz@usp.br>
+
 #
 #   This file is part of Naja.
 #
@@ -43,6 +43,15 @@ class SettingsHandler:
     - Delegating rendering to RenderSystem
     """
 
+    # Critical settings that require game reset
+    CRITICAL_SETTINGS = [
+        "cells_per_side",
+        "obstacle_difficulty",
+        "initial_speed",
+        "number_of_apples",
+        "electric_walls",
+    ]
+
     def __init__(self, renderer: RenderEnqueue, assets: AssetsSystem):
         """Initialize the SettingsHandler.
 
@@ -66,14 +75,7 @@ class SettingsHandler:
         selected_index = 0
 
         # Snapshot original values of critical settings that need reset
-        critical_settings = [
-            "cells_per_side",
-            "obstacle_difficulty",
-            "initial_speed",
-            "number_of_apples",
-            "electric_walls",
-        ]
-        original_values = {key: settings.get(key) for key in critical_settings}
+        original_values = {key: settings.get(key) for key in self.CRITICAL_SETTINGS}
 
         # Event loop
         while True:
@@ -105,7 +107,7 @@ class SettingsHandler:
                         # Check if critical settings changed
                         needs_reset = any(
                             settings.get(k) != original_values[k]
-                            for k in critical_settings
+                            for k in self.CRITICAL_SETTINGS
                         )
                         return SettingsResult(needs_reset=needs_reset, canceled=False)
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#
 #   This file is part of Naja.
 #
 #   Naja is free software: you can redistribute it and/or modify
@@ -17,24 +16,10 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""UI subsystems for menu handling, dialogs, and command conversion."""
+"""Prefab factory functions for creating game entities."""
 
-from .ui_system import UISystem
-from .menu_handler import MenuHandler, StartDecision
-from .settings_handler import SettingsHandler, SettingsResult
-from .dialog_handler import DialogHandler, ResetDecision, GameOverDecision
-from .command_converter import CommandConverter
-from .settings_applicator import SettingsApplicator
+from src.ecs.prefabs.snake import create_snake
+from src.ecs.prefabs.apple import create_apple
+from src.ecs.prefabs.obstacle_field import create_obstacles
 
-__all__ = [
-    "UISystem",
-    "MenuHandler",
-    "StartDecision",
-    "SettingsHandler",
-    "SettingsResult",
-    "DialogHandler",
-    "ResetDecision",
-    "GameOverDecision",
-    "CommandConverter",
-    "SettingsApplicator",
-]
+__all__ = ["create_snake", "create_apple", "create_obstacles"]
