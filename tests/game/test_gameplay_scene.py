@@ -80,7 +80,7 @@ class TestGameplayScene:
         """Test that systems are registered in the correct execution order."""
         board = Board(20, 20)
         world = World(board)
-        
+
         # create mock renderer so BoardRenderSystem is registered
         mock_renderer = object()
         scene = GameplayScene(world, renderer=mock_renderer)
@@ -107,7 +107,7 @@ class TestGameplayScene:
 
         # check that we have at least the core systems
         # note: some systems may be commented out as TODOs
-        
+
         # verify each expected system type appears in actual types
         for expected_type in expected_types:
             found = any(isinstance(system, expected_type) for system in systems)
@@ -215,4 +215,3 @@ class TestGameplayScene:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-
