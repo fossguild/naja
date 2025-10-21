@@ -18,3 +18,26 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Music state component."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class MusicState:
+    """Component for managing background music state.
+
+    Contains:
+    - enabled: Whether background music is enabled
+    - current_track: Name of currently playing track
+    - volume: Music volume (0.0 to 1.0)
+    - is_playing: Whether music is currently playing
+    - is_paused: Whether music is paused
+
+    Used by: AudioSystem
+    """
+
+    enabled: bool = True
+    current_track: str = "background"
+    volume: float = 0.2
+    is_playing: bool = False
+    is_paused: bool = False
