@@ -170,9 +170,7 @@ class TestGenerateObstacles:
     def test_obstacles_avoid_safe_zone(self, world_small, obstacle_system):
         """Test that obstacles don't spawn in snake safe zone."""
         snake_start = (30, 30)
-        obstacle_ids = obstacle_system.generate_obstacles(
-            world_small, 10, snake_start
-        )
+        obstacle_ids = obstacle_system.generate_obstacles(world_small, 10, snake_start)
 
         grid_size = world_small.board.cell_size
         safe_zone_width = obstacle_system._safe_zone_width * grid_size
@@ -377,9 +375,7 @@ class TestEdgeCases:
 
         # try to generate 90 obstacles on 10x10 board (100 cells)
         # this should be impossible due to connectivity requirements
-        obstacle_ids = obstacle_system.generate_obstacles(
-            world_small, 90, snake_start
-        )
+        obstacle_ids = obstacle_system.generate_obstacles(world_small, 90, snake_start)
 
         # system should handle gracefully and return what it could place
         assert isinstance(obstacle_ids, list)
@@ -395,9 +391,7 @@ class TestIntegration:
         snake_start = (30, 30)
 
         # generate obstacles
-        obstacle_ids = obstacle_system.generate_obstacles(
-            world_small, 10, snake_start
-        )
+        obstacle_ids = obstacle_system.generate_obstacles(world_small, 10, snake_start)
 
         # verify all obstacles are in registry
         assert len(obstacle_ids) == 10
@@ -440,4 +434,3 @@ class TestIntegration:
 
         # should be different IDs
         assert set(ids1).isdisjoint(set(ids2))
-

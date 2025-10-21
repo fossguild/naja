@@ -460,9 +460,7 @@ class ObstacleGenerationSystem(BaseSystem):
 
         return None
 
-    def _create_obstacle_entity(
-        self, world: World, x: int, y: int
-    ) -> int:
+    def _create_obstacle_entity(self, world: World, x: int, y: int) -> int:
         """Create a new obstacle entity at specified position.
 
         Args:
