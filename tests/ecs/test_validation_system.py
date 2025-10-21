@@ -23,7 +23,7 @@ import pytest
 import logging
 from dataclasses import dataclass, field
 from typing import List
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from src.ecs.world import World
 from src.ecs.board import Board
@@ -149,9 +149,7 @@ class TestAppleCountValidation:
     def test_validate_apple_count_correct(self, world, validation_system):
         """Test validation passes with correct apple count."""
         # add exactly one apple
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         world.registry.add(apple)
 
         result = validation_system.validate_apple_count(world)
@@ -166,12 +164,8 @@ class TestAppleCountValidation:
     def test_validate_apple_count_too_many(self, world, validation_system):
         """Test validation fails with too many apples."""
         # add two apples (expected: 1)
-        apple1 = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        apple2 = AppleEntity(
-            position=Position(200, 200), edible=Edible()
-        )
+        apple1 = AppleEntity(position=Position(100, 100), edible=Edible())
+        apple2 = AppleEntity(position=Position(200, 200), edible=Edible())
         world.registry.add(apple1)
         world.registry.add(apple2)
 
@@ -184,9 +178,7 @@ class TestAppleCountValidation:
 
         # add exactly 3 apples
         for i in range(3):
-            apple = AppleEntity(
-                position=Position(100 * i, 100), edible=Edible()
-            )
+            apple = AppleEntity(position=Position(100 * i, 100), edible=Edible())
             world.registry.add(apple)
 
         result = system.validate_apple_count(world)
@@ -208,9 +200,7 @@ class TestSnakeBoundsValidation:
         result = validation_system.validate_snake_bounds(world)
         assert result is True
 
-    def test_validate_snake_head_out_of_bounds_x(
-        self, world, validation_system
-    ):
+    def test_validate_snake_head_out_of_bounds_x(self, world, validation_system):
         """Test validation fails when snake head X is out of bounds."""
         # board width is 600
         snake = SnakeEntity(
@@ -222,9 +212,7 @@ class TestSnakeBoundsValidation:
         result = validation_system.validate_snake_bounds(world)
         assert result is False
 
-    def test_validate_snake_head_out_of_bounds_y(
-        self, world, validation_system
-    ):
+    def test_validate_snake_head_out_of_bounds_y(self, world, validation_system):
         """Test validation fails when snake head Y is out of bounds."""
         # board height is 400
         snake = SnakeEntity(
@@ -236,9 +224,7 @@ class TestSnakeBoundsValidation:
         result = validation_system.validate_snake_bounds(world)
         assert result is False
 
-    def test_validate_snake_head_negative_position(
-        self, world, validation_system
-    ):
+    def test_validate_snake_head_negative_position(self, world, validation_system):
         """Test validation fails with negative position."""
         snake = SnakeEntity(
             position=Position(-10, -20),  # negative coordinates
@@ -249,9 +235,7 @@ class TestSnakeBoundsValidation:
         result = validation_system.validate_snake_bounds(world)
         assert result is False
 
-    def test_validate_snake_body_out_of_bounds(
-        self, world, validation_system
-    ):
+    def test_validate_snake_body_out_of_bounds(self, world, validation_system):
         """Test validation fails when body segment is out of bounds."""
         snake = SnakeEntity(
             position=Position(300, 200),  # head in bounds
@@ -269,12 +253,8 @@ class TestSnakeBoundsValidation:
 
     def test_validate_multiple_snakes(self, world, validation_system):
         """Test validation with multiple snakes."""
-        snake1 = SnakeEntity(
-            position=Position(100, 100), body=SnakeBody()
-        )
-        snake2 = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
+        snake1 = SnakeEntity(position=Position(100, 100), body=SnakeBody())
+        snake2 = SnakeEntity(position=Position(200, 200), body=SnakeBody())
         world.registry.add(snake1)
         world.registry.add(snake2)
 
@@ -288,15 +268,9 @@ class TestEntityOverlapValidation:
     def test_validate_no_overlaps(self, world, validation_system):
         """Test validation passes with no overlaps."""
         # add entities at different positions
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
-        obstacle = ObstacleEntity(
-            position=Position(300, 300), tag=ObstacleTag()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
+        obstacle = ObstacleEntity(position=Position(300, 300), tag=ObstacleTag())
 
         world.registry.add(apple)
         world.registry.add(snake)
@@ -308,12 +282,8 @@ class TestEntityOverlapValidation:
     def test_validate_snake_on_obstacle(self, world, validation_system):
         """Test validation fails when snake head is on obstacle."""
         # snake and obstacle at same position
-        snake = SnakeEntity(
-            position=Position(100, 100), body=SnakeBody()
-        )
-        obstacle = ObstacleEntity(
-            position=Position(100, 100), tag=ObstacleTag()
-        )
+        snake = SnakeEntity(position=Position(100, 100), body=SnakeBody())
+        obstacle = ObstacleEntity(position=Position(100, 100), tag=ObstacleTag())
 
         world.registry.add(snake)
         world.registry.add(obstacle)
@@ -321,17 +291,13 @@ class TestEntityOverlapValidation:
         result = validation_system.validate_entity_overlaps(world)
         assert result is False
 
-    def test_validate_snake_body_on_obstacle(
-        self, world, validation_system
-    ):
+    def test_validate_snake_body_on_obstacle(self, world, validation_system):
         """Test validation fails when snake body is on obstacle."""
         snake = SnakeEntity(
             position=Position(100, 100),
             body=SnakeBody(segments=[Position(120, 100)]),
         )
-        obstacle = ObstacleEntity(
-            position=Position(120, 100), tag=ObstacleTag()
-        )
+        obstacle = ObstacleEntity(position=Position(120, 100), tag=ObstacleTag())
 
         world.registry.add(snake)
         world.registry.add(obstacle)
@@ -339,20 +305,12 @@ class TestEntityOverlapValidation:
         result = validation_system.validate_entity_overlaps(world)
         assert result is False
 
-    def test_validate_multiple_entities_same_position(
-        self, world, validation_system
-    ):
+    def test_validate_multiple_entities_same_position(self, world, validation_system):
         """Test validation flags multiple entities at same position."""
         # three entities at same position (suspicious)
-        apple1 = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        apple2 = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        apple3 = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple1 = AppleEntity(position=Position(100, 100), edible=Edible())
+        apple2 = AppleEntity(position=Position(100, 100), edible=Edible())
+        apple3 = AppleEntity(position=Position(100, 100), edible=Edible())
 
         world.registry.add(apple1)
         world.registry.add(apple2)
@@ -368,12 +326,8 @@ class TestValidateAll:
     def test_validate_all_passes(self, world, validation_system):
         """Test validate_all with valid game state."""
         # valid state: 1 apple, snake in bounds, no overlaps
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
 
         world.registry.add(apple)
         world.registry.add(snake)
@@ -381,14 +335,10 @@ class TestValidateAll:
         result = validation_system.validate_all(world)
         assert result is True
 
-    def test_validate_all_fails_apple_count(
-        self, world, validation_system
-    ):
+    def test_validate_all_fails_apple_count(self, world, validation_system):
         """Test validate_all fails with wrong apple count."""
         # no apples, but one expected
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
         world.registry.add(snake)
 
         result = validation_system.validate_all(world)
@@ -396,9 +346,7 @@ class TestValidateAll:
 
     def test_validate_all_fails_bounds(self, world, validation_system):
         """Test validate_all fails with out of bounds snake."""
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         snake = SnakeEntity(
             position=Position(700, 500),  # out of bounds
             body=SnakeBody(),
@@ -412,15 +360,9 @@ class TestValidateAll:
 
     def test_validate_all_fails_overlaps(self, world, validation_system):
         """Test validate_all fails with invalid overlaps."""
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
-        obstacle = ObstacleEntity(
-            position=Position(200, 200), tag=ObstacleTag()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
+        obstacle = ObstacleEntity(position=Position(200, 200), tag=ObstacleTag())
 
         world.registry.add(apple)
         world.registry.add(snake)
@@ -441,14 +383,10 @@ class TestEnableDisable:
         validation_system.set_enabled(True)
         assert validation_system.is_enabled() is True
 
-    def test_update_skips_when_disabled(
-        self, world, validation_system_disabled
-    ):
+    def test_update_skips_when_disabled(self, world, validation_system_disabled):
         """Test update does nothing when disabled."""
         # create invalid state (no apples)
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
         world.registry.add(snake)
 
         # update should not increment validation count
@@ -460,9 +398,7 @@ class TestEnableDisable:
     def test_update_runs_when_enabled(self, world, validation_system):
         """Test update runs validations when enabled."""
         # valid state
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         world.registry.add(apple)
 
         validation_system.update(world)
@@ -485,9 +421,7 @@ class TestExpectedAppleCount:
 
         # add 3 apples
         for i in range(3):
-            apple = AppleEntity(
-                position=Position(100 * i, 100), edible=Edible()
-            )
+            apple = AppleEntity(position=Position(100 * i, 100), edible=Edible())
             world.registry.add(apple)
 
         # should fail with expected count = 1
@@ -505,9 +439,7 @@ class TestStatistics:
 
     def test_validation_count_increments(self, world, validation_system):
         """Test validation count increments on each update."""
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         world.registry.add(apple)
 
         validation_system.update(world)
@@ -522,9 +454,7 @@ class TestStatistics:
     def test_anomaly_count_tracks_failures(self, world, validation_system):
         """Test anomaly count tracks validation failures."""
         # invalid state: no apples
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
         world.registry.add(snake)
 
         # run multiple validations with anomalies
@@ -538,9 +468,7 @@ class TestStatistics:
         self, world, validation_system
     ):
         """Test anomaly count only increments on failures."""
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         world.registry.add(apple)
 
         # first update: valid state
@@ -558,9 +486,7 @@ class TestStatistics:
 
     def test_reset_statistics(self, world, validation_system):
         """Test resetting statistics."""
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         world.registry.add(apple)
 
         validation_system.update(world)
@@ -575,9 +501,7 @@ class TestStatistics:
 
     def test_get_statistics_dict(self, world, validation_system):
         """Test getting statistics as dictionary."""
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
         world.registry.add(apple)
 
         validation_system.update(world)
@@ -595,9 +519,7 @@ class TestStatistics:
 class TestLogging:
     """Test logging functionality."""
 
-    def test_logs_warning_for_apple_count(
-        self, mock_logger, world, validation_system
-    ):
+    def test_logs_warning_for_apple_count(self, mock_logger, world, validation_system):
         """Test warning is logged for wrong apple count."""
         # no apples (expected: 1)
         validation_system.validate_apple_count(world)
@@ -610,9 +532,7 @@ class TestLogging:
         self, mock_logger, world, validation_system
     ):
         """Test warning is logged for out of bounds snake."""
-        snake = SnakeEntity(
-            position=Position(700, 500), body=SnakeBody()
-        )
+        snake = SnakeEntity(position=Position(700, 500), body=SnakeBody())
         world.registry.add(snake)
 
         validation_system.validate_snake_bounds(world)
@@ -621,16 +541,10 @@ class TestLogging:
         call_args = str(mock_logger.warning.call_args)
         assert "out of bounds" in call_args.lower()
 
-    def test_logs_warning_for_overlaps(
-        self, mock_logger, world, validation_system
-    ):
+    def test_logs_warning_for_overlaps(self, mock_logger, world, validation_system):
         """Test warning is logged for invalid overlaps."""
-        snake = SnakeEntity(
-            position=Position(100, 100), body=SnakeBody()
-        )
-        obstacle = ObstacleEntity(
-            position=Position(100, 100), tag=ObstacleTag()
-        )
+        snake = SnakeEntity(position=Position(100, 100), body=SnakeBody())
+        obstacle = ObstacleEntity(position=Position(100, 100), tag=ObstacleTag())
         world.registry.add(snake)
         world.registry.add(obstacle)
 
@@ -647,12 +561,8 @@ class TestIntegration:
     def test_full_validation_cycle(self, world, validation_system):
         """Test complete validation workflow."""
         # start with valid state
-        apple = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        snake = SnakeEntity(
-            position=Position(200, 200), body=SnakeBody()
-        )
+        apple = AppleEntity(position=Position(100, 100), edible=Edible())
+        snake = SnakeEntity(position=Position(200, 200), body=SnakeBody())
         world.registry.add(apple)
         world.registry.add(snake)
 
@@ -689,12 +599,8 @@ class TestIntegration:
         system = ValidationSystem(expected_apple_count=2)
 
         # add multiple entities
-        apple1 = AppleEntity(
-            position=Position(100, 100), edible=Edible()
-        )
-        apple2 = AppleEntity(
-            position=Position(300, 300), edible=Edible()
-        )
+        apple1 = AppleEntity(position=Position(100, 100), edible=Edible())
+        apple2 = AppleEntity(position=Position(300, 300), edible=Edible())
         snake = SnakeEntity(
             position=Position(200, 200),
             body=SnakeBody(
@@ -705,12 +611,8 @@ class TestIntegration:
                 ]
             ),
         )
-        obstacle1 = ObstacleEntity(
-            position=Position(400, 100), tag=ObstacleTag()
-        )
-        obstacle2 = ObstacleEntity(
-            position=Position(500, 100), tag=ObstacleTag()
-        )
+        obstacle1 = ObstacleEntity(position=Position(400, 100), tag=ObstacleTag())
+        obstacle2 = ObstacleEntity(position=Position(500, 100), tag=ObstacleTag())
 
         world.registry.add(apple1)
         world.registry.add(apple2)
@@ -720,4 +622,3 @@ class TestIntegration:
 
         # all validations should pass
         assert system.validate_all(world) is True
-

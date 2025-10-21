@@ -181,9 +181,7 @@ class ValidationSystem(BaseSystem):
             # check snake body segments
             if hasattr(snake, "body") and hasattr(snake.body, "segments"):
                 for i, segment in enumerate(snake.body.segments):
-                    if not self._is_position_in_bounds(
-                        segment.x, segment.y, board
-                    ):
+                    if not self._is_position_in_bounds(segment.x, segment.y, board):
                         logger.warning(
                             f"Snake body segment {i} out of bounds: "
                             f"({segment.x}, {segment.y}), "
@@ -237,15 +235,11 @@ class ValidationSystem(BaseSystem):
         for pos, entity_ids in position_map.items():
             if len(entity_ids) > 1:
                 # check what types are overlapping
-                overlap_types = self._get_entity_types_at_position(
-                    world, entity_ids
-                )
+                overlap_types = self._get_entity_types_at_position(world, entity_ids)
 
                 # check for invalid combinations
                 if "snake" in overlap_types and "obstacle" in overlap_types:
-                    logger.warning(
-                        f"Invalid overlap at {pos}: snake on obstacle"
-                    )
+                    logger.warning(f"Invalid overlap at {pos}: snake on obstacle")
                     all_valid = False
 
                 # multiple entities at exact same position is suspicious
