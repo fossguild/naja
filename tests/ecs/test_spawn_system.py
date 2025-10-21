@@ -101,9 +101,9 @@ class TestSpawnApple:
         assert apple.position.x % grid_size == 0
         assert apple.position.y % grid_size == 0
 
-        # position should be within board bounds
-        assert 0 <= apple.position.x < board.width
-        assert 0 <= apple.position.y < board.height
+        # position should be within board bounds (in pixels)
+        assert 0 <= apple.position.x < board.width * grid_size
+        assert 0 <= apple.position.y < board.height * grid_size
 
     def test_spawn_apple_has_edible_component(self, world_small, spawn_system):
         """Test that spawned apple has edible component with points."""
