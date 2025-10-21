@@ -129,7 +129,7 @@ class GameplayScene(BaseScene):
         self._systems.append(input_system)
 
         # 2. MovementSystem - update entity positions based on velocity
-        movement_system = MovementSystem()
+        movement_system = MovementSystem(get_electric_walls=self._get_electric_walls)
         self._systems.append(movement_system)
 
         # 3. CollisionSystem - detect collisions and emit events
@@ -478,12 +478,18 @@ class GameplayScene(BaseScene):
         snakes = self._world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
             if hasattr(snake, "position") and hasattr(snake, "velocity"):
-                next_x = (
-                    snake.position.x + snake.velocity.dx
-                ) % self._world.board.width
-                next_y = (
-                    snake.position.y + snake.velocity.dy
-                ) % self._world.board.height
+                # Calculate raw next position
+                next_x = snake.position.x + snake.velocity.dx
+                next_y = snake.position.y + snake.velocity.dy
+
+                electric_walls = self._get_electric_walls()
+
+                # Only wrap if electric walls are disabled
+                # If electric walls are enabled, collision system will detect out-of-bounds
+                if not electric_walls:
+                    next_x = next_x % self._world.board.width
+                    next_y = next_y % self._world.board.height
+
                 return (next_x, next_y)
         return (0, 0)
 
@@ -492,12 +498,17 @@ class GameplayScene(BaseScene):
         return self._settings.get("electric_walls") if self._settings else True
 
     def _get_grid_dimensions(self) -> tuple[int, int, int]:
-        """Get grid dimensions."""
+        """Get grid dimensions in cells.
+
+        Returns:
+            Tuple of (grid_width_cells, grid_height_cells, cell_size_pixels)
+        """
         board = self._world.board
-        # return (pixel_width, pixel_height, cell_size)
+        # Return grid dimensions in CELLS, not pixels
+        # board.width and board.height are already in cells
         return (
-            board.width * board.cell_size,
-            board.height * board.cell_size,
+            board.width,
+            board.height,
             board.cell_size,
         )
 

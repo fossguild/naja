@@ -94,69 +94,75 @@ class CollisionSystem(BaseSystem):
         self._speed_increase_callback = speed_increase_callback
 
     def update(self, world: World) -> None:
-        """Check all collisions in correct order.
+        """Check for all collision types in priority order.
 
-        Order matters! Same as old code:
-        1. Wall collision (fatal)
-        2. Self-bite (fatal)
-        3. Obstacle collision (fatal)
-        4. Apple collision (non-fatal)
-
-        Fatal collisions stop further checks.
+        Priority (same as old code):
+        1. Wall collision (electric mode only)
+        2. Self-bite collision
+        3. Obstacle collision
+        4. Apple collision
 
         Args:
-            world: ECS world containing entities and components
+            world: ECS world to query entities
         """
-        # check fatal collisions first
+        # Check wall collision first (highest priority)
         if self._check_wall_collision():
+            print("☠️  DEATH CAUSE: Wall collision")
             if self._death_callback:
                 self._death_callback("wall")
-            return  # dead, no need to check other collisions
-
-        if self._check_self_bite():
-            if self._death_callback:
-                self._death_callback("self_bite")
             return
 
+        # Check self-bite collision
+        if self._check_self_bite():
+            print("☠️  DEATH CAUSE: Self-bite collision")
+            if self._death_callback:
+                self._death_callback("self-bite")
+            return
+
+        # Check obstacle collision
         if self._check_obstacle_collision(world):
+            print("☠️  DEATH CAUSE: Obstacle collision")
             if self._death_callback:
                 self._death_callback("obstacle")
             return
 
-        # if alive, check apple collision (non-fatal)
+        # Check apple collision (doesn't kill)
         self._check_apple_collision(world)
 
     def _check_wall_collision(self) -> bool:
         """Check collision with walls (electric mode only).
 
-        Maintains exact logic from old code (entities.py lines 111-119).
-        In electric mode: dies if out of bounds.
-        In wrapping mode: coordinates wrap around (handled elsewhere).
+        Checks if snake's CURRENT position is out of bounds.
+        Movement system handles wrapping when electric walls are disabled.
+        Collision system only checks if we're already out of bounds.
 
         Returns:
             bool: True if collision detected, False otherwise
         """
-        if not self._get_snake_next_position or not self._get_grid_dimensions:
+        if not self._get_snake_head_position or not self._get_grid_dimensions:
             return False
 
-        next_x, next_y = self._get_snake_next_position()
-        width, height, grid_size = self._get_grid_dimensions()
+        # Check CURRENT position, not next position
+        # Snake dies when it IS out of bounds, not when it WOULD BE out of bounds
+        current_x, current_y = self._get_snake_head_position()
+        grid_width, grid_height, cell_size = self._get_grid_dimensions()
 
         # get electric walls setting
         electric_walls = False
         if self._get_electric_walls:
             electric_walls = self._get_electric_walls()
 
-        # convert pixel dimensions to grid dimensions
-        grid_width = width // grid_size
-        grid_height = height // grid_size
-
-        # EXACT LOGIC from old code: only die if electric_walls is True
+        # Grid dimensions are now in cells, not pixels
+        # Valid positions are 0 to grid_width-1 and 0 to grid_height-1
+        # Snake dies when its current position is out of bounds
         if electric_walls and (
-            next_x not in range(0, grid_width) or next_y not in range(0, grid_height)
+            current_x < 0
+            or current_x >= grid_width
+            or current_y < 0
+            or current_y >= grid_height
         ):
             print(
-                f"WALL COLLISION: pos=({next_x},{next_y}), grid=({grid_width},{grid_height})"
+                f"WALL COLLISION: current_pos=({current_x},{current_y}), grid=({grid_width}x{grid_height}), valid_range=(0-{grid_width - 1}, 0-{grid_height - 1})"
             )
             return True
 

@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import Optional, Callable
 
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
@@ -39,10 +40,16 @@ class MovementSystem(BaseSystem):
 
     """
 
-    def __init__(self):
-        """Initialize movement system with timing control."""
+    def __init__(self, get_electric_walls: Optional[Callable[[], bool]] = None):
+        """Initialize movement system with timing control.
+
+        Args:
+            get_electric_walls: Optional callback to check if electric walls are enabled.
+                               If None, wrapping is always applied (default behavior).
+        """
         self._frame_counter = 0
         self._frames_per_move = 12  # move every 12 frames (at 60fps = 5 moves/second)
+        self._get_electric_walls = get_electric_walls
 
     def update(self, world: World) -> None:
         # simple frame-based movement (more reliable than time-based for now)
@@ -97,8 +104,20 @@ class MovementSystem(BaseSystem):
                         body.segments.append(replace(last_segment))
 
             # Move head by exactly one grid cell in velocity direction
-            new_x = (position.x + velocity.dx) % board.width
-            new_y = (position.y + velocity.dy) % board.height
+            # Only wrap around if electric walls are disabled
+            # If electric walls are enabled, collision system will handle out-of-bounds
+            electric_walls = (
+                self._get_electric_walls() if self._get_electric_walls else False
+            )
+
+            if electric_walls:
+                # Electric walls mode: don't wrap, let collision system detect wall hit
+                new_x = position.x + velocity.dx
+                new_y = position.y + velocity.dy
+            else:
+                # Wrapping mode: wrap around board edges
+                new_x = (position.x + velocity.dx) % board.width
+                new_y = (position.y + velocity.dy) % board.height
 
             position.x = new_x
             position.y = new_y
