@@ -19,8 +19,6 @@
 
 """Tests for entity prefab factories."""
 
-import pytest
-
 from src.ecs.world import World
 from src.ecs.board import Board
 from src.ecs.entities.entity import EntityType
