@@ -41,12 +41,26 @@ class MockRenderEnqueue:
         self.height = 600
         self.fill_calls = []
         self.draw_start_menu_calls = []
+        self.draw_settings_menu_calls = []
+        self.draw_reset_warning_dialog_calls = []
+        self.draw_game_over_screen_calls = []
 
     def fill(self, color):
         self.fill_calls.append(color)
 
     def draw_start_menu(self, menu_items, selected_index):
         self.draw_start_menu_calls.append((menu_items, selected_index))
+
+    def draw_settings_menu(self, settings_fields, selected_index, settings_values):
+        self.draw_settings_menu_calls.append(
+            (settings_fields, selected_index, settings_values)
+        )
+
+    def draw_reset_warning_dialog(self, selected_option):
+        self.draw_reset_warning_dialog_calls.append(selected_option)
+
+    def draw_game_over_screen(self, final_score, selected_option):
+        self.draw_game_over_screen_calls.append((final_score, selected_option))
 
 
 class MockPygameAdapter:
