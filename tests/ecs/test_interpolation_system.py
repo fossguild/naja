@@ -93,9 +93,7 @@ class TestInterpolationSystemInitialization:
 class TestAlphaCalculation:
     """Test interpolation alpha calculation."""
 
-    def test_update_interpolation_advances_alpha(
-        self, world, interpolation_system
-    ):
+    def test_update_interpolation_advances_alpha(self, world, interpolation_system):
         """Test that alpha advances based on delta time."""
         # speed = 10 cells/sec -> move_interval = 100ms
         new_alpha, wrapped = interpolation_system.update_interpolation(
@@ -247,9 +245,7 @@ class TestAlphaCalculation:
 class TestEdgeWrapping:
     """Test edge wrapping detection."""
 
-    def test_no_wrapping_with_electric_walls(
-        self, world, interpolation_system
-    ):
+    def test_no_wrapping_with_electric_walls(self, world, interpolation_system):
         """Test no wrapping detected when electric walls are on."""
         # even if positions would wrap, electric walls prevents it
         _, wrapped = interpolation_system.update_interpolation(
@@ -368,9 +364,7 @@ class TestWillWrapAround:
 class TestInterpolatedPositionCalculation:
     """Test smooth position calculation."""
 
-    def test_linear_interpolation_no_wrap(
-        self, world, interpolation_system
-    ):
+    def test_linear_interpolation_no_wrap(self, world, interpolation_system):
         """Test normal linear interpolation without wrapping."""
         draw_x, draw_y = interpolation_system.calculate_interpolated_position(
             world=world,
@@ -476,9 +470,7 @@ class TestInterpolatedPositionCalculation:
         assert draw_x == pytest.approx(120.0)
         assert draw_y == pytest.approx(220.0)
 
-    def test_interpolation_negative_velocity(
-        self, world, interpolation_system
-    ):
+    def test_interpolation_negative_velocity(self, world, interpolation_system):
         """Test interpolation with negative velocity (moving left/up)."""
         draw_x, draw_y = interpolation_system.calculate_interpolated_position(
             world=world,
@@ -620,9 +612,7 @@ class TestIntegration:
         assert alpha == 1.0
         assert draw_x == pytest.approx(120.0)  # at target
 
-    def test_wrapping_movement_cycle(
-        self, world, interpolation_system_no_walls
-    ):
+    def test_wrapping_movement_cycle(self, world, interpolation_system_no_walls):
         """Test movement with edge wrapping."""
         alpha = 0.0
         current_x, current_y = 0, 100
@@ -663,9 +653,7 @@ class TestIntegration:
         assert draw_x == pytest.approx(-10.0)
         assert draw_y == pytest.approx(100.0)
 
-    def test_electric_walls_prevents_wrapping(
-        self, world, interpolation_system
-    ):
+    def test_electric_walls_prevents_wrapping(self, world, interpolation_system):
         """Test that electric walls prevent wrapping detection."""
         # even with edge positions, should not wrap
         alpha, wrapped = interpolation_system.update_interpolation(
@@ -696,4 +684,3 @@ class TestIntegration:
         # normal linear interpolation
         assert draw_x == pytest.approx(290.0)  # midpoint
         assert draw_y == pytest.approx(190.0)  # midpoint
-
