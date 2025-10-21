@@ -75,9 +75,7 @@ class ScoringSystem(BaseSystem):
         # stub implementation - will be connected to event system
         # when event handling is implemented in future issues
 
-    def on_apple_eaten(
-        self, world: World, points: int
-    ) -> None:
+    def on_apple_eaten(self, world: World, points: int) -> None:
         """Handle apple eaten event and update score.
 
         Args:
@@ -174,9 +172,7 @@ class ScoringSystem(BaseSystem):
         if self._score_callback:
             self._score_callback(
                 score_entity.current,
-                score_entity.high_score
-                if hasattr(score_entity, "high_score")
-                else 0,
+                score_entity.high_score if hasattr(score_entity, "high_score") else 0,
             )
 
     def get_current_score(self, world: World) -> int:
@@ -246,9 +242,7 @@ class ScoringSystem(BaseSystem):
             # call callback if provided
             if self._score_callback:
                 self._score_callback(
-                    score_entity.current
-                    if hasattr(score_entity, "current")
-                    else 0,
+                    score_entity.current if hasattr(score_entity, "current") else 0,
                     score_entity.high_score,
                 )
 

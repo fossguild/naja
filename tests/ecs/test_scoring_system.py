@@ -25,7 +25,6 @@ from dataclasses import dataclass
 from src.ecs.world import World
 from src.ecs.board import Board
 from src.ecs.systems.scoring import ScoringSystem
-from src.ecs.components.score import Score
 
 
 @dataclass
@@ -84,18 +83,14 @@ class TestScoringSystemInitialization:
 class TestAppleEatenScoring:
     """Test score updates when apples are eaten."""
 
-    def test_on_apple_eaten_increases_score(
-        self, world_with_score, scoring_system
-    ):
+    def test_on_apple_eaten_increases_score(self, world_with_score, scoring_system):
         """Test that eating apple increases score."""
         scoring_system.on_apple_eaten(world_with_score, points=10)
 
         current_score = scoring_system.get_current_score(world_with_score)
         assert current_score == 10
 
-    def test_on_apple_eaten_multiple_times(
-        self, world_with_score, scoring_system
-    ):
+    def test_on_apple_eaten_multiple_times(self, world_with_score, scoring_system):
         """Test eating multiple apples accumulates score."""
         scoring_system.on_apple_eaten(world_with_score, points=10)
         scoring_system.on_apple_eaten(world_with_score, points=10)
@@ -104,9 +99,7 @@ class TestAppleEatenScoring:
         current_score = scoring_system.get_current_score(world_with_score)
         assert current_score == 30
 
-    def test_on_apple_eaten_different_points(
-        self, world_with_score, scoring_system
-    ):
+    def test_on_apple_eaten_different_points(self, world_with_score, scoring_system):
         """Test apples with different point values."""
         scoring_system.on_apple_eaten(world_with_score, points=5)
         scoring_system.on_apple_eaten(world_with_score, points=15)
@@ -128,18 +121,14 @@ class TestAppleEatenScoring:
 class TestHighScoreTracking:
     """Test high score tracking."""
 
-    def test_high_score_updates_when_exceeded(
-        self, world_with_score, scoring_system
-    ):
+    def test_high_score_updates_when_exceeded(self, world_with_score, scoring_system):
         """Test that high score updates when current exceeds it."""
         scoring_system.on_apple_eaten(world_with_score, points=50)
 
         high_score = scoring_system.get_high_score(world_with_score)
         assert high_score == 50
 
-    def test_high_score_does_not_decrease(
-        self, world_with_score, scoring_system
-    ):
+    def test_high_score_does_not_decrease(self, world_with_score, scoring_system):
         """Test that high score is preserved even if current score resets."""
         # set a high score
         scoring_system.on_apple_eaten(world_with_score, points=100)
@@ -152,9 +141,7 @@ class TestHighScoreTracking:
         # high score should remain
         assert scoring_system.get_high_score(world_with_score) == 100
 
-    def test_high_score_updates_progressively(
-        self, world_with_score, scoring_system
-    ):
+    def test_high_score_updates_progressively(self, world_with_score, scoring_system):
         """Test high score updates as score increases."""
         scoring_system.on_apple_eaten(world_with_score, points=10)
         assert scoring_system.get_high_score(world_with_score) == 10
@@ -187,9 +174,7 @@ class TestHighScoreTracking:
 class TestSnakeLengthScoring:
     """Test score updates based on snake length."""
 
-    def test_update_score_from_snake_length(
-        self, world_with_score, scoring_system
-    ):
+    def test_update_score_from_snake_length(self, world_with_score, scoring_system):
         """Test updating score based on snake tail length."""
         scoring_system.update_score_from_snake_length(
             world_with_score, snake_tail_length=5
@@ -198,9 +183,7 @@ class TestSnakeLengthScoring:
         current_score = scoring_system.get_current_score(world_with_score)
         assert current_score == 5
 
-    def test_score_updates_as_snake_grows(
-        self, world_with_score, scoring_system
-    ):
+    def test_score_updates_as_snake_grows(self, world_with_score, scoring_system):
         """Test score updates as snake grows."""
         scoring_system.update_score_from_snake_length(
             world_with_score, snake_tail_length=1
@@ -217,9 +200,7 @@ class TestSnakeLengthScoring:
         )
         assert scoring_system.get_current_score(world_with_score) == 10
 
-    def test_snake_length_updates_high_score(
-        self, world_with_score, scoring_system
-    ):
+    def test_snake_length_updates_high_score(self, world_with_score, scoring_system):
         """Test that snake length can update high score."""
         scoring_system.update_score_from_snake_length(
             world_with_score, snake_tail_length=25
@@ -231,9 +212,7 @@ class TestSnakeLengthScoring:
 class TestScoreReset:
     """Test score reset functionality."""
 
-    def test_reset_current_score_to_zero(
-        self, world_with_score, scoring_system
-    ):
+    def test_reset_current_score_to_zero(self, world_with_score, scoring_system):
         """Test resetting current score to 0."""
         scoring_system.on_apple_eaten(world_with_score, points=50)
         assert scoring_system.get_current_score(world_with_score) == 50
@@ -241,9 +220,7 @@ class TestScoreReset:
         scoring_system.reset_current_score(world_with_score)
         assert scoring_system.get_current_score(world_with_score) == 0
 
-    def test_reset_preserves_high_score(
-        self, world_with_score, scoring_system
-    ):
+    def test_reset_preserves_high_score(self, world_with_score, scoring_system):
         """Test that reset preserves high score."""
         scoring_system.on_apple_eaten(world_with_score, points=100)
         high_score_before = scoring_system.get_high_score(world_with_score)
@@ -310,9 +287,7 @@ class TestHighScoreSetter:
         high_score = scoring_system.get_high_score(world_with_score)
         assert high_score == 1000
 
-    def test_set_high_score_for_loaded_saves(
-        self, world_with_score, scoring_system
-    ):
+    def test_set_high_score_for_loaded_saves(self, world_with_score, scoring_system):
         """Test setting high score when loading saved game."""
         # simulate loading high score from save file
         scoring_system.set_high_score(world_with_score, 500)
@@ -323,9 +298,7 @@ class TestHighScoreSetter:
         # high score should remain 500
         assert scoring_system.get_high_score(world_with_score) == 500
 
-    def test_set_high_score_can_be_exceeded(
-        self, world_with_score, scoring_system
-    ):
+    def test_set_high_score_can_be_exceeded(self, world_with_score, scoring_system):
         """Test that set high score can still be exceeded."""
         scoring_system.set_high_score(world_with_score, 200)
 
@@ -457,4 +430,3 @@ class TestIntegration:
         # can still use apple eaten (though in real game, only one method is used)
         scoring_system.on_apple_eaten(world_with_score, points=5)
         assert scoring_system.get_current_score(world_with_score) == 15
-
