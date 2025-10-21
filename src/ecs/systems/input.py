@@ -126,7 +126,7 @@ class InputSystem(BaseSystem):
             self._handle_quit()
         elif key == pygame.K_p:
             self._handle_pause()
-        elif key in (pygame.K_m, pygame.K_ESCAPE):
+        elif key == pygame.K_m:
             self._handle_menu()
         elif key == pygame.K_n:
             self._handle_music_toggle()
