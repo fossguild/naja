@@ -31,6 +31,16 @@ from old_code.assets import GameAssets
 from old_code.state import GameState
 from old_code.entities import Snake, Apple, Obstacle
 from old_code.constants import WINDOW_TITLE
+from src.ecs.components.commands import (
+    Command,
+    MoveCommand,
+    PauseCommand,
+    QuitCommand,
+    OpenSettingsCommand,
+    ToggleMusicCommand,
+    RandomizePaletteCommand,
+    ApplySettingsCommand,
+)
 
 
 class GameApp:
@@ -224,7 +234,12 @@ class GameApp:
             self.pygame_adapter.update_display()
 
     def _process_events(self) -> None:
-        """Process pygame events."""
+        """Process pygame events.
+
+        This method currently uses the old direct event handling approach.
+        It will be replaced with command-based processing once Issue #220
+        (Wire Systems in Gameplay Scene) is complete.
+        """
         for event in self.pygame_adapter.get_events():
             # App terminated
             if event.type == pygame.QUIT:
@@ -234,6 +249,64 @@ class GameApp:
             # Key pressed
             if event.type == pygame.KEYDOWN:
                 self._handle_keydown(event.key)
+
+    def _process_commands(self, commands: list[Command]) -> None:
+        """Process commands in deterministic order.
+
+        This method demonstrates the command protocol architecture that will be
+        fully integrated in Issue #220 (Wire Systems in Gameplay Scene).
+
+        Commands are applied in fixed order to ensure consistency:
+        1. Settings commands (affect game configuration)
+        2. Movement commands (update velocity)
+        3. State commands (pause, quit)
+        4. Audio commands (music toggle)
+        5. Palette commands (color randomization)
+
+        Args:
+            commands: List of commands to process
+        """
+        # Phase 1: Settings commands (must be applied first)
+        for cmd in commands:
+            if isinstance(cmd, ApplySettingsCommand):
+                self._apply_settings(reset_objects=cmd.reset_objects)
+
+        # Phase 2: Movement commands (update direction)
+        for cmd in commands:
+            if isinstance(cmd, MoveCommand):
+                self._apply_move_command(cmd)
+
+        # Phase 3: State commands (pause, quit, settings)
+        for cmd in commands:
+            if isinstance(cmd, PauseCommand):
+                self.state.toggle_pause()
+            elif isinstance(cmd, QuitCommand):
+                self.quit()
+            elif isinstance(cmd, OpenSettingsCommand):
+                self._handle_menu_key()
+
+        # Phase 4: Audio commands (music control)
+        for cmd in commands:
+            if isinstance(cmd, ToggleMusicCommand):
+                self.settings.set(
+                    "background_music", not self.settings.get("background_music")
+                )
+                self._apply_settings(reset_objects=False)
+
+        # Phase 5: Palette commands (cosmetic changes)
+        for cmd in commands:
+            if isinstance(cmd, RandomizePaletteCommand):
+                self.settings.randomize_snake_colors()
+
+    def _apply_move_command(self, cmd: MoveCommand) -> None:
+        """Apply a move command to the snake.
+
+        Args:
+            cmd: MoveCommand with dx, dy direction
+        """
+        # Update snake direction (command already validated 180° turns)
+        self.state.snake.xmov = cmd.dx
+        self.state.snake.ymov = cmd.dy
 
     def _handle_keydown(self, key: int) -> None:
         """Handle key down events."""
