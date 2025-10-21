@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#   Copyright (c) 2024, Felipe Diniz <lfelipediniz@usp.br>
 #
 #   This file is part of Naja.
 #
@@ -25,6 +24,7 @@ from .menu_handler import MenuHandler, StartDecision
 from .settings_handler import SettingsHandler, SettingsResult
 from .dialog_handler import DialogHandler, ResetDecision, GameOverDecision
 from .command_converter import CommandConverter
+from .settings_applicator import SettingsApplicator
 
 __all__ = [
     "UISystem",
@@ -36,4 +36,5 @@ __all__ = [
     "ResetDecision",
     "GameOverDecision",
     "CommandConverter",
+    "SettingsApplicator",
 ]
