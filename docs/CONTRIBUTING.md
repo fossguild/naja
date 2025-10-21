@@ -89,6 +89,23 @@ This command will:
 - Install all development dependencies (`uv sync --dev`)
 - Set up pre-commit hooks (`uv run pre-commit install`)
 
+### Manual Setup (Pip + Venv)
+
+If you prefer not to use `make` or `uv`, you can set up the environment manually with Python's standard tools:
+
+1. **Create and activate a virtual environment:**
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate # On Windows, use .venv\Scripts\activate
+   ```
+
+2. **Install all dependencies:**
+
+   ```bash
+   pip install -e .[dev]
+   ```
+
 ### Development Commands
 
 Use these Makefile commands during development:

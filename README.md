@@ -35,6 +35,18 @@ Quick Start
    # Or directly: uv run python kobra.py
    ```
 
+**Alternative (using Pip):**
+   1. Create and activate a virtual environment:
+      ```bash
+      python -m venv .venv
+      source .venv/bin/activate # On Windows: .venv\Scripts\activate
+      ```
+   2. Install and run:
+      ```bash
+      pip install .
+      python kobra.py
+      ```
+
 ### For Contributors
 
 **Requirements**: Python 3.12+, [uv](https://docs.astral.sh/uv/getting-started/installation/)
@@ -58,6 +70,17 @@ Quick Start
    - Read `docs/CONTRIBUTING.md` for detailed guidelines
    - Create an issue first to discuss your changes
    - Follow the Git workflow described in the contributing guide
+
+**Alternative (using Pip):**
+   1. Create and activate a virtual environment:
+      ```bash
+      python -m venv .venv
+      source .venv/bin/activate # On Windows: .venv\Scripts\activate
+      ```
+   2. Install all dependencies:
+      ```bash
+      pip install .[dev]
+      ```
 
 Getting Started
 ------------------------------
