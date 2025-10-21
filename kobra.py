@@ -604,6 +604,67 @@ def draw_music_indicator(
     state.arena.blit(hint_surf, hint_rect)
 
 
+##
+## Draws a speed bar that shows how close to the maximum speed the player currently is
+##
+
+
+def draw_speed_bar(
+    state: GameState, assets: GameAssets, settings: GameSettings
+) -> None:
+    """Draw a horizontal bar showing the snake's current speed.
+
+    The bar fills proportionally based on the current snake speed.
+    It's drawn in the top-left corner for visibility and uses
+    consistent proportional scaling like other UI elements.
+
+    Args:
+        state: GameState instance
+        assets: GameAssets instance
+        settings: GameSettings instance
+    """
+    # --- Configuration ---
+    min_speed = settings.get("initial_speed")
+    max_speed = settings.get("max_speed")
+    current_speed = state.snake.speed
+
+    # --- Geometry ---
+    padding_x = int(state.width * 0.02)
+    padding_y = int(state.height * 0.02)
+    bar_width = int(state.width * 0.25)
+    bar_height = int(state.height * 0.02)
+    gap = 6  # pixels between bar and label
+
+    # --- Colors ---
+    # Bar color changes smoothly from green (slow) to red (fast)
+    ratio = (current_speed - min_speed) / (max_speed - min_speed)
+    ratio = max(0, min(ratio, 1))
+    bar_color = (
+        int(255 * ratio),  # Red increases with speed
+        int(255 * (1 - ratio)),  # Green decreases with speed
+        0,
+    )
+    border_color = (50, 50, 50)
+    text_color = (200, 200, 200)
+
+    # --- Bar Position ---
+    bar_x = padding_x
+    bar_y = padding_y
+
+    # --- Draw background and filled bar ---
+    pygame.draw.rect(state.arena, border_color, (bar_x, bar_y, bar_width, bar_height))
+    filled_width = int(bar_width * ratio)
+    pygame.draw.rect(state.arena, bar_color, (bar_x, bar_y, filled_width, bar_height))
+
+    # --- Draw text label below ---
+    label_text = f"Speed: {current_speed:.1f}"
+    label_surf = assets.render_custom(label_text, text_color, int(state.width / 50))
+    label_rect = label_surf.get_rect()
+    label_rect.midtop = (bar_x + bar_width // 2, bar_y + bar_height + gap)
+
+    state.arena.blit(label_surf, label_rect)
+
+
 def draw_pause_screen(state: GameState, assets: GameAssets):
     """Desenha uma sobreposição semi-transparente e o texto de pausa."""
     # Cria uma superfície para a sobreposição com transparência alfa
