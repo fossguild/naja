@@ -71,6 +71,11 @@ class RenderEnqueue(Protocol):
     def draw_rect(
         self, color: tuple[int, int, int], rect: pygame.Rect, width: int = 0
     ) -> None: ...
+    def draw_settings_menu(
+        self, settings_fields: list[dict], selected_index: int, settings_values: dict
+    ) -> None: ...
+    def draw_reset_warning_dialog(self, selected_option: int) -> None: ...
+    def draw_game_over_screen(self, final_score: int, selected_option: int) -> None: ...
 
 
 class _RendererView(RenderEnqueue):
@@ -131,6 +136,20 @@ class _RendererView(RenderEnqueue):
         self, color: tuple[int, int, int], rect: pygame.Rect, width: int = 0
     ) -> None:
         self._impl.draw_rect(color, rect, width)
+
+    def draw_start_menu(self, menu_items: list[str], selected_index: int) -> None:
+        self._impl.draw_start_menu(menu_items, selected_index)
+
+    def draw_settings_menu(
+        self, settings_fields: list[dict], selected_index: int, settings_values: dict
+    ) -> None:
+        self._impl.draw_settings_menu(settings_fields, selected_index, settings_values)
+
+    def draw_reset_warning_dialog(self, selected_option: int) -> None:
+        self._impl.draw_reset_warning_dialog(selected_option)
+
+    def draw_game_over_screen(self, final_score: int, selected_option: int) -> None:
+        self._impl.draw_game_over_screen(final_score, selected_option)
 
 
 class PygameSurfaceRenderer:
@@ -291,6 +310,245 @@ class PygameSurfaceRenderer:
             DrawCommand(
                 operation=pygame.draw.rect,
                 args=(self._surface, color, rect, width),
+                kwargs={},
+            )
+        )
+
+    def draw_start_menu(self, menu_items: list[str], selected_index: int) -> None:
+        """Queue start menu rendering operation.
+
+        Args:
+            menu_items: List of menu item text strings
+            selected_index: Index of currently selected item
+        """
+
+        # Create a command that will render the start menu
+        def _render_start_menu(surface, items, selected):
+            width, height = surface.get_size()
+
+            # Colors (hardcoded for now, should come from settings)
+            title_color = (255, 255, 255)  # White
+            selected_color = (255, 255, 255)  # White
+            unselected_color = (128, 128, 128)  # Gray
+
+            # Create fonts
+            title_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 12)
+            )
+            menu_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 20)
+            )
+
+            # Render title
+            title_text = title_font.render("Naja", True, title_color)
+            title_rect = title_text.get_rect(center=(width // 2, height // 4))
+            surface.blit(title_text, title_rect)
+
+            # Render menu items
+            for i, item in enumerate(items):
+                color = selected_color if i == selected else unselected_color
+                text = menu_font.render(item, True, color)
+                rect = text.get_rect(
+                    center=(width // 2, height // 2 + i * (height * 0.12))
+                )
+                surface.blit(text, rect)
+
+        self._command_queue.append(
+            DrawCommand(
+                operation=_render_start_menu,
+                args=(self._surface, menu_items, selected_index),
+                kwargs={},
+            )
+        )
+
+    def draw_settings_menu(
+        self, settings_fields: list[dict], selected_index: int, settings_values: dict
+    ) -> None:
+        """Queue settings menu rendering operation.
+
+        Args:
+            settings_fields: List of setting field definitions
+            selected_index: Index of currently selected field
+            settings_values: Current values of all settings
+        """
+
+        def _render_settings_menu(surface, fields, selected, values):
+            width, height = surface.get_size()
+
+            # Colors
+            title_color = (255, 255, 255)  # White
+            selected_color = (255, 255, 255)  # White
+            unselected_color = (128, 128, 128)  # Gray
+            hint_color = (96, 96, 96)  # Dark gray
+
+            # Create fonts
+            title_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 12)
+            )
+            field_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 30)
+            )
+            hint_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 50)
+            )
+
+            # Render title
+            title_text = title_font.render("Settings", True, title_color)
+            title_rect = title_text.get_rect(center=(width // 2, height // 10))
+            surface.blit(title_text, title_rect)
+
+            # Render settings fields
+            row_height = int(height * 0.06)
+            start_y = int(height * 0.22)
+
+            for i, field in enumerate(fields):
+                if i >= len(fields):
+                    break
+
+                value = values.get(field["key"], "")
+                color = selected_color if i == selected else unselected_color
+
+                # Format the value display
+                if field["type"] == "bool":
+                    display_value = "ON" if value else "OFF"
+                elif field["type"] == "select":
+                    display_value = str(value)
+                else:
+                    display_value = str(value)
+
+                text = field_font.render(
+                    f"{field['label']}: {display_value}", True, color
+                )
+                rect = text.get_rect()
+                rect.left = int(width * 0.10)
+                rect.top = start_y + i * row_height
+                surface.blit(text, rect)
+
+            # Render hint
+            hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
+            hint = hint_font.render(hint_text, True, hint_color)
+            hint_rect = hint.get_rect(center=(width // 2, int(height * 0.95)))
+            surface.blit(hint, hint_rect)
+
+        self._command_queue.append(
+            DrawCommand(
+                operation=_render_settings_menu,
+                args=(self._surface, settings_fields, selected_index, settings_values),
+                kwargs={},
+            )
+        )
+
+    def draw_reset_warning_dialog(self, selected_option: int) -> None:
+        """Queue reset warning dialog rendering operation.
+
+        Args:
+            selected_option: Index of currently selected option (0=Reset, 1=Cancel)
+        """
+
+        def _render_reset_warning(surface, selected):
+            width, height = surface.get_size()
+
+            # Colors
+            title_color = (255, 255, 255)  # White
+            message_color = (200, 200, 200)  # Light gray
+            selected_color = (255, 255, 255)  # White
+            unselected_color = (128, 128, 128)  # Gray
+
+            # Create fonts
+            title_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 8)
+            )
+            message_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 20)
+            )
+            option_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 25)
+            )
+
+            # Render title
+            title_text = title_font.render("Reset Required", True, title_color)
+            title_rect = title_text.get_rect(center=(width // 2, height // 3))
+            surface.blit(title_text, title_rect)
+
+            # Render message
+            message_text = message_font.render(
+                "This change requires resetting the game. Continue?",
+                True,
+                message_color,
+            )
+            message_rect = message_text.get_rect(center=(width // 2, height // 2))
+            surface.blit(message_text, message_rect)
+
+            # Render options
+            options = ["Yes (Reset)", "No (Cancel)"]
+            option_y = int(height * 0.6)
+
+            for i, option in enumerate(options):
+                color = selected_color if i == selected else unselected_color
+                text = option_font.render(option, True, color)
+                rect = text.get_rect(center=(width // 2, option_y + i * 40))
+                surface.blit(text, rect)
+
+        self._command_queue.append(
+            DrawCommand(
+                operation=_render_reset_warning,
+                args=(self._surface, selected_option),
+                kwargs={},
+            )
+        )
+
+    def draw_game_over_screen(self, final_score: int, selected_option: int) -> None:
+        """Queue game over screen rendering operation.
+
+        Args:
+            final_score: Final score to display
+            selected_option: Index of currently selected option (0=Restart, 1=Quit)
+        """
+
+        def _render_game_over(surface, score, selected):
+            width, height = surface.get_size()
+
+            # Colors
+            title_color = (255, 100, 100)  # Red
+            score_color = (255, 255, 255)  # White
+            selected_color = (255, 255, 255)  # White
+            unselected_color = (128, 128, 128)  # Gray
+
+            # Create fonts
+            title_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 6)
+            )
+            score_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 15)
+            )
+            option_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", int(width / 20)
+            )
+
+            # Render title
+            title_text = title_font.render("Game Over", True, title_color)
+            title_rect = title_text.get_rect(center=(width // 2, height // 3))
+            surface.blit(title_text, title_rect)
+
+            # Render score
+            score_text = score_font.render(f"Final Score: {score}", True, score_color)
+            score_rect = score_text.get_rect(center=(width // 2, height // 2))
+            surface.blit(score_text, score_rect)
+
+            # Render options
+            options = ["Restart", "Quit"]
+            option_y = int(height * 0.65)
+
+            for i, option in enumerate(options):
+                color = selected_color if i == selected else unselected_color
+                text = option_font.render(option, True, color)
+                rect = text.get_rect(center=(width // 2, option_y + i * 50))
+                surface.blit(text, rect)
+
+        self._command_queue.append(
+            DrawCommand(
+                operation=_render_game_over,
+                args=(self._surface, final_score, selected_option),
                 kwargs={},
             )
         )
