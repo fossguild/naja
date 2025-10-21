@@ -22,7 +22,7 @@
 import pytest
 from dataclasses import dataclass, field
 from typing import List
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 
 from src.ecs.world import World
 from src.ecs.board import Board
@@ -160,9 +160,7 @@ class TestSFXQueue:
 
         assert len(audio_queue.sfx_queue) == 2
 
-    def test_process_sfx_queue_plays_all_sounds(
-        self, world, audio_system, mock_sound
-    ):
+    def test_process_sfx_queue_plays_all_sounds(self, world, audio_system, mock_sound):
         """Test processing SFX queue plays all sounds."""
         audio_queue = AudioQueueEntity(sfx_queue=["eat", "death"])
         world.registry.add(audio_queue)
@@ -252,9 +250,7 @@ class TestMusicControl:
 class TestMusicEnabledFlag:
     """Test music enabled flag behavior."""
 
-    def test_play_music_respects_disabled_flag(
-        self, mock_music, world, audio_system
-    ):
+    def test_play_music_respects_disabled_flag(self, mock_music, world, audio_system):
         """Test that music doesn't play when disabled."""
         music_state = MusicStateEntity(enabled=False)
         world.registry.add(music_state)
@@ -264,9 +260,7 @@ class TestMusicEnabledFlag:
         assert result is False
         mock_music.load.assert_not_called()
 
-    def test_set_music_enabled_pauses_music(
-        self, mock_music, world, audio_system
-    ):
+    def test_set_music_enabled_pauses_music(self, mock_music, world, audio_system):
         """Test disabling music pauses it."""
         music_state = MusicStateEntity(enabled=True, is_playing=True)
         world.registry.add(music_state)
@@ -276,9 +270,7 @@ class TestMusicEnabledFlag:
         assert music_state.enabled is False
         mock_music.pause.assert_called_once()
 
-    def test_set_music_enabled_unpauses_music(
-        self, mock_music, world, audio_system
-    ):
+    def test_set_music_enabled_unpauses_music(self, mock_music, world, audio_system):
         """Test enabling music unpauses it."""
         music_state = MusicStateEntity(enabled=False, is_playing=True, is_paused=True)
         world.registry.add(music_state)
@@ -297,9 +289,7 @@ class TestMusicEnabledFlag:
 
         assert enabled is False
 
-    def test_get_music_enabled_defaults_to_true(
-        self, mock_music, world, audio_system
-    ):
+    def test_get_music_enabled_defaults_to_true(self, mock_music, world, audio_system):
         """Test music enabled defaults to True when no state exists."""
         enabled = audio_system.get_music_enabled(world)
 
@@ -330,9 +320,7 @@ class TestVolumeControl:
 
         mock_sound.set_volume.assert_called_once_with(0.7)
 
-    def test_set_sfx_volume_for_nonexistent_sound(
-        self, mock_music, audio_system
-    ):
+    def test_set_sfx_volume_for_nonexistent_sound(self, mock_music, audio_system):
         """Test setting volume for non-existent sound doesn't crash."""
         audio_system.set_sfx_volume("nonexistent", 0.5)
         # should not raise error
@@ -452,9 +440,7 @@ class TestIntegration:
         result = audio_system.play_music(world, "background")
         assert result is True
 
-    def test_multiple_sfx_with_music(
-        self, mock_music, world, audio_system, mock_sound
-    ):
+    def test_multiple_sfx_with_music(self, mock_music, world, audio_system, mock_sound):
         """Test playing multiple SFX while music plays."""
         music_state = MusicStateEntity()
         audio_queue = AudioQueueEntity()
@@ -475,4 +461,3 @@ class TestIntegration:
         assert mock_sound.play.call_count == 3
         # music should still be playing
         assert music_state.is_playing is True
-
