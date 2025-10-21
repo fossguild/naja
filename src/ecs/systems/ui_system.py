@@ -167,92 +167,9 @@ class UISystem(BaseSystem):
         Returns:
             SettingsResult: Contains needs_reset and canceled flags
         """
-        # Settings menu fields (from old code)
-        settings_fields = [
-            {
-                "key": "cells_per_side",
-                "label": "Cells per side (needs reset)",
-                "type": "int",
-                "min": 10,
-                "max": 60,
-                "step": 1,
-            },
-            {
-                "key": "initial_speed",
-                "label": "Initial speed (needs reset)",
-                "type": "float",
-                "min": 1.0,
-                "max": 40.0,
-                "step": 0.5,
-            },
-            {
-                "key": "max_speed",
-                "label": "Max speed",
-                "type": "float",
-                "min": 4.0,
-                "max": 60.0,
-                "step": 1.0,
-            },
-            {"key": "death_sound", "label": "Death Sound", "type": "bool"},
-            {
-                "key": "obstacle_difficulty",
-                "label": "Obstacles (needs reset)",
-                "type": "select",
-                "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
-            },
-            {
-                "key": "number_of_apples",
-                "label": "Apples (needs reset)",
-                "type": "int",
-                "min": 1,
-                "max": 30,
-                "step": 1,
-            },
-            {"key": "background_music", "label": "Background Music", "type": "bool"},
-            {
-                "key": "reset_game_on_apply",
-                "label": "Reset Game on Apply",
-                "type": "bool",
-            },
-            {"key": "eat_sound", "label": "Eat sound", "type": "bool"},
-            {
-                "key": "electric_walls",
-                "label": "Electric walls (needs reset)",
-                "type": "bool",
-            },
-        ]
-
-        # Default settings values (from old code)
-        default_settings = {
-            "cells_per_side": 16,
-            "initial_speed": 4.0,
-            "max_speed": 20.0,
-            "death_sound": True,
-            "obstacle_difficulty": "None",
-            "number_of_apples": 1,
-            "background_music": True,
-            "reset_game_on_apply": False,
-            "eat_sound": True,
-            "electric_walls": True,
-        }
-
-        # Store current settings as snapshot for comparison
-        self._setting_snapshots = default_settings.copy()
-        current_settings = default_settings.copy()
-
-        selected_index = 0
-        settings_active = True
-
-        while settings_active:
-            # Render settings menu
-            self._renderer.fill((32, 32, 32))
-            self._renderer.draw_settings_menu(
-                settings_fields, selected_index, current_settings
-            )
-
-            # Wait for input (this would be handled by MenuInputSystem in real implementation)
-            # For now, return a placeholder result
-            return SettingsResult(needs_reset=False, canceled=True)
+        # TODO: Implement settings menu
+        # For now, return a placeholder result
+        return SettingsResult(needs_reset=False, canceled=True)
 
     def prompt_reset_warning(self) -> ResetDecision:
         """Show dialog warning about game reset.
@@ -260,17 +177,9 @@ class UISystem(BaseSystem):
         Returns:
             ResetDecision: User's choice (RESET or CANCEL)
         """
-        selected_option = 0  # 0 = Reset, 1 = Cancel
-        dialog_active = True
-
-        while dialog_active:
-            # Render reset warning dialog
-            self._renderer.fill((32, 32, 32))
-            self._renderer.draw_reset_warning_dialog(selected_option)
-
-            # Wait for input (this would be handled by MenuInputSystem in real implementation)
-            # For now, return a placeholder result
-            return ResetDecision.CANCEL
+        # TODO: Implement reset warning dialog
+        # For now, return cancel
+        return ResetDecision.CANCEL
 
     def prompt_game_over(self, final_score: int) -> GameOverDecision:
         """Show game over screen with final score.
@@ -281,17 +190,9 @@ class UISystem(BaseSystem):
         Returns:
             GameOverDecision: User's choice (RESTART or QUIT)
         """
-        selected_option = 0  # 0 = Restart, 1 = Quit
-        dialog_active = True
-
-        while dialog_active:
-            # Render game over screen
-            self._renderer.fill((32, 32, 32))
-            self._renderer.draw_game_over_screen(final_score, selected_option)
-
-            # Wait for input (this would be handled by MenuInputSystem in real implementation)
-            # For now, return a placeholder result
-            return GameOverDecision.RESTART
+        # TODO: Implement game over prompt
+        # For now, return restart
+        return GameOverDecision.RESTART
 
     # Additional callback methods for InputSystem
 
