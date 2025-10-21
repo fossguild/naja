@@ -21,7 +21,7 @@
 
 import pytest
 from unittest.mock import Mock
-from src.ecs.systems.ui_system import (
+from src.ecs.systems.ui import (
     UISystem,
     StartDecision,
     SettingsResult,
