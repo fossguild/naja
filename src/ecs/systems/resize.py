@@ -225,9 +225,7 @@ class ResizeSystem(BaseSystem):
         board = world.board
         return board.width // board.cell_size
 
-    def calculate_grid_dimensions(
-        self, cell_size: int
-    ) -> tuple[int, int, int, int]:
+    def calculate_grid_dimensions(self, cell_size: int) -> tuple[int, int, int, int]:
         """Calculate grid dimensions for a given cell size.
 
         Args:

@@ -49,9 +49,12 @@ def resize_system():
 def resize_system_with_callback():
     """Create a ResizeSystem with mock callback."""
     callback = Mock()
-    return ResizeSystem(
-        max_dimension=800, min_cell_size=8, asset_reload_callback=callback
-    ), callback
+    return (
+        ResizeSystem(
+            max_dimension=800, min_cell_size=8, asset_reload_callback=callback
+        ),
+        callback,
+    )
 
 
 class TestResizeSystemInitialization:
@@ -531,4 +534,3 @@ class TestIntegration:
             # width and height must be exact multiples of cell_size
             assert world.board.width % world.board.cell_size == 0
             assert world.board.height % world.board.cell_size == 0
-
