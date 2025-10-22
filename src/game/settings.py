@@ -102,6 +102,7 @@ class GameSettings:
         """
         self.settings = self.DEFAULT_SETTINGS.copy()
         self.settings["cells_per_side"] = initial_width // grid_size
+        self._validate_speed_relationship()
 
     def get(self, key: str):
         """Get a setting value by key.
@@ -115,7 +116,7 @@ class GameSettings:
         return self.settings.get(key)
 
     def set(self, key: str, value) -> None:
-        """Set a setting value.
+        """Set a setting value with validation.
 
         Args:
             key: Setting key to update
@@ -123,6 +124,8 @@ class GameSettings:
         """
         if key in self.settings:
             self.settings[key] = value
+            # Validate speed relationship after setting
+            self._validate_speed_relationship()
 
     def get_all(self) -> dict:
         """Get all settings as a dictionary.
@@ -135,6 +138,24 @@ class GameSettings:
     def reset_to_defaults(self) -> None:
         """Reset all settings to their default values."""
         self.settings = self.DEFAULT_SETTINGS.copy()
+        self._validate_speed_relationship()
+
+    def _validate_speed_relationship(self) -> None:
+        """Ensure initial_speed is always less than max_speed.
+
+        This method is called after any setting change to maintain
+        the invariant: initial_speed < max_speed.
+        """
+        initial_speed = self.settings.get("initial_speed", 4.0)
+        max_speed = self.settings.get("max_speed", 20.0)
+
+        # Get the step size from menu fields
+        initial_speed_field = self.get_field_by_key("initial_speed")
+        step = initial_speed_field.get("step", 0.5) if initial_speed_field else 0.5
+
+        # Ensure initial_speed < max_speed
+        if initial_speed >= max_speed:
+            self.settings["initial_speed"] = max_speed - step
 
     @staticmethod
     def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -202,6 +223,24 @@ class GameSettings:
 
         lo = field.get("min", new_val)
         hi = field.get("max", new_val)
+
+        # Special case: initial_speed must be less than max_speed
+        # Use initial_speed's step (0.5) as the minimum gap for consistency
+        if key == "initial_speed":
+            max_speed = self.settings.get("max_speed", hi)
+            initial_speed_step = 0.5  # initial_speed's step from MENU_FIELDS
+            hi = min(
+                hi, max_speed - initial_speed_step
+            )  # ensure initial_speed < max_speed
+
+        # Special case: if adjusting max_speed, ensure it stays above initial_speed
+        # Use initial_speed's step (0.5) as the minimum gap for consistency
+        if key == "max_speed":
+            initial_speed = self.settings.get("initial_speed", lo)
+            initial_speed_step = 0.5  # initial_speed's step from MENU_FIELDS
+            lo = max(
+                lo, initial_speed + initial_speed_step
+            )  # ensure max_speed > initial_speed
 
         if kind == "int":
             self.settings[key] = int(self.clamp(new_val, lo, hi))
