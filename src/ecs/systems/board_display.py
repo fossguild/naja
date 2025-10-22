@@ -55,13 +55,15 @@ class BoardRenderSystem(BaseSystem):
         renderer: The RenderEnqueue view to queue draw commands
     """
 
-    def __init__(self, renderer: RenderEnqueue):
+    def __init__(self, renderer: RenderEnqueue, settings=None):
         """Initialize the BoardRenderSystem.
 
         Args:
             renderer: RenderEnqueue view to queue draw commands (enqueue-only access)
+            settings: Optional GameSettings instance for accessing music state
         """
         self._renderer = renderer
+        self._settings = settings
 
         # TODO: In the future, this color scheme should come from a config
         # or settings system, allowing runtime customization
@@ -554,6 +556,72 @@ class BoardRenderSystem(BaseSystem):
             # Silently fail if font loading or rendering fails
             pass
 
+    def draw_music_indicator(
+        self, surface_width: int, surface_height: int, music_on: bool
+    ) -> None:
+        """Draw music status indicator in the bottom-right corner.
+
+        Shows speaker icon (on/muted) with [N] hint text below it.
+        Styled exactly like the old code.
+
+        Args:
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+            music_on: Whether background music is currently enabled
+        """
+        try:
+            # Define dimensions using proportional padding (same as old code)
+            padding_x = int(surface_width * 0.02)
+            padding_y = int(surface_height * 0.02)
+            icon_size = int(surface_width / 25)
+            gap = 4  # Small pixel gap between icon and text
+
+            # Load speaker sprites
+            try:
+                if music_on:
+                    sprite = pygame.image.load("assets/sprites/speaker-on.png")
+                else:
+                    sprite = pygame.image.load("assets/sprites/speaker-muted.png")
+            except Exception:
+                sprite = None
+
+            # Render hint text
+            # SCORE_COLOR from constants: "#ffffff" (white)
+            # GRID_COLOR from constants: "#3c3c3b" (dark gray)
+            hint_color = (255, 255, 255) if music_on else (60, 60, 59)  # SCORE_COLOR or GRID_COLOR
+            hint_text = "[N]"
+            hint_font_size = int(surface_width / 50)
+            font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+            try:
+                hint_font = pygame.font.Font(font_path, hint_font_size)
+            except Exception:
+                hint_font = pygame.font.Font(None, hint_font_size)
+
+            hint_surf = hint_font.render(hint_text, True, hint_color)
+            hint_rect = hint_surf.get_rect()
+
+            # Calculate total widget height
+            total_widget_height = icon_size + gap + hint_rect.height
+
+            # Calculate positions (bottom-right corner)
+            icon_x = surface_width - padding_x - icon_size
+            icon_y = surface_height - padding_y - total_widget_height
+
+            # Scale and draw sprite
+            if sprite is not None:
+                scaled_sprite = pygame.transform.scale(sprite, (icon_size, icon_size))
+                self._renderer.blit(scaled_sprite, (icon_x, icon_y))
+
+            # Position and draw text hint below the icon
+            hint_rect.centerx = icon_x + icon_size // 2
+            hint_rect.top = icon_y + icon_size + gap
+            self._renderer.blit(hint_surf, hint_rect)
+
+        except Exception:
+            # Silently fail if sprite loading or rendering fails
+            pass
+
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
 
@@ -587,5 +655,12 @@ class BoardRenderSystem(BaseSystem):
         surface = pygame.display.get_surface()
         if surface:
             self.draw_score(world, surface.get_width(), surface.get_height())
+            
+            # Draw music indicator in bottom-right corner
+            if self._settings:
+                music_on = self._settings.get("background_music")
+                self.draw_music_indicator(
+                    surface.get_width(), surface.get_height(), music_on
+                )
         
         # (draw_score already called once; avoid duplicate rendering)

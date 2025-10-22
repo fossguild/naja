@@ -204,7 +204,9 @@ class GameplayScene(BaseScene):
 
         # 12. BoardRenderSystem - render game world (board, entities)
         if self._renderer:
-            self._board_render_system = BoardRenderSystem(renderer=self._renderer)
+            self._board_render_system = BoardRenderSystem(
+                renderer=self._renderer, settings=self._settings
+            )
             self._systems.append(self._board_render_system)
         else:
             self._board_render_system = None
