@@ -52,17 +52,12 @@ class RenderEnqueue(Protocol):
 
     @property
     def width(self) -> int: ...
-
     @property
     def height(self) -> int: ...
-
     @property
     def size(self) -> tuple[int, int]: ...
-
     def get_size(self) -> tuple[int, int]: ...
-
     def fill(self, color: tuple[int, int, int] | tuple[int, int, int, int]) -> None: ...
-
     def blit(
         self,
         source: pygame.Surface,
@@ -70,7 +65,6 @@ class RenderEnqueue(Protocol):
         area: Optional[pygame.Rect] = None,
         special_flags: int = 0,
     ) -> None: ...
-
     def draw_line(
         self,
         color: tuple[int, int, int],
@@ -78,7 +72,6 @@ class RenderEnqueue(Protocol):
         end_pos: tuple[int, int],
         width: int = 1,
     ) -> None: ...
-
     def draw_rect(
         self, color: tuple[int, int, int], rect: pygame.Rect, width: int = 0
     ) -> None: ...
@@ -145,33 +138,14 @@ class _RendererView(RenderEnqueue):
 
 
 class PygameSurfaceRenderer:
-    """Command queue wrapper for pygame surface rendering operations.
+    """Command queue wrapper for pygame surface rendering.
 
-    This class provides a pygame.Surface-like interface but queues all draw
-    operations internally. Commands are executed sequentially when update()
-    is called, providing centralized control over rendering order.
+    Queues draw operations and executes them when update() is called,
+    providing centralized control over rendering order.
 
-    Benefits:
-    - Decouples systems from direct pygame surface access
-    - Provides clear rendering order (commands executed in queue order)
-    - Exposes read-only display properties (width, height, size)
-    - Future-proof for potential rendering optimizations (batching, culling)
-    - Two-tier access model:
-      * Full access (with update): For main/core rendering loop
-      * Enqueue-only view: For systems (prevents interference with pipeline)
-
-    Usage:
-        # Main loop has full access
-        renderer = PygameSurfaceRenderer(screen)
-
-        # Systems get enqueue-only view
-        enqueue_view = renderer.view()
-        system = BoardRenderSystem(enqueue_view)
-
-        # Main loop controls frame lifecycle
-        renderer.begin_frame()
-        system.update(world)
-        renderer.update()
+    Two-tier access:
+    - Full access: Main loop (can call begin_frame, update)
+    - View access: Systems (can only queue commands via view())
 
     Attributes:
         _surface: The underlying pygame surface
