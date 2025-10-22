@@ -75,7 +75,7 @@ class MenuScene(BaseScene):
         self._assets = assets
         self._settings = settings
         self._selected_index = 0
-        self._menu_items = ["Start Game", "Settings"]
+        self._menu_items = ["Start Game", "Settings", "Quit"]
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update menu logic.
@@ -106,6 +106,9 @@ class MenuScene(BaseScene):
                         return "gameplay"
                     elif self._menu_items[self._selected_index] == "Settings":
                         return "settings"
+                    elif self._menu_items[self._selected_index] == "Quit":
+                        pygame.quit()
+                        exit()
                 elif event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     exit()
