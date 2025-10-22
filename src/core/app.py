@@ -143,6 +143,7 @@ class ECSGameApp:
             height=self.config.initial_height,
             assets=self.assets,
             settings=self.settings,
+            config=self.config,
         )
         self.scene_manager.register_scene("settings", settings_scene)
 

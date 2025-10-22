@@ -89,6 +89,15 @@ class World:
         """
         return self._board
 
+    @board.setter
+    def board(self, new_board: Board) -> None:
+        """Set a new board instance.
+
+        Args:
+            new_board: New board instance to use
+        """
+        self._board = new_board
+
     @property
     def clock(self) -> pygame.time.Clock:
         """Get the pygame clock for frame timing.

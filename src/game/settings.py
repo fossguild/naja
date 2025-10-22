@@ -44,7 +44,7 @@ class GameSettings:
     MENU_FIELDS = [
         {
             "key": "cells_per_side",
-            "label": "Cells per side (needs reset)",
+            "label": "Cells per side",
             "type": "int",
             "min": 10,
             "max": 60,
@@ -52,7 +52,7 @@ class GameSettings:
         },
         {
             "key": "initial_speed",
-            "label": "Initial speed (needs reset)",
+            "label": "Initial speed",
             "type": "float",
             "min": 1.0,
             "max": 40.0,
@@ -69,13 +69,13 @@ class GameSettings:
         {"key": "death_sound", "label": "Death Sound", "type": "bool"},
         {
             "key": "obstacle_difficulty",
-            "label": "Obstacles (needs reset)",
+            "label": "Obstacles",
             "type": "select",
             "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
         },
         {
             "key": "number_of_apples",
-            "label": "Apples (needs reset)",
+            "label": "Apples",
             "type": "int",
             "min": 1,
             "max": 30,
@@ -90,7 +90,7 @@ class GameSettings:
         },
         {
             "key": "electric_walls",
-            "label": "Electric walls (needs reset)",
+            "label": "Electric walls",
             "type": "bool",
         },
         {
@@ -173,13 +173,9 @@ class GameSettings:
             Formatted string representation of the value
         """
         if field["key"] == "cells_per_side":
-            requested = int(value)
+            # Always show the actual/current value that will be used
             actual = current_width // current_grid_size
-            return (
-                f"{requested} × {requested}"
-                if requested == actual
-                else f"{requested} × {requested} (cur: {actual})"
-            )
+            return f"{actual} × {actual}"
         elif field["key"] == "obstacle_difficulty":
             return f"{value}"
         elif isinstance(value, bool):

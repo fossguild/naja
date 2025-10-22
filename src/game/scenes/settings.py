@@ -41,6 +41,7 @@ class SettingsScene(BaseScene):
         height: int,
         assets: GameAssets,
         settings: GameSettings,
+        config=None,
     ):
         """Initialize the settings scene.
 
@@ -51,10 +52,12 @@ class SettingsScene(BaseScene):
             height: Scene height
             assets: Game assets
             settings: Game settings
+            config: Game config (for calculating grid size)
         """
         super().__init__(pygame_adapter, renderer, width, height)
         self._assets = assets
         self._settings = settings
+        self._config = config
         self._selected_index = 0
 
     def update(self, dt_ms: float) -> Optional[str]:
@@ -138,11 +141,18 @@ class SettingsScene(BaseScene):
                 break
             f = self._settings.MENU_FIELDS[field_i]
             val = self._settings.get(f["key"])
+            
+            # Calculate current grid size for display
+            current_grid_size = 20  # default fallback
+            if self._config:
+                desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                current_grid_size = self._config.get_optimal_grid_size(desired_cells)
+            
             formatted_val = self._settings.format_setting_value(
                 f,
                 val,
                 self._width,
-                20,  # grid_size placeholder
+                current_grid_size,
             )
             text = self._assets.render_custom(
                 f"{f['label']}: {formatted_val}",

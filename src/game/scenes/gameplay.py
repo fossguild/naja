@@ -281,6 +281,9 @@ class GameplayScene(BaseScene):
         # Clear any pending scene transition from previous session
         self.set_next_scene(None)
 
+        # Apply settings before resetting world (including grid size changes)
+        self._apply_settings_to_world()
+
         # Reset world state for new game
         self._reset_game_world()
 
@@ -302,6 +305,52 @@ class GameplayScene(BaseScene):
         print("Exiting GameplayScene")
         self.on_detach()
         print("GameplayScene detached")
+
+    def _apply_settings_to_world(self) -> None:
+        """Apply current settings to the game world.
+        
+        This updates the world board dimensions based on cells_per_side setting.
+        Should be called before resetting the game world.
+        """
+        if not self._settings or not self._config:
+            return
+        
+        # Get desired cells per side from settings
+        desired_cells = max(10, int(self._settings.get("cells_per_side")))
+        
+        # Calculate optimal grid/cell size
+        new_cell_size = self._config.get_optimal_grid_size(desired_cells)
+        
+        # Calculate new window dimensions (must be multiple of cell size)
+        new_width_pixels, new_height_pixels = self._config.calculate_window_size(new_cell_size)
+        
+        # Calculate board dimensions in cells
+        new_width_cells = new_width_pixels // new_cell_size
+        new_height_cells = new_height_pixels // new_cell_size
+        
+        # Create a new board with the new dimensions
+        from src.ecs.board import Board
+        new_board = Board(
+            width=new_width_cells,
+            height=new_height_cells,
+            cell_size=new_cell_size
+        )
+        
+        # Replace the board in the world
+        self._world.board = new_board
+        
+        # Update pygame display if dimensions changed
+        current_surface = pygame.display.get_surface()
+        if current_surface:
+            current_w, current_h = current_surface.get_size()
+            if current_w != new_width_pixels or current_h != new_height_pixels:
+                pygame.display.set_mode((new_width_pixels, new_height_pixels))
+                
+                # Reload fonts with new dimensions if assets available
+                if self._assets:
+                    self._assets.reload_fonts(new_width_pixels)
+        
+        print(f"Applied settings: {desired_cells}x{desired_cells} cells, cell_size={new_cell_size}px, board={new_width_cells}x{new_height_cells} cells, window={new_width_pixels}x{new_height_pixels}px")
 
     def _reset_game_world(self) -> None:
         """Reset the game world for a new game.
