@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
+#   Copyright (c) 2024, Leticia Neves
 #
 #   This file is part of Naja.
 #
@@ -19,11 +20,11 @@
 
 """Input system for handling user input events.
 
-This system converts raw pygame events into game actions by calling
-registered callback functions.
+This system converts raw pygame events into game actions by modifying
+ECS components directly, following proper ECS architecture.
 """
 
-from typing import Optional, Callable, Any
+from typing import Optional, Any
 
 import pygame
 
@@ -34,54 +35,36 @@ from src.ecs.world import World
 class InputSystem(BaseSystem):
     """System for handling user input from keyboard and mouse.
 
-    Reads: pygame events (via pygame_adapter)
-    Writes: None (delegates to callbacks)
-    Emits: Commands via callbacks
+    Reads: Velocity (for 180° turn prevention), GameState, MusicState
+    Writes: Velocity (snake direction), GameState (pause, next_scene)
+    Queries: Entities with EntityType.SNAKE, singleton game state entity
 
     Responsibilities:
     - Convert keyboard input to direction changes
     - Handle game control keys (pause, quit, menu)
     - Handle settings shortcuts (music toggle, palette randomize)
-    - Delegate actions to registered callbacks
+    - Directly modify ECS components (no callbacks)
 
-    Note: This system acts as an input router, processing pygame events
-    and calling appropriate callbacks. It does not directly modify game state.
+    Note: This system follows proper ECS architecture by querying
+    and modifying components directly instead of using callbacks.
     """
 
     def __init__(
         self,
         pygame_adapter: Optional[Any] = None,
-        direction_callback: Optional[Callable[[int, int], None]] = None,
-        get_current_direction_callback: Optional[Callable[[], tuple[int, int]]] = None,
-        quit_callback: Optional[Callable[[], None]] = None,
-        pause_callback: Optional[Callable[[], None]] = None,
-        menu_callback: Optional[Callable[[], None]] = None,
-        music_toggle_callback: Optional[Callable[[], None]] = None,
-        palette_randomize_callback: Optional[Callable[[], None]] = None,
+        settings: Optional[Any] = None,
     ):
         """Initialize the InputSystem.
 
         Args:
             pygame_adapter: Pygame IO adapter for reading events
-            direction_callback: Function to call with (dx, dy) for direction changes
-            get_current_direction_callback: Function to get current (dx, dy) direction
-            quit_callback: Function to call when quit is requested
-            pause_callback: Function to call when pause is requested
-            menu_callback: Function to call when menu is requested
-            music_toggle_callback: Function to call when music toggle is requested
-            palette_randomize_callback: Function to call when palette randomize is requested
+            settings: Game settings for palette randomization
         """
         self._pygame_adapter = pygame_adapter
-        self._direction_callback = direction_callback
-        self._get_current_direction_callback = get_current_direction_callback
-        self._quit_callback = quit_callback
-        self._pause_callback = pause_callback
-        self._menu_callback = menu_callback
-        self._music_toggle_callback = music_toggle_callback
-        self._palette_randomize_callback = palette_randomize_callback
+        self._settings = settings
 
     def update(self, world: World) -> None:
-        """Process input events and call appropriate callbacks.
+        """Process input events and modify ECS components.
 
         Args:
             world: ECS world containing entities and components
@@ -95,89 +78,164 @@ class InputSystem(BaseSystem):
         # process each event
         for event in events:
             if event.type == pygame.QUIT:
-                self._handle_quit()
+                self._handle_quit(world)
             elif event.type == pygame.KEYDOWN:
-                self._handle_keydown(event.key)
+                self._handle_keydown(world, event.key)
 
-    def _handle_quit(self) -> None:
-        """Handle quit event (window close button)."""
-        if self._quit_callback:
-            self._quit_callback()
+    def _handle_quit(self, world: World) -> None:
+        """Handle quit event (window close button).
 
-    def _handle_keydown(self, key: int) -> None:
+        Args:
+            world: ECS world
+        """
+        # set next_scene to menu in GameState component
+        game_state = self._get_game_state(world)
+        if game_state:
+            game_state.next_scene = "menu"
+
+    def _handle_keydown(self, world: World, key: int) -> None:
         """Handle key down events.
 
         Args:
+            world: ECS world
             key: Pygame key constant
         """
-        # movement keys - call direction callback with 180° turn prevention
-        current_dx, current_dy = self._get_current_direction()
+        # get current direction for 180° turn prevention
+        current_dx, current_dy = self._get_current_direction(world)
 
+        # movement keys - modify velocity directly with 180° turn prevention
         if key in (pygame.K_DOWN, pygame.K_s):
-            self._set_direction(0, 1, current_dx, current_dy)
+            self._set_direction(world, 0, 1, current_dx, current_dy)
         elif key in (pygame.K_UP, pygame.K_w):
-            self._set_direction(0, -1, current_dx, current_dy)
+            self._set_direction(world, 0, -1, current_dx, current_dy)
         elif key in (pygame.K_RIGHT, pygame.K_d):
-            self._set_direction(1, 0, current_dx, current_dy)
+            self._set_direction(world, 1, 0, current_dx, current_dy)
         elif key in (pygame.K_LEFT, pygame.K_a):
-            self._set_direction(-1, 0, current_dx, current_dy)
+            self._set_direction(world, -1, 0, current_dx, current_dy)
         # control keys
         elif key == pygame.K_q:
-            self._handle_quit()
+            self._handle_quit(world)
         elif key == pygame.K_p:
-            self._handle_pause()
+            self._handle_pause(world)
         elif key == pygame.K_m:
-            self._handle_menu()
+            self._handle_menu(world)
         elif key == pygame.K_n:
             self._handle_music_toggle()
         elif key == pygame.K_c:
             self._handle_palette_randomize()
 
-    def _set_direction(
-        self, dx: int, dy: int, current_dx: int = 0, current_dy: int = 0
-    ) -> None:
-        """Call direction callback with new direction if valid.
+    def _get_snake_entity(self, world: World):
+        """Get the snake entity from the world.
 
         Args:
+            world: ECS world
+
+        Returns:
+            Snake entity or None if not found
+        """
+        from src.ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            return snake
+        return None
+
+    def _get_game_state(self, world: World):
+        """Get the GameState component from world.
+
+        Args:
+            world: ECS world
+
+        Returns:
+            GameState component or None if not found
+        """
+        # query for entities with GameState component
+        game_state_entities = world.registry.query_by_component("game_state")
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                return entity.game_state
+        return None
+
+    def _get_current_direction(self, world: World) -> tuple[int, int]:
+        """Get current snake direction from Velocity component.
+
+        Args:
+            world: ECS world
+
+        Returns:
+            Tuple of (dx, dy) for current direction, or (0, 0) if not found
+        """
+        snake = self._get_snake_entity(world)
+        if snake and hasattr(snake, "velocity"):
+            return (snake.velocity.dx, snake.velocity.dy)
+        return (0, 0)
+
+    def _set_direction(
+        self, world: World, dx: int, dy: int, current_dx: int = 0, current_dy: int = 0
+    ) -> None:
+        """Modify snake Velocity component with new direction if valid.
+
+        Args:
+            world: ECS world
             dx: X direction (-1, 0, 1)
             dy: Y direction (-1, 0, 1)
             current_dx: Current X direction (to prevent 180° turns)
             current_dy: Current Y direction (to prevent 180° turns)
         """
-        # prevent 180-degree turns (same logic as old code)
+        # prevent 180-degree turns
         if dx != 0 and current_dx != -dx:  # horizontal movement
-            if self._direction_callback:
-                self._direction_callback(dx, dy)
+            snake = self._get_snake_entity(world)
+            if snake and hasattr(snake, "velocity"):
+                snake.velocity.dx = dx
+                snake.velocity.dy = dy
         elif dy != 0 and current_dy != -dy:  # vertical movement
-            if self._direction_callback:
-                self._direction_callback(dx, dy)
+            snake = self._get_snake_entity(world)
+            if snake and hasattr(snake, "velocity"):
+                snake.velocity.dx = dx
+                snake.velocity.dy = dy
 
-    def _get_current_direction(self) -> tuple[int, int]:
-        """Get current direction from callback or return (0, 0).
+    def _handle_pause(self, world: World) -> None:
+        """Handle pause key press by toggling GameState.paused.
 
-        Returns:
-            tuple: (current_dx, current_dy) or (0, 0) if no callback
+        Args:
+            world: ECS world
         """
-        if self._get_current_direction_callback:
-            return self._get_current_direction_callback()
-        return (0, 0)
+        game_state = self._get_game_state(world)
+        if game_state:
+            game_state.paused = not game_state.paused
 
-    def _handle_pause(self) -> None:
-        """Handle pause key press."""
-        if self._pause_callback:
-            self._pause_callback()
+    def _handle_menu(self, world: World) -> None:
+        """Handle menu key press by pausing and setting next_scene.
 
-    def _handle_menu(self) -> None:
-        """Handle menu key press."""
-        if self._menu_callback:
-            self._menu_callback()
+        Args:
+            world: ECS world
+        """
+        game_state = self._get_game_state(world)
+        if game_state:
+            game_state.paused = True
+            game_state.next_scene = "settings"
 
     def _handle_music_toggle(self) -> None:
-        """Handle music toggle key press."""
-        if self._music_toggle_callback:
-            self._music_toggle_callback()
+        """Handle music toggle key press.
+
+        Note: This temporarily uses settings until audio components are added.
+        """
+        if self._settings:
+            # toggle background music setting
+            current = self._settings.get("background_music")
+            self._settings.set("background_music", not current)
+
+            # apply immediately
+            if self._settings.get("background_music"):
+                pygame.mixer.music.unpause()
+            else:
+                pygame.mixer.music.pause()
 
     def _handle_palette_randomize(self) -> None:
-        """Handle palette randomize key press."""
-        if self._palette_randomize_callback:
-            self._palette_randomize_callback()
+        """Handle palette randomize key press.
+
+        Note: This temporarily uses settings until palette components are added.
+        """
+        if self._settings:
+            self._settings.randomize_snake_colors()
