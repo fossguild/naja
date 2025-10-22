@@ -46,7 +46,6 @@ class SettingsApplicator:
     # Critical settings that require game reset
     CRITICAL_SETTINGS = [
         "cells_per_side",
-        "obstacle_difficulty",
         "number_of_apples",
         "electric_walls",
     ]
@@ -58,6 +57,7 @@ class SettingsApplicator:
         "max_speed",  # Can be changed immediately during gameplay
         "initial_speed",  # Can be changed immediately during gameplay
         "snake_color_palette",  # Can be changed immediately during gameplay
+        "obstacle_difficulty",  # Can be changed immediately during gameplay
     ]
 
     def __init__(

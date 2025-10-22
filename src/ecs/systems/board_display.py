@@ -229,6 +229,8 @@ class BoardRenderSystem(BaseSystem):
                 position = getattr(entity, "position", None)
                 if position:
                     # draw obstacle as gray square
+                    # position.x and position.y are in GRID COORDINATES (tiles)
+                    # convert to pixels for rendering
                     pixel_x = position.x * cell_size
                     pixel_y = position.y * cell_size
                     obstacle_rect = pygame.Rect(pixel_x, pixel_y, cell_size, cell_size)

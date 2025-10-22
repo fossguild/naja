@@ -103,6 +103,7 @@ class GameplayScene(BaseScene):
         self._board_render_system: Optional[BoardRenderSystem] = None
         self._game_over = False
         self._death_reason = ""
+        self._previous_obstacle_difficulty = ""  # Track obstacle difficulty changes
 
     def on_attach(self) -> None:
         """Initialize and register all game systems.
@@ -256,6 +257,13 @@ class GameplayScene(BaseScene):
         if not self._attached:
             return None
 
+        # Check for obstacle difficulty changes and apply immediately
+        if self._settings:
+            current_difficulty = self._settings.get("obstacle_difficulty")
+            if current_difficulty and current_difficulty != self._previous_obstacle_difficulty:
+                self._apply_obstacle_difficulty(current_difficulty)
+                self._previous_obstacle_difficulty = current_difficulty
+
         # update world's delta time for systems that need it (e.g., InterpolationSystem)
         self._world.set_dt_ms(dt_ms)
 
@@ -286,6 +294,10 @@ class GameplayScene(BaseScene):
 
         # Clear any pending scene transition from previous session
         self.set_next_scene(None)
+
+        # Initialize obstacle difficulty tracker
+        if self._settings:
+            self._previous_obstacle_difficulty = self._settings.get("obstacle_difficulty") or ""
 
         # Apply settings before resetting world (including grid size changes)
         self._apply_settings_to_world()
@@ -868,6 +880,46 @@ class GameplayScene(BaseScene):
                         f"Applied new max speed: {new_max_speed} (current speed {current_speed:.2f} is within limit)"
                     )
                 break
+
+    def _apply_obstacle_difficulty(self, new_difficulty: str) -> None:
+        """Regenerate obstacles with new difficulty level.
+
+        Removes all existing obstacles and creates new ones based on the
+        difficulty setting (None, Easy, Medium, Hard, Impossible).
+
+        Args:
+            new_difficulty: New difficulty level string
+        """
+        from src.ecs.entities.entity import EntityType
+
+        # Remove all existing obstacles
+        obstacles = self._world.registry.query_by_type(EntityType.OBSTACLE)
+        obstacle_ids = list(obstacles.keys())
+        for obstacle_id in obstacle_ids:
+            self._world.registry.remove(obstacle_id)
+
+        # Generate new obstacles if difficulty is not "None"
+        if new_difficulty and new_difficulty != "None":
+            from src.ecs.prefabs.obstacle_field import create_obstacles
+
+            # Get snake position for safe zone
+            snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+            snake_pos = (0, 0)
+            for _, snake in snakes.items():
+                if hasattr(snake, "position"):
+                    snake_pos = (snake.position.x, snake.position.y)
+                    break
+
+            grid_size = self._world.board.cell_size
+            
+            new_obstacle_ids = create_obstacles(
+                world=self._world,
+                difficulty=new_difficulty,
+                grid_size=grid_size,
+                random_seed=None,  # use true randomness
+            )
+            
+            print(f"Applied obstacle difficulty '{new_difficulty}': {len(new_obstacle_ids)} obstacles created")
 
     def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
         """Convert hex color string to RGB tuple.

@@ -192,7 +192,9 @@ class CollisionSystem(BaseSystem):
     def _check_obstacle_collision(self, world: World) -> bool:
         """Check collision with obstacles.
 
-        Maintains exact logic from old code (entities.py lines 128-131).
+        Checks if snake's CURRENT position (after movement) collides with obstacle.
+        This matches the wall collision behavior - we check if snake IS on obstacle,
+        not if it WOULD BE on obstacle.
 
         Args:
             world: ECS world to query obstacles
@@ -200,19 +202,23 @@ class CollisionSystem(BaseSystem):
         Returns:
             bool: True if collision detected, False otherwise
         """
-        if not self._get_snake_next_position:
+        if not self._get_snake_head_position:
             return False
 
-        next_x, next_y = self._get_snake_next_position()
+        # Check CURRENT position (after movement), not next position
+        # Snake dies when it IS on an obstacle, not when it WOULD BE on an obstacle
+        current_x, current_y = self._get_snake_head_position()
 
-        # query obstacles from world (ECS way)
-        # EXACT LOGIC: iterate over each obstacle
-        for entity_id in world.registry.query_by_component("x", "y"):
-            entity = world.registry.get(entity_id)
-            # check if entity has obstacle component
-            if hasattr(entity, "x") and hasattr(entity, "y"):
-                # simple check: if entity has x, y and matches position
-                if next_x == entity.x and next_y == entity.y:
+        # Query all obstacles using EntityType
+        from src.ecs.entities.entity import EntityType
+
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+        
+        # Check if snake's current position collides with any obstacle
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                # Obstacles store position in grid coordinates (tiles)
+                if current_x == obstacle.position.x and current_y == obstacle.position.y:
                     return True
 
         return False

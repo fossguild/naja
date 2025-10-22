@@ -63,12 +63,15 @@ def create_obstacles(
     if random_seed is not None:
         random.seed(random_seed)
 
-    # get board dimensions (width and height are in tiles)
+    # get board dimensions
     board = world.board
+    grid_size_pixels = grid_size
+    
+    # board.width and board.height are in TILES, not pixels
     grid_width_tiles = board.width
     grid_height_tiles = board.height
 
-    # calculate total cells (board dimensions are already in tiles)
+    # calculate total cells (board dimensions are in tiles)
     total_cells = grid_width_tiles * grid_height_tiles
 
     # calculate number of obstacles based on difficulty
@@ -84,11 +87,9 @@ def create_obstacles(
     available_cells = []
     for tile_x in range(grid_width_tiles):
         for tile_y in range(grid_height_tiles):
-            # convert to pixel coordinates
-            pixel_x = tile_x * grid_size
-            pixel_y = tile_y * grid_size
-            if (pixel_x, pixel_y) not in occupied_cells:
-                available_cells.append((pixel_x, pixel_y))
+            # Use grid coordinates (tiles), not pixel coordinates
+            if (tile_x, tile_y) not in occupied_cells:
+                available_cells.append((tile_x, tile_y))
 
     # limit obstacles to available cells
     num_obstacles = min(num_obstacles, len(available_cells))
@@ -98,7 +99,8 @@ def create_obstacles(
 
     # create obstacle entities
     obstacle_ids = []
-    for x, y in obstacle_positions:
+    for i, (x, y) in enumerate(obstacle_positions):
+        # Create obstacle with grid coordinates (tiles), not pixels
         obstacle = Obstacle(
             position=Position(x=x, y=y, prev_x=x, prev_y=y),
             tag=ObstacleTag(),
