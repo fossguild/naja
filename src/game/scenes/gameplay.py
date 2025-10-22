@@ -358,6 +358,12 @@ class GameplayScene(BaseScene):
         
         # Apply snake palette in case it changed
         self._apply_snake_palette()
+        
+        # Apply initial speed in case it changed
+        if self._settings:
+            initial_speed = self._settings.get("initial_speed")
+            if initial_speed is not None:
+                self._apply_initial_speed(float(initial_speed))
 
     def _reset_game_world(self) -> None:
         """Reset the game world for a new game.
@@ -796,6 +802,25 @@ class GameplayScene(BaseScene):
                 # Update the palette colors
                 snake.palette.primary_color = head_color
                 snake.palette.secondary_color = tail_color
+                break
+
+    def _apply_initial_speed(self, new_speed: float) -> None:
+        """Apply new initial speed to snake entity.
+        
+        This resets the snake's speed to the new initial speed value.
+        Useful when the user changes initial_speed in settings during gameplay.
+        
+        Args:
+            new_speed: New initial speed value
+        """
+        from src.ecs.entities.entity import EntityType
+
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "velocity"):
+                # Reset speed to new initial value
+                snake.velocity.speed = new_speed
+                print(f"Applied new initial speed: {new_speed}")
                 break
 
     def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
