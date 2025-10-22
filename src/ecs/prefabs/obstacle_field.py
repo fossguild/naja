@@ -26,6 +26,8 @@ from src.ecs.world import World
 from src.ecs.entities.obstacle_field import Obstacle
 from src.ecs.components.position import Position
 from src.ecs.components.obstacle import ObstacleTag
+from src.ecs.components.renderable import Renderable
+from src.core.types.color import Color
 
 
 DifficultyLevel = Literal["None", "Easy", "Medium", "Hard", "Impossible"]
@@ -103,6 +105,12 @@ def create_obstacles(
         obstacle = Obstacle(
             position=Position(x=x, y=y, prev_x=x, prev_y=y),
             tag=ObstacleTag(),
+            renderable=Renderable(
+                shape="square",
+                color=Color.from_hex("#666666"),  # Gray color for obstacles
+                size=grid_size,
+                layer=0,
+            ),
         )
         entity_id = world.registry.add(obstacle)
         obstacle_ids.append(entity_id)

@@ -20,10 +20,12 @@
 """Obstacle entity."""
 
 from dataclasses import dataclass
+from typing import Optional
 
 from src.ecs.entities.entity import Entity, EntityType
 from src.ecs.components.position import Position
 from src.ecs.components.obstacle import ObstacleTag
+from src.ecs.components.renderable import Renderable
 
 
 @dataclass
@@ -33,10 +35,12 @@ class Obstacle(Entity):
     Defines the components that make up an obstacle entity:
     - position: location in grid
     - tag: marker component
+    - renderable: visual representation (optional, for ECS rendering)
     """
 
     position: Position
     tag: ObstacleTag
+    renderable: Optional[Renderable] = None
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.

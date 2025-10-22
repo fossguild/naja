@@ -75,6 +75,7 @@ class GameInitializer:
         """Create all initial game entities.
 
         Creates:
+        - ColorScheme entity for rendering colors
         - Snake entity at center of board
         - AppleConfig entity to track desired apple count
         - Initial apples at random valid positions
@@ -85,6 +86,9 @@ class GameInitializer:
             world: ECS world instance to populate with entities
         """
         grid_size = world.board.cell_size
+
+        # create color scheme entity for rendering systems
+        self._create_color_scheme(world)
 
         # create snake at center of board
         self._create_snake(world, grid_size)
@@ -100,6 +104,27 @@ class GameInitializer:
 
         # create score entity
         self._create_score_entity(world)
+
+    def _create_color_scheme(self, world: World) -> None:
+        """Create ColorScheme entity for rendering systems.
+
+        This entity stores the global color palette used by rendering systems.
+        Following ECS principles, this is a singleton entity that systems query.
+
+        Args:
+            world: ECS world instance
+        """
+        from src.ecs.components.color_scheme import ColorScheme
+
+        class ColorSchemeEntity:
+            def __init__(self):
+                self.color_scheme = ColorScheme()
+
+            def get_type(self):
+                return None  # config entity has no specific type
+
+        color_scheme_entity = ColorSchemeEntity()
+        world.registry.add(color_scheme_entity)
 
     def _create_snake(self, world: World, grid_size: int) -> None:
         """Create the snake entity.

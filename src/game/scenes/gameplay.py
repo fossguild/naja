@@ -39,7 +39,10 @@ from src.ecs.systems.spawn import SpawnSystem
 from src.ecs.systems.scoring import ScoringSystem
 from src.ecs.systems.audio import AudioSystem
 from src.ecs.systems.interpolation import InterpolationSystem
-from src.ecs.systems.board_display import BoardRenderSystem
+from src.ecs.systems.board_render import BoardRenderSystem
+from src.ecs.systems.snake_render import SnakeRenderSystem
+from src.ecs.systems.entity_render import EntityRenderSystem
+from src.ecs.systems.ui_render import UIRenderSystem
 from src.ecs.systems.validation import ValidationSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from src.ecs.systems.settings_apply import SettingsApplySystem
@@ -68,8 +71,10 @@ class GameplayScene(BaseScene):
     10. ResizeSystem - handle window resize
     11. InterpolationSystem - calculate smooth positions
     12. AudioSystem - play sounds and music
-    13. BoardRenderSystem - draw everything
-    14. UISystem - draw HUD and overlays (TODO: not yet implemented)
+    13. BoardRenderSystem - draw board foundation (grid, background)
+    14. EntityRenderSystem - draw generic entities (apples, obstacles)
+    15. SnakeRenderSystem - draw snake with interpolation
+    16. UIRenderSystem - draw HUD overlays (score, speed bar, music indicator)
     """
 
     def __init__(
@@ -104,6 +109,9 @@ class GameplayScene(BaseScene):
         self._attached = False
         self._paused = False
         self._board_render_system: Optional[BoardRenderSystem] = None
+        self._snake_render_system: Optional[SnakeRenderSystem] = None
+        self._entity_render_system: Optional[EntityRenderSystem] = None
+        self._ui_render_system: Optional[UIRenderSystem] = None
         self._game_over = False
         self._death_reason = ""
         self._game_initializer = GameInitializer(settings=settings)
@@ -218,19 +226,35 @@ class GameplayScene(BaseScene):
         )
         self._systems.append(audio_system)
 
-        # 13. BoardRenderSystem - render game world (board, entities)
+        # 13. BoardRenderSystem - render board foundation (background, grid, tiles)
         if self._renderer:
-            self._board_render_system = BoardRenderSystem(
-                renderer=self._renderer, settings=self._settings
-            )
+            self._board_render_system = BoardRenderSystem(renderer=self._renderer)
             self._systems.append(self._board_render_system)
         else:
             self._board_render_system = None
 
-        # 14. UISystem - render UI overlays (score, menus, etc.)
-        # TODO: implement UISystem and wire it here
-        # ui_system = UISystem(...)
-        # self._systems.append(ui_system)
+        # 14. EntityRenderSystem - render generic entities (apples, obstacles)
+        if self._renderer:
+            self._entity_render_system = EntityRenderSystem(renderer=self._renderer)
+            self._systems.append(self._entity_render_system)
+        else:
+            self._entity_render_system = None
+
+        # 15. SnakeRenderSystem - render snake with smooth interpolation
+        if self._renderer:
+            self._snake_render_system = SnakeRenderSystem(renderer=self._renderer)
+            self._systems.append(self._snake_render_system)
+        else:
+            self._snake_render_system = None
+
+        # 16. UIRenderSystem - render UI overlays (score, speed bar, music indicator)
+        if self._renderer:
+            self._ui_render_system = UIRenderSystem(
+                renderer=self._renderer, settings=self._settings
+            )
+            self._systems.append(self._ui_render_system)
+        else:
+            self._ui_render_system = None
 
         self._attached = True
 
