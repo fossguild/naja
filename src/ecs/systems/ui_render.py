@@ -253,6 +253,54 @@ class UIRenderSystem(BaseSystem):
             # Silently fail if sprite loading or rendering fails
             pass
 
+    def draw_pause_overlay(self, surface_width: int, surface_height: int) -> None:
+        """Draw pause overlay with semi-transparent background and text.
+
+        Args:
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        try:
+            # Create semi-transparent overlay
+            overlay = pygame.Surface((surface_width, surface_height))
+            overlay.set_alpha(128)  # 50% transparent
+            overlay.fill((0, 0, 0))  # black
+            self._renderer.blit(overlay, (0, 0))
+
+            # Render "PAUSED" text
+            font_size = int(surface_width / 10)
+            font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+            try:
+                pause_font = pygame.font.Font(font_path, font_size)
+            except Exception:
+                pause_font = pygame.font.Font(None, font_size)
+
+            pause_text = pause_font.render("PAUSED", True, (255, 255, 255))
+            pause_rect = pause_text.get_rect()
+            pause_rect.center = (surface_width // 2, surface_height // 2)
+
+            # Blit to screen
+            self._renderer.blit(pause_text, pause_rect)
+
+            # Render hint text below
+            hint_font_size = int(surface_width / 30)
+            try:
+                hint_font = pygame.font.Font(font_path, hint_font_size)
+            except Exception:
+                hint_font = pygame.font.Font(None, hint_font_size)
+
+            hint_text = hint_font.render("Press P to resume", True, (200, 200, 200))
+            hint_rect = hint_text.get_rect()
+            hint_rect.midtop = (surface_width // 2, pause_rect.bottom + 20)
+
+            # Blit hint
+            self._renderer.blit(hint_text, hint_rect)
+
+        except Exception:
+            # Silently fail if rendering fails
+            pass
+
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
 
