@@ -286,11 +286,12 @@ class GameplayScene(BaseScene):
 
         # Restore background music (in case we're coming from game over)
         try:
-            from src.game.services.assets import GameAssets
-
             if self._settings and self._settings.get("background_music"):
-                GameAssets.play_background_music()
-        except Exception:
+                # Load and play background music
+                pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+                pygame.mixer.music.play(-1)  # loop
+        except Exception as e:
+            print(f"Warning: Could not load background music: {e}")
             pass  # ignore if music fails to load
 
         self.on_attach()
@@ -354,14 +355,13 @@ class GameplayScene(BaseScene):
 
         # Create score entity to track apples eaten
         from src.ecs.components.score import Score
-        from src.ecs.entities.entity import EntityType
 
         # Create a simple object to hold the score component
         # We don't use a specific entity type since this is just for UI tracking
         class ScoreEntity:
             def __init__(self):
                 self.score = Score(current=0, high_score=0)
-            
+
             def get_type(self):
                 """Return a dummy type to satisfy registry interface."""
                 return None  # No specific type for UI entities
@@ -452,16 +452,36 @@ class GameplayScene(BaseScene):
         self.set_next_scene("settings")
 
     def _handle_music_toggle(self) -> None:
-        """Handle music toggle."""
+        """Handle music toggle - mutes/unmutes ALL game sounds."""
         # toggle the setting
         current = self._settings.get("background_music")
         self._settings.set("background_music", not current)
 
-        # apply immediately
+        # apply immediately to both music and sound effects
         if self._settings.get("background_music"):
-            pygame.mixer.music.unpause()
+            # Unmute: restore music and sound effects
+            # Check if music is currently loaded and playing
+            try:
+                # Try to unpause first (in case music was paused)
+                pygame.mixer.music.unpause()
+                # Check if music is actually playing
+                if not pygame.mixer.music.get_busy():
+                    # Music not playing, load and start it
+                    pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+                    pygame.mixer.music.play(-1)  # loop
+            except Exception:
+                # If unpause failed, try loading and playing
+                try:
+                    pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+                    pygame.mixer.music.play(-1)  # loop
+                except Exception:
+                    pass  # ignore if music fails to load
+
+            pygame.mixer.unpause()  # Unpause all sound effect channels
         else:
+            # Mute: pause music and sound effects
             pygame.mixer.music.pause()
+            pygame.mixer.pause()  # Pause all sound effect channels
 
     def _handle_palette_randomize(self) -> None:
         """Handle palette randomization."""
@@ -556,15 +576,16 @@ class GameplayScene(BaseScene):
                 snake.body.alive = False
                 break
 
-        # play death sound and music
-        try:
-            import pygame
+        # play death sound and music (only if audio is not muted)
+        if self._settings and self._settings.get("background_music"):
+            try:
+                import pygame
 
-            pygame.mixer.Sound("assets/sound/gameover.wav").play()
-            pygame.mixer.music.load("assets/sound/death_song.mp3")
-            pygame.mixer.music.play(-1)  # loop death music
-        except Exception:
-            pass  # ignore if sound files not found
+                pygame.mixer.Sound("assets/sound/gameover.wav").play()
+                pygame.mixer.music.load("assets/sound/death_song.mp3")
+                pygame.mixer.music.play(-1)  # loop death music
+            except Exception:
+                pass  # ignore if sound files not found
 
         # set game over state
         self._game_over = True
@@ -589,13 +610,14 @@ class GameplayScene(BaseScene):
 
         _ = apple_position  # suppress unused warning
 
-        # play apple eating sound
-        try:
-            import pygame
+        # play apple eating sound (only if audio is not muted)
+        if self._settings and self._settings.get("background_music"):
+            try:
+                import pygame
 
-            pygame.mixer.Sound("assets/sound/eat.flac").play()
-        except Exception:
-            pass  # ignore if sound file not found
+                pygame.mixer.Sound("assets/sound/eat.flac").play()
+            except Exception:
+                pass  # ignore if sound file not found
 
         # grow snake
         snakes = self._world.registry.query_by_type(EntityType.SNAKE)

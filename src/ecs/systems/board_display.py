@@ -545,7 +545,9 @@ class BoardRenderSystem(BaseSystem):
             score_text.set_alpha(64)
 
             # Horizontal center; vertically near the top with a grid-sized margin
-            top_margin = getattr(world.board, "cell_size", max(10, surface_height // 20))
+            top_margin = getattr(
+                world.board, "cell_size", max(10, surface_height // 20)
+            )
             score_rect = score_text.get_rect()
             score_rect.midtop = (surface_width // 2, top_margin)
 
@@ -588,7 +590,9 @@ class BoardRenderSystem(BaseSystem):
             # Render hint text
             # SCORE_COLOR from constants: "#ffffff" (white)
             # GRID_COLOR from constants: "#3c3c3b" (dark gray)
-            hint_color = (255, 255, 255) if music_on else (60, 60, 59)  # SCORE_COLOR or GRID_COLOR
+            hint_color = (
+                (255, 255, 255) if music_on else (60, 60, 59)
+            )  # SCORE_COLOR or GRID_COLOR
             hint_text = "[N]"
             hint_font_size = int(surface_width / 50)
             font_path = "assets/font/GetVoIP-Grotesque.ttf"
@@ -655,12 +659,12 @@ class BoardRenderSystem(BaseSystem):
         surface = pygame.display.get_surface()
         if surface:
             self.draw_score(world, surface.get_width(), surface.get_height())
-            
+
             # Draw music indicator in bottom-right corner
             if self._settings:
                 music_on = self._settings.get("background_music")
                 self.draw_music_indicator(
                     surface.get_width(), surface.get_height(), music_on
                 )
-        
+
         # (draw_score already called once; avoid duplicate rendering)

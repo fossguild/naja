@@ -60,6 +60,7 @@ class GameOverScene(BaseScene):
         height: int,
         assets: GameAssets,
         death_reason: str = "",
+        settings=None,
     ):
         """Initialize the game over scene.
 
@@ -70,10 +71,12 @@ class GameOverScene(BaseScene):
             height: Scene height
             assets: Game assets
             death_reason: Reason for game over
+            settings: Optional GameSettings instance
         """
         super().__init__(pygame_adapter, renderer, width, height)
         self._assets = assets
         self._death_reason = death_reason
+        self._settings = settings
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game over logic.
@@ -148,12 +151,13 @@ class GameOverScene(BaseScene):
 
     def on_enter(self) -> None:
         """Called when entering game over."""
-        # Play death song (like old code)
-        try:
-            pygame.mixer.music.load("assets/sound/death_song.mp3")
-            pygame.mixer.music.play(-1)  # loop
-        except Exception:
-            pass
+        # Play death song (like old code) - only if audio is not muted
+        if not self._settings or self._settings.get("background_music"):
+            try:
+                pygame.mixer.music.load("assets/sound/death_song.mp3")
+                pygame.mixer.music.play(-1)  # loop
+            except Exception:
+                pass
 
     def on_exit(self) -> None:
         """Called when exiting game over."""

@@ -166,6 +166,7 @@ class ECSGameApp:
             width=self.config.initial_width,
             height=self.config.initial_height,
             assets=self.assets,
+            settings=self.settings,
         )
         self.scene_manager.register_scene("game_over", game_over_scene)
 
