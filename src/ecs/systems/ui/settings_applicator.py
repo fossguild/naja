@@ -55,7 +55,7 @@ class SettingsApplicator:
     IMMEDIATE_SETTINGS = [
         "background_music",
         "sound_effects",
-        "max_speed",
+        "max_speed",  # Can be changed immediately during gameplay
         "initial_speed",  # Can be changed immediately during gameplay
         "snake_color_palette",  # Can be changed immediately during gameplay
     ]
@@ -68,6 +68,7 @@ class SettingsApplicator:
         config: Any,
         palette_changed_callback: Any = None,
         speed_changed_callback: Any = None,
+        max_speed_changed_callback: Any = None,
     ):
         """Initialize the SettingsApplicator.
 
@@ -78,6 +79,7 @@ class SettingsApplicator:
             config: GameConfig instance for dimension calculations
             palette_changed_callback: Optional callback when snake palette changes
             speed_changed_callback: Optional callback when initial speed changes
+            max_speed_changed_callback: Optional callback when max speed changes
         """
         self._pygame_adapter = pygame_adapter
         self._state = state
@@ -86,8 +88,10 @@ class SettingsApplicator:
         self._settings_snapshot: dict[str, Any] = {}
         self._palette_changed_callback = palette_changed_callback
         self._speed_changed_callback = speed_changed_callback
+        self._max_speed_changed_callback = max_speed_changed_callback
         self._previous_palette: str = ""
         self._previous_initial_speed: float = 0.0
+        self._previous_max_speed: float = 0.0
 
     def snapshot_critical_settings(self, settings: Any) -> None:
         """Take a snapshot of critical settings before changes.
@@ -169,6 +173,14 @@ class SettingsApplicator:
             if current_initial_speed != self._previous_initial_speed and self._speed_changed_callback:
                 self._speed_changed_callback(current_initial_speed)
                 self._previous_initial_speed = current_initial_speed
+
+        # Check if max speed changed and notify callback
+        max_speed = settings.get("max_speed")
+        if max_speed is not None:
+            current_max_speed = float(max_speed)
+            if current_max_speed != self._previous_max_speed and self._max_speed_changed_callback:
+                self._max_speed_changed_callback(current_max_speed)
+                self._previous_max_speed = current_max_speed
 
         # Recompute window and recreate surface/fonts if grid changed
         if new_grid_size != old_grid:

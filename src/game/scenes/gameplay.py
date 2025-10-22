@@ -364,6 +364,12 @@ class GameplayScene(BaseScene):
             initial_speed = self._settings.get("initial_speed")
             if initial_speed is not None:
                 self._apply_initial_speed(float(initial_speed))
+        
+        # Apply max speed in case it changed
+        if self._settings:
+            max_speed = self._settings.get("max_speed")
+            if max_speed is not None:
+                self._apply_max_speed(float(max_speed))
 
     def _reset_game_world(self) -> None:
         """Reset the game world for a new game.
@@ -821,6 +827,29 @@ class GameplayScene(BaseScene):
                 # Reset speed to new initial value
                 snake.velocity.speed = new_speed
                 print(f"Applied new initial speed: {new_speed}")
+                break
+
+    def _apply_max_speed(self, new_max_speed: float) -> None:
+        """Apply new max speed limit to snake entity.
+        
+        If the current speed exceeds the new max speed, it will be capped.
+        This ensures the snake never moves faster than the configured maximum.
+        
+        Args:
+            new_max_speed: New maximum speed value
+        """
+        from src.ecs.entities.entity import EntityType
+
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "velocity"):
+                current_speed = snake.velocity.speed
+                # Cap current speed to new max if it exceeds it
+                if current_speed > new_max_speed:
+                    snake.velocity.speed = new_max_speed
+                    print(f"Applied new max speed: {new_max_speed} (capped from {current_speed:.2f})")
+                else:
+                    print(f"Applied new max speed: {new_max_speed} (current speed {current_speed:.2f} is within limit)")
                 break
 
     def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
