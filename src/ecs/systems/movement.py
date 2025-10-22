@@ -87,21 +87,63 @@ class MovementSystem(BaseSystem):
             position.prev_x = position.x
             position.prev_y = position.y
 
-            # Insert a new segment to the head's current position
-            body.segments.insert(0, replace(position))
+            # Update all segment positions to follow the one ahead
+            # Work backwards to avoid overwriting positions we still need
+            # This creates the "caterpillar" following effect
 
-            # Keep exactly the right number of segments (consistent size)
-            # This prevents the tail from growing/shrinking during movement
+            # Save the old positions before shifting
+            if body.segments:
+                # Shift all segments backward (each takes the position ahead)
+                for i in range(len(body.segments) - 1, 0, -1):
+                    # Save where this segment currently is (for prev)
+                    old_x = body.segments[i].x
+                    old_y = body.segments[i].y
+
+                    # Move this segment to where the segment ahead is
+                    body.segments[i].x = body.segments[i - 1].x
+                    body.segments[i].y = body.segments[i - 1].y
+
+                    # Set prev to where it was before moving
+                    body.segments[i].prev_x = old_x
+                    body.segments[i].prev_y = old_y
+
+                # First segment follows the head
+                old_x = body.segments[0].x
+                old_y = body.segments[0].y
+                body.segments[0].x = position.x  # Head's OLD position
+                body.segments[0].y = position.y
+                body.segments[0].prev_x = old_x
+                body.segments[0].prev_y = old_y
+
+            # Maintain correct number of segments based on body size
             desired_tail_len = max(0, body.size - 1)
+
+            # Add or remove segments as needed
             if len(body.segments) > desired_tail_len:
-                # Remove excess segments from the end
+                # Snake shrunk - remove excess segments from the end
                 body.segments = body.segments[:desired_tail_len]
             elif len(body.segments) < desired_tail_len:
-                # Add missing segments at the end (duplicate last position)
+                # Snake grew - add new segments at the end
                 if body.segments:
+                    # Add segments at the last segment's position
                     last_segment = body.segments[-1]
                     for _ in range(desired_tail_len - len(body.segments)):
-                        body.segments.append(replace(last_segment))
+                        new_seg = Position(
+                            x=last_segment.x,
+                            y=last_segment.y,
+                            prev_x=last_segment.x,
+                            prev_y=last_segment.y,
+                        )
+                        body.segments.append(new_seg)
+                else:
+                    # First segment - create at head's position
+                    new_seg = Position(
+                        x=position.x,
+                        y=position.y,
+                        prev_x=position.x,
+                        prev_y=position.y,
+                    )
+                    body.segments.append(new_seg)
 
             # Move head by exactly one grid cell in velocity direction
             # Only wrap around if electric walls are disabled

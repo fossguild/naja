@@ -329,35 +329,44 @@ class BoardRenderSystem(BaseSystem):
         grid_height: int,
         color: tuple,
     ) -> None:
-        """Draw the snake tail at exact grid positions (no interpolation).
+        """Draw the snake tail with smooth interpolation for each segment.
 
-        NOTE: The old code only interpolates the HEAD, not the tail segments.
-        Tail segments are drawn at their exact grid positions to match the
-        original smooth floating head effect.
+        Each tail segment interpolates from its previous position to current position,
+        creating a smooth "floating" effect for the entire snake body.
 
         Args:
             body: Snake body component
-            interpolation: Interpolation component (unused, kept for API compatibility)
-            head_position: Current head position (unused, kept for API compatibility)
+            interpolation: Interpolation component with alpha and wrapping info
+            head_position: Current head position
             cell_size: Size of grid cells
-            grid_width: Total grid width in pixels (unused, kept for API compatibility)
-            grid_height: Total grid height in pixels (unused, kept for API compatibility)
+            grid_width: Total grid width in pixels
+            grid_height: Total grid height in pixels
             color: Tail color as (r, g, b) tuple
         """
 
         if not body.segments:
             return
 
-        # draw each tail segment at exact grid position (NO interpolation)
-        # this matches the old code's behavior where only the head floats
+        # draw each tail segment with interpolation
+        # each segment smoothly floats from prev to current position
         for segment in body.segments:
-            # convert grid coordinates to pixel coordinates
-            pixel_x = segment.x * cell_size
-            pixel_y = segment.y * cell_size
+            # calculate interpolated position for this segment
+            # segments have their own prev_x, prev_y from when they were copied
+            draw_x, draw_y = self._calculate_interpolated_position(
+                segment.x * cell_size,
+                segment.y * cell_size,
+                segment.prev_x * cell_size,
+                segment.prev_y * cell_size,
+                interpolation.alpha,
+                interpolation.wrapped_axis,
+                cell_size,
+                grid_width,
+                grid_height,
+            )
 
             segment_rect = pygame.Rect(
-                pixel_x,
-                pixel_y,
+                int(draw_x),
+                int(draw_y),
                 cell_size,
                 cell_size,
             )
