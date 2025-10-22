@@ -319,6 +319,18 @@ class BoardRenderSystem(BaseSystem):
         rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
         self._renderer.draw_rect(color, rect, 0)
 
+        # Draw wraparound duplicate for smooth portal effect
+        if interpolation.wrapped_axis != "none":
+            self._draw_wraparound_duplicate(
+                draw_x,
+                draw_y,
+                cell_size,
+                grid_width,
+                grid_height,
+                interpolation.wrapped_axis,
+                color,
+            )
+
     def _draw_snake_tail(
         self,
         body: "SnakeBody",
@@ -371,6 +383,18 @@ class BoardRenderSystem(BaseSystem):
                 cell_size,
             )
             self._renderer.draw_rect(color, segment_rect, 0)
+
+            # Draw wraparound duplicate for smooth portal effect
+            if interpolation.wrapped_axis != "none":
+                self._draw_wraparound_duplicate(
+                    draw_x,
+                    draw_y,
+                    cell_size,
+                    grid_width,
+                    grid_height,
+                    interpolation.wrapped_axis,
+                    color,
+                )
 
     def _calculate_interpolated_position(
         self,
@@ -432,6 +456,56 @@ class BoardRenderSystem(BaseSystem):
         draw_y = draw_y % grid_height
 
         return (draw_x, draw_y)
+
+    def _draw_wraparound_duplicate(
+        self,
+        draw_x: float,
+        draw_y: float,
+        cell_size: int,
+        grid_width: int,
+        grid_height: int,
+        wrapped_axis: str,
+        color: tuple,
+    ) -> None:
+        """Draw duplicate of snake segment on opposite edge for smooth wraparound effect.
+
+        When a snake crosses the edge with wraparound enabled, we need to draw it twice:
+        once going out and once coming in on the opposite side. This creates the smooth
+        "portal" effect where the snake appears to pass through the edge continuously.
+
+        Args:
+            draw_x: Current X position of the segment
+            draw_y: Current Y position of the segment
+            cell_size: Size of grid cells
+            grid_width: Total grid width in pixels
+            grid_height: Total grid height in pixels
+            wrapped_axis: Which axis wrapped ("none", "x", "y", "both")
+            color: Segment color as (r, g, b) tuple
+        """
+        # Calculate duplicate position on opposite edge
+        dup_x = draw_x
+        dup_y = draw_y
+
+        if wrapped_axis in ("x", "both"):
+            # If segment is beyond right edge, also draw it on left edge
+            if draw_x >= grid_width - cell_size:
+                dup_x = draw_x - grid_width
+            # If segment is beyond left edge, also draw it on right edge
+            elif draw_x < cell_size:
+                dup_x = draw_x + grid_width
+
+        if wrapped_axis in ("y", "both"):
+            # If segment is beyond bottom edge, also draw it on top edge
+            if draw_y >= grid_height - cell_size:
+                dup_y = draw_y - grid_height
+            # If segment is beyond top edge, also draw it on bottom edge
+            elif draw_y < cell_size:
+                dup_y = draw_y + grid_height
+
+        # Only draw duplicate if position actually changed
+        if dup_x != draw_x or dup_y != draw_y:
+            dup_rect = pygame.Rect(int(dup_x), int(dup_y), cell_size, cell_size)
+            self._renderer.draw_rect(color, dup_rect, 0)
 
     def draw_ui(self, world: World) -> None:
         """Draw UI elements like score.
@@ -628,7 +702,7 @@ class BoardRenderSystem(BaseSystem):
         # Create a temporary surface for the speed bar (to draw with pygame.draw)
         bar_surface = pygame.Surface((bar_width, bar_height))
         bar_surface.fill(border_color)
-        
+
         # Draw filled portion
         filled_width = int(bar_width * ratio)
         if filled_width > 0:

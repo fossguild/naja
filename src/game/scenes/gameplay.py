@@ -197,7 +197,8 @@ class GameplayScene(BaseScene):
 
         # 11. InterpolationSystem - calculate smooth positions for rendering
         interpolation_system = InterpolationSystem(
-            electric_walls=True,  # TODO: read from settings
+            electric_walls=self._get_electric_walls(),
+            get_electric_walls=self._get_electric_walls,
         )
         self._systems.append(interpolation_system)
 

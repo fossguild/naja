@@ -47,13 +47,15 @@ class InterpolationSystem(BaseSystem):
     Note: This system runs before RenderSystem to prepare smooth positions.
     """
 
-    def __init__(self, electric_walls: bool = True):
+    def __init__(self, electric_walls: bool = True, get_electric_walls=None):
         """Initialize the InterpolationSystem.
 
         Args:
-            electric_walls: Whether walls are electric (no wrapping). Can be updated.
+            electric_walls: Default value for whether walls are electric (no wrapping)
+            get_electric_walls: Optional callback to dynamically get electric_walls setting
         """
         self._electric_walls = electric_walls
+        self._get_electric_walls = get_electric_walls
 
     def update(self, world: World) -> None:
         """Update interpolation values for all entities with movement.
@@ -249,7 +251,12 @@ class InterpolationSystem(BaseSystem):
         Returns:
             "none", "x", "y", or "both" indicating which axes wrap
         """
-        if self._electric_walls:
+        # Use callback if available, otherwise use stored value
+        electric_walls = self._electric_walls
+        if self._get_electric_walls:
+            electric_walls = self._get_electric_walls()
+
+        if electric_walls:
             return "none"
 
         board = world.board
