@@ -199,7 +199,11 @@ class CollisionSystem(BaseSystem):
             bool: True if self-bite detected, False otherwise
         """
         snake = self._get_snake_entity(world)
-        if not snake or not hasattr(snake, "position") or not hasattr(snake, "velocity"):
+        if (
+            not snake
+            or not hasattr(snake, "position")
+            or not hasattr(snake, "velocity")
+        ):
             return False
         if not hasattr(snake, "body"):
             return False
@@ -251,7 +255,10 @@ class CollisionSystem(BaseSystem):
         # check if snake's current position collides with any obstacle
         for _, obstacle in obstacles.items():
             if hasattr(obstacle, "position"):
-                if current_x == obstacle.position.x and current_y == obstacle.position.y:
+                if (
+                    current_x == obstacle.position.x
+                    and current_y == obstacle.position.y
+                ):
                     return True
 
         return False

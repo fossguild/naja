@@ -95,7 +95,7 @@ class GameplayScene(BaseScene):
 
     def on_attach(self) -> None:
         """Initialize and register all game systems in execution order.
-        
+
         Systems 0-8 are game logic (paused when game is paused).
         Systems 9+ are rendering/audio (always run).
         """
@@ -109,22 +109,38 @@ class GameplayScene(BaseScene):
 
         self._systems.extend(
             [
-                InputSystem(self._pygame_adapter, self._settings),  # 0: read user input and update velocity/game state
-                MovementSystem(self._get_electric_walls),  # 1: update entity positions based on velocity
-                CollisionSystem(self._settings, self._audio_service),  # 2: detect collisions (wall, self-bite, obstacles, apples)
+                InputSystem(
+                    self._pygame_adapter, self._settings
+                ),  # 0: read user input and update velocity/game state
+                MovementSystem(
+                    self._get_electric_walls
+                ),  # 1: update entity positions based on velocity
+                CollisionSystem(
+                    self._settings, self._audio_service
+                ),  # 2: detect collisions (wall, self-bite, obstacles, apples)
                 AppleSpawnSystem(1000),  # 3: maintain correct number of apples on board
-                SpawnSystem(1000, (255, 0, 0), None),  # 4: create new entities at valid positions
+                SpawnSystem(
+                    1000, (255, 0, 0), None
+                ),  # 4: create new entities at valid positions
                 ScoringSystem(None),  # 5: track score and high score
-                ObstacleGenerationSystem(100, 8, 2, None),  # 6: generate obstacles with connectivity guarantees
-                SettingsApplySystem(self._settings, self._config, self._assets),  # 7: apply runtime settings changes (colors, difficulty, etc)
-                ValidationSystem(True, 1, 20),  # 8: debug validation of game state integrity
+                ObstacleGenerationSystem(
+                    100, 8, 2, None
+                ),  # 6: generate obstacles with connectivity guarantees
+                SettingsApplySystem(
+                    self._settings, self._config, self._assets
+                ),  # 7: apply runtime settings changes (colors, difficulty, etc)
+                ValidationSystem(
+                    True, 1, 20
+                ),  # 8: debug validation of game state integrity
             ]
         )
 
         # rendering and audio systems (indices 9+, always run even when paused)
         self._systems.extend(
             [
-                InterpolationSystem(self._get_electric_walls(), self._get_electric_walls),  # 9: calculate smooth positions for rendering
+                InterpolationSystem(
+                    self._get_electric_walls(), self._get_electric_walls
+                ),  # 9: calculate smooth positions for rendering
                 AudioSystem(None, None, 0.2),  # 10: play sounds and music
             ]
         )

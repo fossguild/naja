@@ -27,10 +27,10 @@ from typing import Optional
 @dataclass
 class GameState:
     """Global game state component.
-    
+
     This component is attached to a singleton game entity to track
     overall game state like pause, game over, and scene transitions.
-    
+
     Used by: Game entity (singleton)
     Read by: Most systems (to check paused state)
     Written by: InputSystem, CollisionSystem
@@ -40,4 +40,3 @@ class GameState:
     game_over: bool = False
     death_reason: str = ""
     next_scene: Optional[str] = None
-
