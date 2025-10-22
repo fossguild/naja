@@ -34,7 +34,6 @@ class GameSettings:
         "number_of_apples": 1,
         "background_music": True,
         "sound_effects": True,  # Controls all sound effects (eat, death, etc.)
-        "reset_game_on_apply": False,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
     }
@@ -81,7 +80,6 @@ class GameSettings:
         },
         {"key": "background_music", "label": "Background Music", "type": "bool"},
         {"key": "sound_effects", "label": "Sound Effects", "type": "bool"},
-        {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
         {
             "key": "electric_walls",
             "label": "Electric walls",
