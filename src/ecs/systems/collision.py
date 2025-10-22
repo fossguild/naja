@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
+#   Copyright (c) 2024, Leticia Neves
 #
 #   This file is part of Naja.
 #
@@ -25,10 +26,10 @@ This system detects collisions between the snake and:
 - Obstacles
 - Apples (edible items)
 
-Maintains identical logic to the old code.
+Follows proper ECS architecture by querying world directly.
 """
 
-from typing import Optional, Callable, Any
+from typing import Optional, Any
 
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
@@ -37,61 +38,41 @@ from src.ecs.world import World
 class CollisionSystem(BaseSystem):
     """System for detecting all types of collisions.
 
-    Reads: Position, Edible, ObstacleTag (via World queries)
-    Writes: None (emits events via callbacks)
+    Reads: Position, Velocity, SnakeBody, GameState, Board
+    Writes: GameState (death), SnakeBody (size), Score, Velocity (speed)
     Queries:
-        - Entities with Position + Edible (apples)
-        - Entities with Position + ObstacleTag (obstacles)
+        - Snake entity (EntityType.SNAKE)
+        - Apple entities (EntityType.APPLE)
+        - Obstacle entities (EntityType.OBSTACLE)
+        - Score entities (component "score")
+        - GameState entity (component "game_state")
 
     Responsibilities:
     - Detect wall collisions (electric mode only)
     - Detect self-bite collisions
     - Detect obstacle collisions
     - Detect apple collisions
-    - Emit appropriate callbacks for each collision type
+    - Handle death (modify GameState, play sounds)
+    - Handle apple eating (grow snake, increase score/speed, play sound)
     - Maintain collision check order (fatal before non-fatal)
 
-    Note: This system only DETECTS collisions and calls callbacks.
-    It does not modify game state directly (ECS principle).
+    Note: This system follows proper ECS architecture by querying
+    components and modifying them directly, without callbacks.
     """
 
     def __init__(
         self,
-        get_snake_head_position: Optional[Callable[[], tuple[int, int]]] = None,
-        get_snake_tail_positions: Optional[Callable[[], list[tuple[int, int]]]] = None,
-        get_snake_next_position: Optional[Callable[[], tuple[int, int]]] = None,
-        get_electric_walls: Optional[Callable[[], bool]] = None,
-        get_grid_dimensions: Optional[Callable[[], tuple[int, int, int]]] = None,
-        get_current_speed: Optional[Callable[[], float]] = None,
-        get_max_speed: Optional[Callable[[], float]] = None,
-        death_callback: Optional[Callable[[str], None]] = None,
-        apple_eaten_callback: Optional[Callable[[Any, tuple[int, int]], None]] = None,
-        speed_increase_callback: Optional[Callable[[float], None]] = None,
+        settings: Optional[Any] = None,
+        audio_service: Optional[Any] = None,
     ):
         """Initialize the CollisionSystem.
 
         Args:
-            get_snake_head_position: Function to get current head position (x, y)
-            get_snake_tail_positions: Function to get tail segments [(x, y), ...]
-            get_snake_next_position: Function to get next head position (x, y)
-            get_electric_walls: Function to check if electric walls are enabled
-            get_grid_dimensions: Function to get (width, height, grid_size)
-            get_current_speed: Function to get current snake speed
-            get_max_speed: Function to get maximum allowed speed
-            death_callback: Function to call on death with reason string
-            apple_eaten_callback: Function to call when apple is eaten
-            speed_increase_callback: Function to call to increase speed
+            settings: Game settings for electric_walls, max_speed
+            audio_service: Audio service for playing sounds
         """
-        self._get_snake_head_position = get_snake_head_position
-        self._get_snake_tail_positions = get_snake_tail_positions
-        self._get_snake_next_position = get_snake_next_position
-        self._get_electric_walls = get_electric_walls
-        self._get_grid_dimensions = get_grid_dimensions
-        self._get_current_speed = get_current_speed
-        self._get_max_speed = get_max_speed
-        self._death_callback = death_callback
-        self._apple_eaten_callback = apple_eaten_callback
-        self._speed_increase_callback = speed_increase_callback
+        self._settings = settings
+        self._audio_service = audio_service
 
     def update(self, world: World) -> None:
         """Check for all collision types in priority order.
@@ -106,56 +87,93 @@ class CollisionSystem(BaseSystem):
             world: ECS world to query entities
         """
         # Check wall collision first (highest priority)
-        if self._check_wall_collision():
+        if self._check_wall_collision(world):
             print("☠️  DEATH CAUSE: Wall collision")
-            if self._death_callback:
-                self._death_callback("wall")
+            self._handle_death(world, "wall")
             return
 
         # Check self-bite collision
-        if self._check_self_bite():
+        if self._check_self_bite(world):
             print("☠️  DEATH CAUSE: Self-bite collision")
-            if self._death_callback:
-                self._death_callback("self-bite")
+            self._handle_death(world, "self-bite")
             return
 
         # Check obstacle collision
         if self._check_obstacle_collision(world):
             print("☠️  DEATH CAUSE: Obstacle collision")
-            if self._death_callback:
-                self._death_callback("obstacle")
+            self._handle_death(world, "obstacle")
             return
 
         # Check apple collision (doesn't kill)
         self._check_apple_collision(world)
 
-    def _check_wall_collision(self) -> bool:
+    def _get_snake_entity(self, world: World):
+        """Get the snake entity from the world.
+
+        Args:
+            world: ECS world
+
+        Returns:
+            Snake entity or None if not found
+        """
+        from src.ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            return snake
+        return None
+
+    def _get_game_state(self, world: World):
+        """Get the GameState component from world.
+
+        Args:
+            world: ECS world
+
+        Returns:
+            GameState component or None if not found
+        """
+        game_state_entities = world.registry.query_by_component("game_state")
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                return entity.game_state
+        return None
+
+    def _check_wall_collision(self, world: World) -> bool:
         """Check collision with walls (electric mode only).
 
         Checks if snake's CURRENT position is out of bounds.
         Movement system handles wrapping when electric walls are disabled.
         Collision system only checks if we're already out of bounds.
 
+        Args:
+            world: ECS world
+
         Returns:
             bool: True if collision detected, False otherwise
         """
-        if not self._get_snake_head_position or not self._get_grid_dimensions:
+        snake = self._get_snake_entity(world)
+        if not snake or not hasattr(snake, "position"):
             return False
 
-        # Check CURRENT position, not next position
-        # Snake dies when it IS out of bounds, not when it WOULD BE out of bounds
-        current_x, current_y = self._get_snake_head_position()
-        grid_width, grid_height, cell_size = self._get_grid_dimensions()
-
         # get electric walls setting
-        electric_walls = False
-        if self._get_electric_walls:
-            electric_walls = self._get_electric_walls()
+        electric_walls = (
+            self._settings.get("electric_walls") if self._settings else True
+        )
 
-        # Grid dimensions are now in cells, not pixels
-        # Valid positions are 0 to grid_width-1 and 0 to grid_height-1
-        # Snake dies when its current position is out of bounds
-        if electric_walls and (
+        if not electric_walls:
+            return False  # no wall collisions when walls are disabled
+
+        # check current position
+        current_x = snake.position.x
+        current_y = snake.position.y
+        grid_width = world.board.width
+        grid_height = world.board.height
+
+        # grid dimensions are in cells, not pixels
+        # valid positions are 0 to grid_width-1 and 0 to grid_height-1
+        # snake dies when its current position is out of bounds
+        if (
             current_x < 0
             or current_x >= grid_width
             or current_y < 0
@@ -168,21 +186,41 @@ class CollisionSystem(BaseSystem):
 
         return False
 
-    def _check_self_bite(self) -> bool:
+    def _check_self_bite(self, world: World) -> bool:
         """Check if snake head collides with its own tail.
 
-        Maintains exact logic from old code (entities.py lines 122-125).
+        Maintains exact logic from old code.
+
+        Args:
+            world: ECS world
 
         Returns:
             bool: True if self-bite detected, False otherwise
         """
-        if not self._get_snake_next_position or not self._get_snake_tail_positions:
+        snake = self._get_snake_entity(world)
+        if (
+            not snake
+            or not hasattr(snake, "position")
+            or not hasattr(snake, "velocity")
+        ):
+            return False
+        if not hasattr(snake, "body"):
             return False
 
-        next_x, next_y = self._get_snake_next_position()
-        tail_positions = self._get_snake_tail_positions()
+        # calculate next position
+        next_x = snake.position.x + snake.velocity.dx
+        next_y = snake.position.y + snake.velocity.dy
 
-        # EXACT LOGIC from old code: iterate over each tail segment
+        # wrap if electric walls are disabled
+        electric_walls = (
+            self._settings.get("electric_walls") if self._settings else True
+        )
+        if not electric_walls:
+            next_x = next_x % world.board.width
+            next_y = next_y % world.board.height
+
+        # check collision with tail segments
+        tail_positions = [(seg.x, seg.y) for seg in snake.body.segments]
         for square in tail_positions:
             if next_x == square[0] and next_y == square[1]:
                 return True
@@ -193,8 +231,6 @@ class CollisionSystem(BaseSystem):
         """Check collision with obstacles.
 
         Checks if snake's CURRENT position (after movement) collides with obstacle.
-        This matches the wall collision behavior - we check if snake IS on obstacle,
-        not if it WOULD BE on obstacle.
 
         Args:
             world: ECS world to query obstacles
@@ -202,22 +238,22 @@ class CollisionSystem(BaseSystem):
         Returns:
             bool: True if collision detected, False otherwise
         """
-        if not self._get_snake_head_position:
+        snake = self._get_snake_entity(world)
+        if not snake or not hasattr(snake, "position"):
             return False
 
-        # Check CURRENT position (after movement), not next position
-        # Snake dies when it IS on an obstacle, not when it WOULD BE on an obstacle
-        current_x, current_y = self._get_snake_head_position()
+        # check current position
+        current_x = snake.position.x
+        current_y = snake.position.y
 
-        # Query all obstacles using EntityType
+        # query all obstacles
         from src.ecs.entities.entity import EntityType
 
         obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
 
-        # Check if snake's current position collides with any obstacle
+        # check if snake's current position collides with any obstacle
         for _, obstacle in obstacles.items():
             if hasattr(obstacle, "position"):
-                # Obstacles store position in grid coordinates (tiles)
                 if (
                     current_x == obstacle.position.x
                     and current_y == obstacle.position.y
@@ -229,22 +265,20 @@ class CollisionSystem(BaseSystem):
     def _check_apple_collision(self, world: World) -> None:
         """Check collision with apples and handle eating.
 
-        Maintains exact logic from old code (app.py lines 537-579).
-
-        Calls callbacks for:
-        - apple_eaten_callback
-        - speed_increase_callback
+        Maintains exact logic from old code.
+        Directly modifies snake body, score, and velocity components.
 
         Args:
             world: ECS world to query apples
         """
-        if not self._get_snake_head_position:
+        snake = self._get_snake_entity(world)
+        if not snake or not hasattr(snake, "position"):
             return
 
-        head_x, head_y = self._get_snake_head_position()
+        head_x = snake.position.x
+        head_y = snake.position.y
 
-        # query apples from world (ECS way)
-        # EXACT LOGIC: iterate over each apple
+        # query apples from world
         from src.ecs.entities.entity import EntityType
 
         apples = world.registry.query_by_type(EntityType.APPLE)
@@ -253,16 +287,62 @@ class CollisionSystem(BaseSystem):
             if hasattr(apple, "position"):
                 if head_x == apple.position.x and head_y == apple.position.y:
                     print(f"APPLE EATEN: head=({head_x},{head_y})")
-                    # apple eaten! call callbacks
-                    if self._apple_eaten_callback:
-                        self._apple_eaten_callback(entity_id, (head_x, head_y))
 
-                    # EXACT LOGIC: increase speed by 10%, respect max_speed
-                    if self._speed_increase_callback:
-                        if self._get_current_speed and self._get_max_speed:
-                            current_speed = self._get_current_speed()
-                            max_speed = self._get_max_speed()
-                            new_speed = min(current_speed * 1.1, max_speed)
-                            self._speed_increase_callback(new_speed)
+                    # play apple eating sound
+                    if self._audio_service:
+                        self._audio_service.play_sound("assets/sound/eat.flac")
 
-                    break  # EXACT LOGIC: only eat one apple per frame
+                    # grow snake
+                    if hasattr(snake, "body"):
+                        snake.body.size += 1
+
+                    # increment score
+                    score_entities = world.registry.query_by_component("score")
+                    if score_entities:
+                        score_entity = list(score_entities.values())[0]
+                        if hasattr(score_entity, "score"):
+                            score_entity.score.current += 1
+
+                    # increase speed by 10%, respect max_speed
+                    if hasattr(snake, "velocity"):
+                        current_speed = snake.velocity.speed
+                        max_speed = (
+                            float(self._settings.get("max_speed"))
+                            if self._settings
+                            else 20.0
+                        )
+                        new_speed = min(current_speed * 1.1, max_speed)
+                        snake.velocity.speed = new_speed
+
+                    # remove eaten apple
+                    world.registry.remove(entity_id)
+
+                    break  # only eat one apple per frame
+
+    def _handle_death(self, world: World, reason: str) -> None:
+        """Handle snake death.
+
+        Modifies GameState component and plays death audio.
+
+        Args:
+            world: ECS world
+            reason: Death reason message (e.g., "wall", "self-bite", "obstacle")
+        """
+        # kill the snake
+        snake = self._get_snake_entity(world)
+        if snake and hasattr(snake, "body"):
+            snake.body.alive = False
+
+        # play death sound and music
+        if self._audio_service:
+            self._audio_service.play_sound("assets/sound/gameover.wav")
+            self._audio_service.play_music("assets/sound/death_song.mp3")
+
+        # update game state
+        game_state = self._get_game_state(world)
+        if game_state:
+            game_state.game_over = True
+            game_state.death_reason = reason
+            game_state.next_scene = "game_over"
+
+        print(f"GAME OVER: {reason}")

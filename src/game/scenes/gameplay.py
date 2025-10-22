@@ -49,32 +49,11 @@ from src.ecs.systems.settings_apply import SettingsApplySystem
 
 
 class GameplayScene(BaseScene):
-    """Gameplay scene that manages all game systems.
+    """Gameplay scene that coordinates all ECS systems.
 
-    This scene is responsible for:
-    - Initializing all game systems with proper dependencies
-    - Maintaining system execution order (critical for correctness)
-    - Calling system lifecycle hooks (on_attach, on_detach)
-    - Coordinating system updates each frame
-    - Managing scene transitions
-
-    System Execution Order (from ECS architecture docs):
-    1. InputSystem - read user input
-    2. MovementSystem - update positions
-    3. CollisionSystem - detect collisions, emit events
-    4. AppleSpawnSystem - maintain correct number of apples
-    5. SpawnSystem - create new entities
-    6. ScoringSystem - update score from events
-    7. ObstacleGenerationSystem - generate obstacles (on demand)
-    8. SettingsApplySystem - apply runtime settings changes
-    9. ValidationSystem - verify game state integrity
-    10. ResizeSystem - handle window resize
-    11. InterpolationSystem - calculate smooth positions
-    12. AudioSystem - play sounds and music
-    13. BoardRenderSystem - draw board foundation (grid, background)
-    14. EntityRenderSystem - draw generic entities (apples, obstacles)
-    15. SnakeRenderSystem - draw snake with interpolation
-    16. UIRenderSystem - draw HUD overlays (score, speed bar, music indicator)
+    Registers and updates systems in proper execution order.
+    Systems 0-8 are game logic (paused during pause).
+    Systems 9+ are rendering/audio (always run).
     """
 
     def __init__(
@@ -107,180 +86,93 @@ class GameplayScene(BaseScene):
         self._assets = assets
         self._systems: List[BaseSystem] = []
         self._attached = False
-        self._paused = False
         self._board_render_system: Optional[BoardRenderSystem] = None
         self._snake_render_system: Optional[SnakeRenderSystem] = None
         self._entity_render_system: Optional[EntityRenderSystem] = None
         self._ui_render_system: Optional[UIRenderSystem] = None
-        self._game_over = False
-        self._death_reason = ""
         self._game_initializer = GameInitializer(settings=settings)
         self._audio_service = AudioService(settings=settings)
 
     def on_attach(self) -> None:
-        """Initialize and register all game systems.
+        """Initialize and register all game systems in execution order.
 
-        This method is called when the scene becomes active.
-        It creates and registers all systems in the correct order.
+        Systems 0-8 are game logic (paused when game is paused).
+        Systems 9+ are rendering/audio (always run).
         """
         if self._attached:
             return
 
-        # clear any existing systems
         self._systems.clear()
 
-        # 1. InputSystem - convert user input to commands/component changes
-        input_system = InputSystem(
-            pygame_adapter=self._pygame_adapter,
-            direction_callback=self._handle_direction_change,
-            get_current_direction_callback=self._get_current_direction,
-            quit_callback=self._handle_quit,
-            pause_callback=self._handle_pause,
-            menu_callback=self._handle_menu,
-            music_toggle_callback=self._handle_music_toggle,
-            palette_randomize_callback=self._handle_palette_randomize,
-        )
-        self._systems.append(input_system)
-
-        # 2. MovementSystem - update entity positions based on velocity
-        movement_system = MovementSystem(get_electric_walls=self._get_electric_walls)
-        self._systems.append(movement_system)
-
-        # 3. CollisionSystem - detect collisions and emit events
-        collision_system = CollisionSystem(
-            get_snake_head_position=self._get_snake_head_position,
-            get_snake_tail_positions=self._get_snake_tail_positions,
-            get_snake_next_position=self._get_snake_next_position,
-            get_electric_walls=self._get_electric_walls,
-            get_grid_dimensions=self._get_grid_dimensions,
-            get_current_speed=self._get_current_speed,
-            get_max_speed=self._get_max_speed,
-            death_callback=self._handle_death,
-            apple_eaten_callback=self._handle_apple_eaten,
-            speed_increase_callback=self._handle_speed_increase,
-        )
-        self._systems.append(collision_system)
-
-        # 4. AppleSpawnSystem - maintain correct number of apples
+        # game logic systems (indices 0-8, paused during pause)
         from src.ecs.systems.apple_spawn import AppleSpawnSystem
 
-        apple_spawn_system = AppleSpawnSystem(max_spawn_attempts=1000)
-        self._systems.append(apple_spawn_system)
-
-        # 5. SpawnSystem - create new entities at valid positions
-        spawn_system = SpawnSystem(
-            max_spawn_attempts=1000,
-            apple_color=(255, 0, 0),  # default red, will be overridden by palette
-            random_seed=None,  # use true randomness for gameplay
+        self._systems.extend(
+            [
+                InputSystem(
+                    self._pygame_adapter, self._settings
+                ),  # 0: read user input and update velocity/game state
+                MovementSystem(
+                    self._get_electric_walls
+                ),  # 1: update entity positions based on velocity
+                CollisionSystem(
+                    self._settings, self._audio_service
+                ),  # 2: detect collisions (wall, self-bite, obstacles, apples)
+                AppleSpawnSystem(1000),  # 3: maintain correct number of apples on board
+                SpawnSystem(
+                    1000, (255, 0, 0), None
+                ),  # 4: create new entities at valid positions
+                ScoringSystem(None),  # 5: track score and high score
+                ObstacleGenerationSystem(
+                    100, 8, 2, None
+                ),  # 6: generate obstacles with connectivity guarantees
+                SettingsApplySystem(
+                    self._settings, self._config, self._assets
+                ),  # 7: apply runtime settings changes (colors, difficulty, etc)
+                ValidationSystem(
+                    True, 1, 20
+                ),  # 8: debug validation of game state integrity
+            ]
         )
-        self._systems.append(spawn_system)
 
-        # 6. ScoringSystem - track score and high score
-        scoring_system = ScoringSystem(
-            score_callback=None,  # TODO: wire to UI score update
+        # rendering and audio systems (indices 9+, always run even when paused)
+        self._systems.extend(
+            [
+                InterpolationSystem(
+                    self._get_electric_walls(), self._get_electric_walls
+                ),  # 9: calculate smooth positions for rendering
+                AudioSystem(None, None, 0.2),  # 10: play sounds and music
+            ]
         )
-        self._systems.append(scoring_system)
 
-        # 7. ObstacleGenerationSystem - generate obstacles with connectivity guarantees
-        obstacle_generation_system = ObstacleGenerationSystem(
-            max_retries=100,
-            safe_zone_width=8,
-            safe_zone_height=2,
-            random_seed=None,  # use true randomness for gameplay
-        )
-        self._systems.append(obstacle_generation_system)
-
-        # 8. SettingsApplySystem - apply runtime settings changes
-        settings_apply_system = SettingsApplySystem(
-            settings=self._settings,
-            config=self._config,
-            assets=self._assets,
-        )
-        self._systems.append(settings_apply_system)
-
-        # 9. ValidationSystem - debug validation (can be disabled in production)
-        validation_system = ValidationSystem(
-            enabled=True,  # TODO: make configurable via debug flag
-            expected_apple_count=1,  # TODO: read from settings
-            log_level=20,  # WARNING level
-        )
-        self._systems.append(validation_system)
-
-        # 10. ResizeSystem - handle window resize events
-        # TODO: implement ResizeSystem and wire it here
-        # resize_system = ResizeSystem(...)
-        # self._systems.append(resize_system)
-
-        # 11. InterpolationSystem - calculate smooth positions for rendering
-        interpolation_system = InterpolationSystem(
-            electric_walls=self._get_electric_walls(),
-            get_electric_walls=self._get_electric_walls,
-        )
-        self._systems.append(interpolation_system)
-
-        # 12. AudioSystem - play sounds and music
-        audio_system = AudioSystem(
-            sound_assets=None,  # TODO: wire to assets.sound_assets
-            music_tracks=None,  # TODO: wire to assets.music_tracks
-            default_volume=0.2,
-        )
-        self._systems.append(audio_system)
-
-        # 13. BoardRenderSystem - render board foundation (background, grid, tiles)
+        # render systems (11-14: draw board, entities, snake, UI)
         if self._renderer:
-            self._board_render_system = BoardRenderSystem(renderer=self._renderer)
-            self._systems.append(self._board_render_system)
-        else:
-            self._board_render_system = None
-
-        # 14. EntityRenderSystem - render generic entities (apples, obstacles)
-        if self._renderer:
-            self._entity_render_system = EntityRenderSystem(renderer=self._renderer)
-            self._systems.append(self._entity_render_system)
-        else:
-            self._entity_render_system = None
-
-        # 15. SnakeRenderSystem - render snake with smooth interpolation
-        if self._renderer:
-            self._snake_render_system = SnakeRenderSystem(renderer=self._renderer)
-            self._systems.append(self._snake_render_system)
-        else:
-            self._snake_render_system = None
-
-        # 16. UIRenderSystem - render UI overlays (score, speed bar, music indicator)
-        if self._renderer:
-            self._ui_render_system = UIRenderSystem(
-                renderer=self._renderer, settings=self._settings
+            self._board_render_system = BoardRenderSystem(self._renderer)
+            self._entity_render_system = EntityRenderSystem(self._renderer)
+            self._snake_render_system = SnakeRenderSystem(self._renderer)
+            self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
+            self._systems.extend(
+                [
+                    self._board_render_system,
+                    self._entity_render_system,
+                    self._snake_render_system,
+                    self._ui_render_system,
+                ]
             )
-            self._systems.append(self._ui_render_system)
-        else:
-            self._ui_render_system = None
 
         self._attached = True
 
     def on_detach(self) -> None:
-        """Clean up systems when scene becomes inactive.
-
-        This method is called when transitioning to another scene.
-        It performs cleanup and releases resources.
-        """
-        if not self._attached:
-            return
-
-        # call cleanup on systems that need it
-        # note: most systems don't need explicit cleanup since they don't own resources
-        # but we clear the list to release references
-        self._systems.clear()
-        self._attached = False
+        """Clean up systems when scene becomes inactive."""
+        if self._attached:
+            self._systems.clear()
+            self._attached = False
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update all systems in execution order.
 
-        This method is called every frame/tick to update the game state.
-
         Args:
             dt_ms: Delta time in milliseconds since last update
-                   (currently unused, systems get delta time from world.clock)
 
         Returns:
             Next scene name or None to stay in current scene
@@ -288,55 +180,48 @@ class GameplayScene(BaseScene):
         if not self._attached:
             return None
 
-        # update world's delta time for systems that need it (e.g., InterpolationSystem)
         self._world.set_dt_ms(dt_ms)
 
-        # Define which systems should pause
-        # Systems 1-8 are game logic (movement, collision, spawning, scoring, etc.)
-        # Systems 0 (input) and 9+ (rendering, audio) always run
+        # check if game is paused from GameState component
+        game_state = self._get_game_state()
+        is_paused = game_state.paused if game_state else False
+
+        # pause game logic systems (1-8) but keep input (0) and rendering (9+) running
         GAME_LOGIC_START = 1
         GAME_LOGIC_END = 8
 
-        # update all systems in order
         for i, system in enumerate(self._systems):
-            # skip game logic systems when paused
-            if self._paused and GAME_LOGIC_START <= i <= GAME_LOGIC_END:
+            # skip game logic when paused (movement, collision, spawning, etc.)
+            if is_paused and GAME_LOGIC_START <= i <= GAME_LOGIC_END:
                 continue
-
             system.update(self._world)
 
-        # draw pause overlay if paused
-        if self._paused and self._ui_render_system and self._renderer:
+        # draw pause overlay on top of frozen game
+        if is_paused and self._ui_render_system:
             surface = pygame.display.get_surface()
             if surface:
                 self._ui_render_system.draw_pause_overlay(
                     surface.get_width(), surface.get_height()
                 )
 
-        # return next scene if set
-        return self.get_next_scene()
+        # handle scene transitions from GameState.next_scene
+        if game_state and game_state.next_scene:
+            next_scene = game_state.next_scene
+            game_state.next_scene = None
+            return next_scene
+
+        return None
 
     def on_enter(self) -> None:
         """Called when entering gameplay scene."""
-        print("Entering GameplayScene")
-
-        # Clear any pending scene transition from previous session
         self.set_next_scene(None)
-
-        # Reset world state for new game using GameInitializer service
         self._game_initializer.reset_world(self._world)
-
-        # Restore background music (in case we're coming from game over)
         self._audio_service.play_music("assets/sound/BoxCat_Games_CPU_Talk.ogg")
-
         self.on_attach()
-        print("GameplayScene attached")
 
     def on_exit(self) -> None:
         """Called when exiting gameplay scene."""
-        print("Exiting GameplayScene")
         self.on_detach()
-        print("GameplayScene detached")
 
     def render(self) -> None:
         """Render the gameplay scene."""
@@ -370,283 +255,15 @@ class GameplayScene(BaseScene):
         """
         return self._attached
 
-    # Helper methods for querying world state
-
-    def _get_snake_entity(self):
-        """Get the snake entity from the world.
-
-        This helper method reduces code duplication across callbacks
-        that need to access the snake entity.
-
-        Returns:
-            Snake entity or None if not found
-        """
-        from src.ecs.entities.entity import EntityType
-
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            return snake
+    def _get_game_state(self):
+        """Get GameState component from world."""
+        game_state_entities = self._world.registry.query_by_component("game_state")
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                return entity.game_state
         return None
 
-    # Input handling callbacks
-    # These callbacks are required by InputSystem to coordinate input with game state.
-    # They allow the Scene to act as a bridge between input and ECS entities.
-
-    def _handle_direction_change(self, dx: int, dy: int) -> None:
-        """Handle direction change from input.
-
-        Callback for InputSystem. Updates snake velocity based on user input.
-
-        Args:
-            dx: X direction (-1, 0, 1)
-            dy: Y direction (-1, 0, 1)
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            snake.velocity.dx = dx
-            snake.velocity.dy = dy
-
-    def _get_current_direction(self) -> tuple[int, int]:
-        """Get current snake direction.
-
-        Callback for InputSystem. Provides current direction for input validation.
-
-        Returns:
-            Tuple of (dx, dy) for current direction
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            return (snake.velocity.dx, snake.velocity.dy)
-        return (0, 0)
-
-    def _handle_quit(self) -> None:
-        """Handle quit request.
-
-        Callback for InputSystem. Transitions to menu instead of terminating.
-        """
-        # transition to menu instead of quitting
-        self.set_next_scene("menu")
-
-    def _handle_pause(self) -> None:
-        """Handle pause toggle.
-
-        Callback for InputSystem. Toggles pause state for game logic systems.
-        """
-        self._paused = not self._paused
-
-    def _handle_menu(self) -> None:
-        """Handle menu open request.
-
-        Callback for InputSystem. Pauses game and transitions to settings.
-        """
-        # pause game and transition to settings scene
-        self._paused = True
-        self.set_next_scene("settings")
-
-    def _handle_music_toggle(self) -> None:
-        """Handle music toggle.
-
-        Callback for InputSystem. Toggles all audio (music + sound effects).
-        Uses AudioService to manage audio state consistently.
-        """
-        self._audio_service.toggle_all_audio()
-
-    def _handle_palette_randomize(self) -> None:
-        """Handle palette randomization.
-
-        Callback for InputSystem. Randomizes snake colors in settings.
-        SettingsApplySystem automatically detects and applies the change.
-        """
-        if not self._settings:
-            return
-
-        # randomize the palette in settings
-        # SettingsApplySystem will detect and apply the change automatically
-        self._settings.randomize_snake_colors()
-
-    # Collision callbacks
-    # These callbacks are required by CollisionSystem to query game state.
-    # They provide world queries that the system needs for collision detection.
-
-    def _get_snake_head_position(self) -> tuple[int, int]:
-        """Get current snake head position.
-
-        Callback for CollisionSystem. Provides snake head position for collision checks.
-
-        Returns:
-            Tuple of (x, y) coordinates
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "position"):
-            return (snake.position.x, snake.position.y)
-        return (0, 0)
-
-    def _get_snake_tail_positions(self) -> list[tuple[int, int]]:
-        """Get snake tail segment positions.
-
-        Callback for CollisionSystem. Provides tail positions for self-collision checks.
-
-        Returns:
-            List of (x, y) coordinates for each tail segment
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "body"):
-            return [(seg.x, seg.y) for seg in snake.body.segments]
-        return []
-
-    def _get_snake_next_position(self) -> tuple[int, int]:
-        """Get next snake position based on current position and velocity.
-
-        Callback for CollisionSystem. Calculates next position for lookahead collision detection.
-        Handles grid wrapping when electric walls are disabled.
-
-        Returns:
-            Tuple of (x, y) for next position
-        """
-        snake = self._get_snake_entity()
-        if (
-            not snake
-            or not hasattr(snake, "position")
-            or not hasattr(snake, "velocity")
-        ):
-            return (0, 0)
-
-        # Calculate raw next position
-        next_x = snake.position.x + snake.velocity.dx
-        next_y = snake.position.y + snake.velocity.dy
-
-        electric_walls = self._get_electric_walls()
-
-        # Only wrap if electric walls are disabled
-        # If electric walls are enabled, collision system will detect out-of-bounds
-        if not electric_walls:
-            next_x = next_x % self._world.board.width
-            next_y = next_y % self._world.board.height
-
-        return (next_x, next_y)
-
     def _get_electric_walls(self) -> bool:
-        """Check if electric walls are enabled.
-
-        Callback for CollisionSystem and MovementSystem.
-        Returns electric walls setting for collision logic.
-
-        Returns:
-            True if electric walls are enabled, False otherwise
-        """
+        """Get electric walls setting for MovementSystem."""
         return self._settings.get("electric_walls") if self._settings else True
-
-    def _get_grid_dimensions(self) -> tuple[int, int, int]:
-        """Get grid dimensions in cells.
-
-        Callback for CollisionSystem. Provides grid size for boundary checks.
-
-        Returns:
-            Tuple of (grid_width_cells, grid_height_cells, cell_size_pixels)
-        """
-        board = self._world.board
-        # Return grid dimensions in CELLS, not pixels
-        # board.width and board.height are already in cells
-        return (
-            board.width,
-            board.height,
-            board.cell_size,
-        )
-
-    def _get_current_speed(self) -> float:
-        """Get current snake speed.
-
-        Callback for CollisionSystem. Provides current speed for collision logic.
-
-        Returns:
-            Current snake speed in cells per second
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            return snake.velocity.speed
-        return 4.0
-
-    def _get_max_speed(self) -> float:
-        """Get maximum allowed speed.
-
-        Callback for CollisionSystem. Provides speed limit for clamping.
-
-        Returns:
-            Maximum speed from settings
-        """
-        return float(self._settings.get("max_speed")) if self._settings else 20.0
-
-    def _handle_death(self, reason: str) -> None:
-        """Handle snake death.
-
-        Callback for CollisionSystem. Executed when snake dies from collision.
-        Handles game over state, audio, and scene transition.
-
-        Args:
-            reason: Death reason message (e.g., "Hit wall", "Hit self")
-        """
-        # Kill the snake
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "body"):
-            snake.body.alive = False
-
-        # Play death sound and music using AudioService
-        self._audio_service.play_sound("assets/sound/gameover.wav")
-        self._audio_service.play_music("assets/sound/death_song.mp3")
-
-        # Set game over state
-        self._game_over = True
-        self._death_reason = reason
-
-        print(f"GAME OVER: {reason}")
-
-        # Transition to game over scene
-        self.set_next_scene("game_over")
-
-    def _handle_apple_eaten(
-        self, apple_entity, apple_position: tuple[int, int]
-    ) -> None:
-        """Handle apple being eaten.
-
-        Callback for CollisionSystem. Executed when snake eats an apple.
-        Handles score increment, snake growth, audio, and apple removal.
-
-        Args:
-            apple_entity: Apple entity ID or object to remove
-            apple_position: Position of eaten apple (unused, required by interface)
-        """
-        _ = apple_position  # suppress unused warning
-
-        # Play apple eating sound using AudioService
-        self._audio_service.play_sound("assets/sound/eat.flac")
-
-        # Grow snake
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "body"):
-            snake.body.size += 1
-
-        # Increment score
-        score_entities = self._world.registry.query_by_component("score")
-        if score_entities:
-            score_entity = list(score_entities.values())[0]
-            if hasattr(score_entity, "score"):
-                score_entity.score.current += 1
-
-        # Remove eaten apple
-        if apple_entity:
-            self._world.registry.remove(apple_entity)
-
-        # Note: AppleSpawnSystem will automatically spawn a new apple
-        # to maintain the desired count, so we don't need to spawn here
-
-    def _handle_speed_increase(self, new_speed: float) -> None:
-        """Handle speed increase when apple is eaten.
-
-        Callback for CollisionSystem. Updates snake speed after eating apple.
-
-        Args:
-            new_speed: New speed value to apply
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            snake.velocity.speed = new_speed
