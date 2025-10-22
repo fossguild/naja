@@ -105,7 +105,7 @@ class SettingsScene(BaseScene):
 
     def _apply_audio_setting_if_changed(self, field_key: str) -> None:
         """Apply audio settings immediately when changed.
-        
+
         Args:
             field_key: The key of the field that was changed
         """
@@ -148,13 +148,13 @@ class SettingsScene(BaseScene):
                 break
             f = self._settings.MENU_FIELDS[field_i]
             val = self._settings.get(f["key"])
-            
+
             # Calculate current grid size for display
             current_grid_size = 20  # default fallback
             if self._config:
                 desired_cells = max(10, int(self._settings.get("cells_per_side")))
                 current_grid_size = self._config.get_optimal_grid_size(desired_cells)
-            
+
             formatted_val = self._settings.format_setting_value(
                 f,
                 val,

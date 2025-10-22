@@ -170,7 +170,10 @@ class SettingsApplicator:
         initial_speed = settings.get("initial_speed")
         if initial_speed is not None:
             current_initial_speed = float(initial_speed)
-            if current_initial_speed != self._previous_initial_speed and self._speed_changed_callback:
+            if (
+                current_initial_speed != self._previous_initial_speed
+                and self._speed_changed_callback
+            ):
                 self._speed_changed_callback(current_initial_speed)
                 self._previous_initial_speed = current_initial_speed
 
@@ -178,7 +181,10 @@ class SettingsApplicator:
         max_speed = settings.get("max_speed")
         if max_speed is not None:
             current_max_speed = float(max_speed)
-            if current_max_speed != self._previous_max_speed and self._max_speed_changed_callback:
+            if (
+                current_max_speed != self._previous_max_speed
+                and self._max_speed_changed_callback
+            ):
                 self._max_speed_changed_callback(current_max_speed)
                 self._previous_max_speed = current_max_speed
 

@@ -25,10 +25,10 @@ from dataclasses import dataclass
 @dataclass
 class AppleConfig:
     """Configuration for apple spawning in the game.
-    
+
     This component stores the desired number of apples that should
     always be present in the game world.
-    
+
     Used by: AppleSpawnSystem
     """
 

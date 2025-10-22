@@ -150,6 +150,7 @@ class GameplayScene(BaseScene):
 
         # 4. AppleSpawnSystem - maintain correct number of apples
         from src.ecs.systems.apple_spawn import AppleSpawnSystem
+
         apple_spawn_system = AppleSpawnSystem(max_spawn_attempts=1000)
         self._systems.append(apple_spawn_system)
 
@@ -312,59 +313,62 @@ class GameplayScene(BaseScene):
 
     def _apply_settings_to_world(self) -> None:
         """Apply current settings to the game world.
-        
+
         This updates the world board dimensions based on cells_per_side setting.
         Should be called before resetting the game world.
         """
         if not self._settings or not self._config:
             return
-        
+
         # Get desired cells per side from settings
         desired_cells = max(10, int(self._settings.get("cells_per_side")))
-        
+
         # Calculate optimal grid/cell size
         new_cell_size = self._config.get_optimal_grid_size(desired_cells)
-        
+
         # Calculate new window dimensions (must be multiple of cell size)
-        new_width_pixels, new_height_pixels = self._config.calculate_window_size(new_cell_size)
-        
+        new_width_pixels, new_height_pixels = self._config.calculate_window_size(
+            new_cell_size
+        )
+
         # Calculate board dimensions in cells
         new_width_cells = new_width_pixels // new_cell_size
         new_height_cells = new_height_pixels // new_cell_size
-        
+
         # Create a new board with the new dimensions
         from src.ecs.board import Board
+
         new_board = Board(
-            width=new_width_cells,
-            height=new_height_cells,
-            cell_size=new_cell_size
+            width=new_width_cells, height=new_height_cells, cell_size=new_cell_size
         )
-        
+
         # Replace the board in the world
         self._world.board = new_board
-        
+
         # Update pygame display if dimensions changed
         current_surface = pygame.display.get_surface()
         if current_surface:
             current_w, current_h = current_surface.get_size()
             if current_w != new_width_pixels or current_h != new_height_pixels:
                 pygame.display.set_mode((new_width_pixels, new_height_pixels))
-                
+
                 # Reload fonts with new dimensions if assets available
                 if self._assets:
                     self._assets.reload_fonts(new_width_pixels)
-        
-        print(f"Applied settings: {desired_cells}x{desired_cells} cells, cell_size={new_cell_size}px, board={new_width_cells}x{new_height_cells} cells, window={new_width_pixels}x{new_height_pixels}px")
-        
+
+        print(
+            f"Applied settings: {desired_cells}x{desired_cells} cells, cell_size={new_cell_size}px, board={new_width_cells}x{new_height_cells} cells, window={new_width_pixels}x{new_height_pixels}px"
+        )
+
         # Apply snake palette in case it changed
         self._apply_snake_palette()
-        
+
         # Apply initial speed in case it changed
         if self._settings:
             initial_speed = self._settings.get("initial_speed")
             if initial_speed is not None:
                 self._apply_initial_speed(float(initial_speed))
-        
+
         # Apply max speed in case it changed
         if self._settings:
             max_speed = self._settings.get("max_speed")
@@ -394,7 +398,7 @@ class GameplayScene(BaseScene):
         snake_colors = self._settings.get_snake_colors()
         head_color_hex = snake_colors.get("head")
         tail_color_hex = snake_colors.get("tail")
-        
+
         # Convert hex colors to RGB tuples
         head_color = self._hex_to_rgb(head_color_hex)
         tail_color = self._hex_to_rgb(tail_color_hex)
@@ -409,18 +413,18 @@ class GameplayScene(BaseScene):
 
         # Create AppleConfig entity to track desired apple count
         from src.ecs.components.apple_config import AppleConfig
-        
+
         class AppleConfigEntity:
             def __init__(self, desired_count: int):
                 self.apple_config = AppleConfig(desired_count=desired_count)
-            
+
             def get_type(self):
                 return None  # Config entity has no specific type
-        
+
         desired_apples = self._settings.validate_apples_count(
             self._world.board.width * self._world.board.cell_size,
             self._world.board.cell_size,
-            self._world.board.height * self._world.board.cell_size
+            self._world.board.height * self._world.board.cell_size,
         )
         apple_config_entity = AppleConfigEntity(desired_apples)
         self._world.registry.add(apple_config_entity)
@@ -429,7 +433,7 @@ class GameplayScene(BaseScene):
         from src.ecs.prefabs.apple import create_apple
         from src.ecs.entities.entity import EntityType
         import random
-        
+
         # Get occupied positions (snake)
         occupied_positions = set()
         snakes = self._world.registry.query_by_type(EntityType.SNAKE)
@@ -439,7 +443,7 @@ class GameplayScene(BaseScene):
                 if hasattr(snake, "body"):
                     for segment in snake.body.segments:
                         occupied_positions.add((segment.x, segment.y))
-        
+
         # Spawn initial apples
         for _ in range(desired_apples):
             # Try to find a valid position
@@ -448,12 +452,12 @@ class GameplayScene(BaseScene):
             while attempts < max_attempts:
                 x = random.randint(0, self._world.board.width - 1)
                 y = random.randint(0, self._world.board.height - 1)
-                
+
                 if (x, y) not in occupied_positions:
                     create_apple(self._world, x=x, y=y, grid_size=grid_size, color=None)
                     occupied_positions.add((x, y))
                     break
-                
+
                 attempts += 1
 
         # Create obstacles based on difficulty
@@ -571,10 +575,10 @@ class GameplayScene(BaseScene):
         # Toggle both background_music and sound_effects settings
         current_music = self._settings.get("background_music")
         current_sfx = self._settings.get("sound_effects")
-        
+
         # If either is on, turn both off. If both are off, turn both on.
         new_state = not (current_music or current_sfx)
-        
+
         self._settings.set("background_music", new_state)
         self._settings.set("sound_effects", new_state)
 
@@ -711,7 +715,7 @@ class GameplayScene(BaseScene):
                 pygame.mixer.Sound("assets/sound/gameover.wav").play()
             except Exception:
                 pass  # ignore if sound file not found
-        
+
         # play death music (only if background music is enabled)
         if self._settings and self._settings.get("background_music"):
             try:
@@ -741,7 +745,6 @@ class GameplayScene(BaseScene):
             apple_position: Position of eaten apple (unused, required)
         """
         from src.ecs.entities.entity import EntityType
-        import random
 
         _ = apple_position  # suppress unused warning
 
@@ -812,14 +815,23 @@ class GameplayScene(BaseScene):
 
     def _apply_initial_speed(self, new_speed: float) -> None:
         """Apply new initial speed to snake entity.
-        
+
         This resets the snake's speed to the new initial speed value.
         Useful when the user changes initial_speed in settings during gameplay.
-        
+
         Args:
             new_speed: New initial speed value
         """
         from src.ecs.entities.entity import EntityType
+
+        # Get max_speed to ensure initial_speed doesn't exceed it
+        max_speed = self._settings.get("max_speed") if self._settings else 20.0
+        max_speed = float(max_speed) if max_speed is not None else 20.0
+
+        # Cap initial_speed to max_speed if needed
+        if new_speed > max_speed:
+            new_speed = max_speed
+            print(f"Warning: initial_speed capped to max_speed ({max_speed})")
 
         snakes = self._world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
@@ -831,10 +843,10 @@ class GameplayScene(BaseScene):
 
     def _apply_max_speed(self, new_max_speed: float) -> None:
         """Apply new max speed limit to snake entity.
-        
+
         If the current speed exceeds the new max speed, it will be capped.
         This ensures the snake never moves faster than the configured maximum.
-        
+
         Args:
             new_max_speed: New maximum speed value
         """
@@ -847,19 +859,23 @@ class GameplayScene(BaseScene):
                 # Cap current speed to new max if it exceeds it
                 if current_speed > new_max_speed:
                     snake.velocity.speed = new_max_speed
-                    print(f"Applied new max speed: {new_max_speed} (capped from {current_speed:.2f})")
+                    print(
+                        f"Applied new max speed: {new_max_speed} (capped from {current_speed:.2f})"
+                    )
                 else:
-                    print(f"Applied new max speed: {new_max_speed} (current speed {current_speed:.2f} is within limit)")
+                    print(
+                        f"Applied new max speed: {new_max_speed} (current speed {current_speed:.2f} is within limit)"
+                    )
                 break
 
     def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
         """Convert hex color string to RGB tuple.
-        
+
         Args:
             hex_color: Hex color string (e.g., "#00aa00")
-            
+
         Returns:
             RGB tuple (r, g, b)
         """
         hex_color = hex_color.lstrip("#")
-        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
