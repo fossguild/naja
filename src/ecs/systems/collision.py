@@ -30,7 +30,6 @@ Follows proper ECS architecture by querying world directly.
 """
 
 from typing import Optional, Any
-import pygame
 
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
