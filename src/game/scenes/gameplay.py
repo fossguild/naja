@@ -137,18 +137,10 @@ class GameplayScene(BaseScene):
         movement_system = MovementSystem(get_electric_walls=self._get_electric_walls)
         self._systems.append(movement_system)
 
-        # 3. CollisionSystem - detect collisions and emit events
+        # 3. CollisionSystem - detect collisions and handle game logic
         collision_system = CollisionSystem(
-            get_snake_head_position=self._get_snake_head_position,
-            get_snake_tail_positions=self._get_snake_tail_positions,
-            get_snake_next_position=self._get_snake_next_position,
-            get_electric_walls=self._get_electric_walls,
-            get_grid_dimensions=self._get_grid_dimensions,
-            get_current_speed=self._get_current_speed,
-            get_max_speed=self._get_max_speed,
-            death_callback=self._handle_death,
-            apple_eaten_callback=self._handle_apple_eaten,
-            speed_increase_callback=self._handle_speed_increase,
+            settings=self._settings,
+            audio_service=self._audio_service,
         )
         self._systems.append(collision_system)
 
@@ -401,189 +393,16 @@ class GameplayScene(BaseScene):
             return snake
         return None
 
-    # Collision callbacks
-    # These callbacks are required by CollisionSystem to query game state.
-    # They provide world queries that the system needs for collision detection.
-
-    def _get_snake_head_position(self) -> tuple[int, int]:
-        """Get current snake head position.
-
-        Callback for CollisionSystem. Provides snake head position for collision checks.
-
-        Returns:
-            Tuple of (x, y) coordinates
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "position"):
-            return (snake.position.x, snake.position.y)
-        return (0, 0)
-
-    def _get_snake_tail_positions(self) -> list[tuple[int, int]]:
-        """Get snake tail segment positions.
-
-        Callback for CollisionSystem. Provides tail positions for self-collision checks.
-
-        Returns:
-            List of (x, y) coordinates for each tail segment
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "body"):
-            return [(seg.x, seg.y) for seg in snake.body.segments]
-        return []
-
-    def _get_snake_next_position(self) -> tuple[int, int]:
-        """Get next snake position based on current position and velocity.
-
-        Callback for CollisionSystem. Calculates next position for lookahead collision detection.
-        Handles grid wrapping when electric walls are disabled.
-
-        Returns:
-            Tuple of (x, y) for next position
-        """
-        snake = self._get_snake_entity()
-        if (
-            not snake
-            or not hasattr(snake, "position")
-            or not hasattr(snake, "velocity")
-        ):
-            return (0, 0)
-
-        # Calculate raw next position
-        next_x = snake.position.x + snake.velocity.dx
-        next_y = snake.position.y + snake.velocity.dy
-
-        electric_walls = self._get_electric_walls()
-
-        # Only wrap if electric walls are disabled
-        # If electric walls are enabled, collision system will detect out-of-bounds
-        if not electric_walls:
-            next_x = next_x % self._world.board.width
-            next_y = next_y % self._world.board.height
-
-        return (next_x, next_y)
+    # MovementSystem helper callback
+    # This is still needed by MovementSystem for grid wrapping logic
+    # TODO: Refactor MovementSystem to query settings directly
 
     def _get_electric_walls(self) -> bool:
         """Check if electric walls are enabled.
 
-        Callback for CollisionSystem and MovementSystem.
-        Returns electric walls setting for collision logic.
+        Helper for MovementSystem. Returns electric walls setting.
 
         Returns:
             True if electric walls are enabled, False otherwise
         """
         return self._settings.get("electric_walls") if self._settings else True
-
-    def _get_grid_dimensions(self) -> tuple[int, int, int]:
-        """Get grid dimensions in cells.
-
-        Callback for CollisionSystem. Provides grid size for boundary checks.
-
-        Returns:
-            Tuple of (grid_width_cells, grid_height_cells, cell_size_pixels)
-        """
-        board = self._world.board
-        # Return grid dimensions in CELLS, not pixels
-        # board.width and board.height are already in cells
-        return (
-            board.width,
-            board.height,
-            board.cell_size,
-        )
-
-    def _get_current_speed(self) -> float:
-        """Get current snake speed.
-
-        Callback for CollisionSystem. Provides current speed for collision logic.
-
-        Returns:
-            Current snake speed in cells per second
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            return snake.velocity.speed
-        return 4.0
-
-    def _get_max_speed(self) -> float:
-        """Get maximum allowed speed.
-
-        Callback for CollisionSystem. Provides speed limit for clamping.
-
-        Returns:
-            Maximum speed from settings
-        """
-        return float(self._settings.get("max_speed")) if self._settings else 20.0
-
-    def _handle_death(self, reason: str) -> None:
-        """Handle snake death.
-
-        Callback for CollisionSystem. Executed when snake dies from collision.
-        Handles game over state, audio, and scene transition.
-
-        Args:
-            reason: Death reason message (e.g., "Hit wall", "Hit self")
-        """
-        # Kill the snake
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "body"):
-            snake.body.alive = False
-
-        # Play death sound and music using AudioService
-        self._audio_service.play_sound("assets/sound/gameover.wav")
-        self._audio_service.play_music("assets/sound/death_song.mp3")
-
-        # Set game over state
-        self._game_over = True
-        self._death_reason = reason
-
-        print(f"GAME OVER: {reason}")
-
-        # Transition to game over scene
-        self.set_next_scene("game_over")
-
-    def _handle_apple_eaten(
-        self, apple_entity, apple_position: tuple[int, int]
-    ) -> None:
-        """Handle apple being eaten.
-
-        Callback for CollisionSystem. Executed when snake eats an apple.
-        Handles score increment, snake growth, audio, and apple removal.
-
-        Args:
-            apple_entity: Apple entity ID or object to remove
-            apple_position: Position of eaten apple (unused, required by interface)
-        """
-        _ = apple_position  # suppress unused warning
-
-        # Play apple eating sound using AudioService
-        self._audio_service.play_sound("assets/sound/eat.flac")
-
-        # Grow snake
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "body"):
-            snake.body.size += 1
-
-        # Increment score
-        score_entities = self._world.registry.query_by_component("score")
-        if score_entities:
-            score_entity = list(score_entities.values())[0]
-            if hasattr(score_entity, "score"):
-                score_entity.score.current += 1
-
-        # Remove eaten apple
-        if apple_entity:
-            self._world.registry.remove(apple_entity)
-
-        # Note: AppleSpawnSystem will automatically spawn a new apple
-        # to maintain the desired count, so we don't need to spawn here
-
-    def _handle_speed_increase(self, new_speed: float) -> None:
-        """Handle speed increase when apple is eaten.
-
-        Callback for CollisionSystem. Updates snake speed after eating apple.
-
-        Args:
-            new_speed: New speed value to apply
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            snake.velocity.speed = new_speed
