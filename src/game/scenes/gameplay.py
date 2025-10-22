@@ -56,16 +56,17 @@ class GameplayScene(BaseScene):
     1. InputSystem - read user input
     2. MovementSystem - update positions
     3. CollisionSystem - detect collisions, emit events
-    4. SpawnSystem - create new entities
-    5. ScoringSystem - update score from events
-    6. ObstacleGenerationSystem - generate obstacles (on demand)
-    7. SettingsApplySystem - apply runtime settings changes
-    8. ValidationSystem - verify game state integrity
-    9. ResizeSystem - handle window resize
-    10. InterpolationSystem - calculate smooth positions
-    11. AudioSystem - play sounds and music
-    12. BoardRenderSystem - draw everything
-    13. UISystem - draw HUD and overlays (TODO: not yet implemented)
+    4. AppleSpawnSystem - maintain correct number of apples
+    5. SpawnSystem - create new entities
+    6. ScoringSystem - update score from events
+    7. ObstacleGenerationSystem - generate obstacles (on demand)
+    8. SettingsApplySystem - apply runtime settings changes
+    9. ValidationSystem - verify game state integrity
+    10. ResizeSystem - handle window resize
+    11. InterpolationSystem - calculate smooth positions
+    12. AudioSystem - play sounds and music
+    13. BoardRenderSystem - draw everything
+    14. UISystem - draw HUD and overlays (TODO: not yet implemented)
     """
 
     def __init__(
@@ -147,7 +148,12 @@ class GameplayScene(BaseScene):
         )
         self._systems.append(collision_system)
 
-        # 4. SpawnSystem - create new entities at valid positions
+        # 4. AppleSpawnSystem - maintain correct number of apples
+        from src.ecs.systems.apple_spawn import AppleSpawnSystem
+        apple_spawn_system = AppleSpawnSystem(max_spawn_attempts=1000)
+        self._systems.append(apple_spawn_system)
+
+        # 5. SpawnSystem - create new entities at valid positions
         spawn_system = SpawnSystem(
             max_spawn_attempts=1000,
             apple_color=(255, 0, 0),  # default red, will be overridden by palette
@@ -155,13 +161,13 @@ class GameplayScene(BaseScene):
         )
         self._systems.append(spawn_system)
 
-        # 5. ScoringSystem - track score and high score
+        # 6. ScoringSystem - track score and high score
         scoring_system = ScoringSystem(
             score_callback=None,  # TODO: wire to UI score update
         )
         self._systems.append(scoring_system)
 
-        # 6. ObstacleGenerationSystem - generate obstacles with connectivity guarantees
+        # 7. ObstacleGenerationSystem - generate obstacles with connectivity guarantees
         obstacle_generation_system = ObstacleGenerationSystem(
             max_retries=100,
             safe_zone_width=8,
@@ -170,12 +176,12 @@ class GameplayScene(BaseScene):
         )
         self._systems.append(obstacle_generation_system)
 
-        # 7. SettingsApplySystem - apply runtime settings changes
+        # 8. SettingsApplySystem - apply runtime settings changes
         # TODO: implement SettingsApplySystem and wire it here
         # settings_apply_system = SettingsApplySystem(...)
         # self._systems.append(settings_apply_system)
 
-        # 8. ValidationSystem - debug validation (can be disabled in production)
+        # 9. ValidationSystem - debug validation (can be disabled in production)
         validation_system = ValidationSystem(
             enabled=True,  # TODO: make configurable via debug flag
             expected_apple_count=1,  # TODO: read from settings
@@ -183,18 +189,18 @@ class GameplayScene(BaseScene):
         )
         self._systems.append(validation_system)
 
-        # 9. ResizeSystem - handle window resize events
+        # 10. ResizeSystem - handle window resize events
         # TODO: implement ResizeSystem and wire it here
         # resize_system = ResizeSystem(...)
         # self._systems.append(resize_system)
 
-        # 10. InterpolationSystem - calculate smooth positions for rendering
+        # 11. InterpolationSystem - calculate smooth positions for rendering
         interpolation_system = InterpolationSystem(
             electric_walls=True,  # TODO: read from settings
         )
         self._systems.append(interpolation_system)
 
-        # 11. AudioSystem - play sounds and music
+        # 12. AudioSystem - play sounds and music
         audio_system = AudioSystem(
             sound_assets=None,  # TODO: wire to assets.sound_assets
             music_tracks=None,  # TODO: wire to assets.music_tracks
@@ -202,7 +208,7 @@ class GameplayScene(BaseScene):
         )
         self._systems.append(audio_system)
 
-        # 12. BoardRenderSystem - render game world (board, entities)
+        # 13. BoardRenderSystem - render game world (board, entities)
         if self._renderer:
             self._board_render_system = BoardRenderSystem(
                 renderer=self._renderer, settings=self._settings
@@ -211,7 +217,7 @@ class GameplayScene(BaseScene):
         else:
             self._board_render_system = None
 
-        # 13. UISystem - render UI overlays (score, menus, etc.)
+        # 14. UISystem - render UI overlays (score, menus, etc.)
         # TODO: implement UISystem and wire it here
         # ui_system = UISystem(...)
         # self._systems.append(ui_system)
@@ -257,8 +263,8 @@ class GameplayScene(BaseScene):
         # note: input and rendering systems run even when paused
         for i, system in enumerate(self._systems):
             # skip game logic systems when paused
-            if self._paused and i >= 1 and i <= 6:
-                # skip movement, collision, spawn, scoring, obstacles, settings
+            if self._paused and i >= 1 and i <= 7:
+                # skip movement, collision, apple spawn, spawn, scoring, obstacles, settings
                 continue
 
             system.update(self._world)
@@ -379,16 +385,54 @@ class GameplayScene(BaseScene):
             tail_color=None,  # will use default from palette
         )
 
-        # Create apple at random valid position
-        from src.ecs.prefabs.apple import create_apple
-
-        _ = create_apple(
-            world=self._world,
-            x=self._world.board.width // 2 + 5,
-            y=self._world.board.height // 2,
-            grid_size=grid_size,
-            color=None,  # will use default
+        # Create AppleConfig entity to track desired apple count
+        from src.ecs.components.apple_config import AppleConfig
+        
+        class AppleConfigEntity:
+            def __init__(self, desired_count: int):
+                self.apple_config = AppleConfig(desired_count=desired_count)
+            
+            def get_type(self):
+                return None  # Config entity has no specific type
+        
+        desired_apples = self._settings.validate_apples_count(
+            self._world.board.width * self._world.board.cell_size,
+            self._world.board.cell_size,
+            self._world.board.height * self._world.board.cell_size
         )
+        apple_config_entity = AppleConfigEntity(desired_apples)
+        self._world.registry.add(apple_config_entity)
+
+        # Create initial apples
+        from src.ecs.prefabs.apple import create_apple
+        from src.ecs.entities.entity import EntityType
+        import random
+        
+        # Get occupied positions (snake)
+        occupied_positions = set()
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "position"):
+                occupied_positions.add((snake.position.x, snake.position.y))
+                if hasattr(snake, "body"):
+                    for segment in snake.body.segments:
+                        occupied_positions.add((segment.x, segment.y))
+        
+        # Spawn initial apples
+        for _ in range(desired_apples):
+            # Try to find a valid position
+            attempts = 0
+            max_attempts = 1000
+            while attempts < max_attempts:
+                x = random.randint(0, self._world.board.width - 1)
+                y = random.randint(0, self._world.board.height - 1)
+                
+                if (x, y) not in occupied_positions:
+                    create_apple(self._world, x=x, y=y, grid_size=grid_size, color=None)
+                    occupied_positions.add((x, y))
+                    break
+                
+                attempts += 1
 
         # Create obstacles based on difficulty
         difficulty = self._settings.get("obstacle_difficulty")
@@ -700,15 +744,8 @@ class GameplayScene(BaseScene):
         if apple_entity:
             self._world.registry.remove(apple_entity)
 
-        # spawn new apple
-        from src.ecs.prefabs.apple import create_apple
-
-        grid_size = self._world.board.cell_size
-
-        # simple spawn at random position
-        new_x = random.randint(0, self._world.board.width - 1)
-        new_y = random.randint(0, self._world.board.height - 1)
-        create_apple(self._world, x=new_x, y=new_y, grid_size=grid_size)
+        # Note: AppleSpawnSystem will automatically spawn a new apple
+        # to maintain the desired count, so we don't need to spawn here
 
     def _handle_speed_increase(self, new_speed: float) -> None:
         """Handle speed increase when apple is eaten."""
