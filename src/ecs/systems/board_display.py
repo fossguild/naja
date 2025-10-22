@@ -329,40 +329,35 @@ class BoardRenderSystem(BaseSystem):
         grid_height: int,
         color: tuple,
     ) -> None:
-        """Draw the snake tail with smooth interpolation.
+        """Draw the snake tail at exact grid positions (no interpolation).
+
+        NOTE: The old code only interpolates the HEAD, not the tail segments.
+        Tail segments are drawn at their exact grid positions to match the
+        original smooth floating head effect.
 
         Args:
             body: Snake body component
-            interpolation: Interpolation component
-            head_position: Current head position
+            interpolation: Interpolation component (unused, kept for API compatibility)
+            head_position: Current head position (unused, kept for API compatibility)
             cell_size: Size of grid cells
-            grid_width: Total grid width in pixels
-            grid_height: Total grid height in pixels
+            grid_width: Total grid width in pixels (unused, kept for API compatibility)
+            grid_height: Total grid height in pixels (unused, kept for API compatibility)
             color: Tail color as (r, g, b) tuple
         """
 
         if not body.segments:
             return
 
-        # draw each tail segment with interpolation
-        # this creates smooth movement and natural overlap when turning
+        # draw each tail segment at exact grid position (NO interpolation)
+        # this matches the old code's behavior where only the head floats
         for segment in body.segments:
-            # calculate interpolated position for each segment
-            draw_x, draw_y = self._calculate_interpolated_position(
-                segment.x * cell_size,
-                segment.y * cell_size,
-                segment.prev_x * cell_size,
-                segment.prev_y * cell_size,
-                interpolation.alpha,
-                interpolation.wrapped_axis,
-                cell_size,
-                grid_width,
-                grid_height,
-            )
+            # convert grid coordinates to pixel coordinates
+            pixel_x = segment.x * cell_size
+            pixel_y = segment.y * cell_size
 
             segment_rect = pygame.Rect(
-                int(draw_x),
-                int(draw_y),
+                pixel_x,
+                pixel_y,
                 cell_size,
                 cell_size,
             )

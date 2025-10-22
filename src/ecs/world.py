@@ -60,6 +60,7 @@ class World:
     _registry: EntityRegistry
     _board: Board
     _clock: pygame.time.Clock
+    _dt_ms: float  # delta time in milliseconds since last frame
 
     def __init__(self, board: Board) -> None:
         """Initialize world with required components.
@@ -70,6 +71,7 @@ class World:
         self._registry = EntityRegistry()
         self._board = board
         self._clock = pygame.time.Clock()
+        self._dt_ms = 16.67  # default to ~60fps
 
     @property
     def registry(self) -> EntityRegistry:
@@ -97,3 +99,20 @@ class World:
             pygame.time.Clock: The clock instance
         """
         return self._clock
+
+    @property
+    def dt_ms(self) -> float:
+        """Get delta time in milliseconds since last frame.
+
+        Returns:
+            float: Delta time in milliseconds
+        """
+        return self._dt_ms
+
+    def set_dt_ms(self, dt_ms: float) -> None:
+        """Set delta time for this frame.
+
+        Args:
+            dt_ms: Delta time in milliseconds
+        """
+        self._dt_ms = dt_ms
