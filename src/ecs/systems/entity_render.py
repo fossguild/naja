@@ -33,16 +33,16 @@ from src.core.rendering.pygame_surface_renderer import RenderEnqueue
 
 class EntityRenderSystem(BaseSystem):
     """System responsible for rendering generic entities.
-    
+
     This system renders ANY entity that has both Position and Renderable
     components, making it fully generic and data-driven.
-    
+
     Responsibilities (following SRP):
     - Render entities with Position + Renderable components
     - Handle different shapes (circle, square, rectangle)
     - Respect rendering layers
     - Handle visibility flag
-    
+
     NOT responsible for:
     - Snake rendering (use SnakeRenderSystem for interpolation)
     - UI elements (use UI systems)
@@ -58,10 +58,7 @@ class EntityRenderSystem(BaseSystem):
         self._renderer = renderer
 
     def draw_entity(
-        self,
-        position: Position,
-        renderable: Renderable,
-        cell_size: int
+        self, position: Position, renderable: Renderable, cell_size: int
     ) -> None:
         """Draw a single entity based on its components.
 
@@ -91,7 +88,7 @@ class EntityRenderSystem(BaseSystem):
 
         Renders all entities with Position + Renderable components.
         This is a pure ECS approach - query by components, not by type.
-        
+
         NOTE: Excludes SNAKE entities as they have dedicated SnakeRenderSystem
         for proper interpolation and segment rendering.
 
@@ -99,7 +96,7 @@ class EntityRenderSystem(BaseSystem):
             world: Game world to render
         """
         from src.ecs.entities.entity import EntityType
-        
+
         # Query all entities with Position and Renderable components
         # This is the ECS way - data-driven, not type-driven
         entities = world.registry.query_by_component("position", "renderable")
@@ -109,17 +106,16 @@ class EntityRenderSystem(BaseSystem):
 
         # Sort entities by rendering layer (optional, for proper layering)
         sorted_entities = sorted(
-            entities.items(),
-            key=lambda item: getattr(item[1].renderable, "layer", 0)
+            entities.items(), key=lambda item: getattr(item[1].renderable, "layer", 0)
         )
 
         # Render each entity (except snakes - they have dedicated system)
         for entity_id, entity in sorted_entities:
             # Skip snakes - they are rendered by SnakeRenderSystem
-            if hasattr(entity, 'get_type') and entity.get_type() == EntityType.SNAKE:
+            if hasattr(entity, "get_type") and entity.get_type() == EntityType.SNAKE:
                 continue
-                
+
             position = entity.position
             renderable = entity.renderable
-            
+
             self.draw_entity(position, renderable, cell_size)

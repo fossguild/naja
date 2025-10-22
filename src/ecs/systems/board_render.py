@@ -39,18 +39,18 @@ from src.ecs.components.color_scheme import ColorScheme
 
 class BoardRenderSystem(BaseSystem):
     """System responsible for rendering the game board foundation.
-    
+
     Responsibilities (following SRP):
     - Clear screen with arena background color
     - Draw grid lines
     - Draw basic tiles from board state (EMPTY, WALL, etc.)
-    
+
     NOT responsible for:
     - Entity rendering (use EntityRenderSystem)
     - Snake rendering (use SnakeRenderSystem)
     - UI elements (use UI systems)
     - Game over/pause overlays (use UI systems)
-    
+
     This system queries for ColorScheme component to get colors,
     following ECS data-driven approach instead of hard-coding values.
     """
@@ -65,27 +65,27 @@ class BoardRenderSystem(BaseSystem):
 
     def _get_color_scheme(self, world: World) -> ColorScheme:
         """Get ColorScheme component from world entities.
-        
+
         Args:
             world: Game world
-            
+
         Returns:
             ColorScheme component, or default if not found
         """
         # Query for entities with ColorScheme component
         color_entities = world.registry.query_by_component("color_scheme")
-        
+
         if color_entities:
             # Get first entity with color scheme
             entity = next(iter(color_entities.values()))
             return entity.color_scheme
-        
+
         # Return default color scheme if none found
         return ColorScheme()
 
     def clear_screen(self, world: World) -> None:
         """Clear the screen with the arena background color.
-        
+
         Args:
             world: Game world
         """
@@ -103,7 +103,7 @@ class BoardRenderSystem(BaseSystem):
         cell_size = board.cell_size
         width = board.width * cell_size
         height = board.height * cell_size
-        
+
         color_scheme = self._get_color_scheme(world)
         grid_color = color_scheme.grid.to_tuple()
 
@@ -115,7 +115,9 @@ class BoardRenderSystem(BaseSystem):
         for y in range(0, height, cell_size):
             self._renderer.draw_line(grid_color, (0, y), (width, y), 1)
 
-    def draw_tile(self, x: int, y: int, tile: Tile, cell_size: int, color_scheme: ColorScheme) -> None:
+    def draw_tile(
+        self, x: int, y: int, tile: Tile, cell_size: int, color_scheme: ColorScheme
+    ) -> None:
         """Draw a single tile at the specified grid position.
 
         Args:

@@ -26,11 +26,11 @@ from src.core.types.color import Color
 @dataclass
 class ColorScheme:
     """Component storing the game's color palette.
-    
+
     This component follows ECS principles by storing only data.
     Rendering systems can query this component to get consistent
     colors across the game without hard-coding values.
-    
+
     Attributes:
         arena: Background color
         grid: Grid line color
@@ -39,28 +39,28 @@ class ColorScheme:
         apple: Apple/food color
         obstacle: Obstacle/wall color
     """
-    
+
     arena: Color = field(default_factory=lambda: Color.from_hex("#202020"))
     grid: Color = field(default_factory=lambda: Color.from_hex("#3c3c3b"))
     snake_head: Color = field(default_factory=lambda: Color.from_hex("#00aa00"))
     snake_body: Color = field(default_factory=lambda: Color.from_hex("#00ff00"))
     apple: Color = field(default_factory=lambda: Color.from_hex("#aa0000"))
     obstacle: Color = field(default_factory=lambda: Color.from_hex("#666666"))
-    
+
     def get_color(self, name: str) -> Color:
         """Get a color by name.
-        
+
         Args:
             name: Color name (e.g., "arena", "snake_head")
-            
+
         Returns:
             Color instance, or white if name not found
         """
         return getattr(self, name, Color(255, 255, 255))
-    
+
     def set_color(self, name: str, color: Color) -> None:
         """Set a color by name.
-        
+
         Args:
             name: Color name
             color: New Color instance

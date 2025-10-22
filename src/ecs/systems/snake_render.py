@@ -37,13 +37,13 @@ from src.core.rendering.pygame_surface_renderer import RenderEnqueue
 
 class SnakeRenderSystem(BaseSystem):
     """System responsible for rendering snake entities with smooth interpolation.
-    
+
     Responsibilities (following SRP):
     - Render snake head with interpolation
     - Render snake body segments with interpolation
     - Handle wraparound portal effects
     - Use colors from Palette component or ColorScheme fallback
-    
+
     This system queries entities by components (Position, SnakeBody, Interpolation)
     rather than by entity type, following ECS data-driven principles.
     """
@@ -58,19 +58,19 @@ class SnakeRenderSystem(BaseSystem):
 
     def _get_color_scheme(self, world: World) -> ColorScheme:
         """Get ColorScheme component from world entities.
-        
+
         Args:
             world: Game world
-            
+
         Returns:
             ColorScheme component, or default if not found
         """
         color_entities = world.registry.query_by_component("color_scheme")
-        
+
         if color_entities:
             entity = next(iter(color_entities.values()))
             return entity.color_scheme
-        
+
         return ColorScheme()
 
     def draw_snake(

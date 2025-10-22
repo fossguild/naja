@@ -32,13 +32,13 @@ from src.core.rendering.pygame_surface_renderer import RenderEnqueue
 
 class UIRenderSystem(BaseSystem):
     """System responsible for rendering UI overlays.
-    
+
     Responsibilities (following SRP):
     - Render score counter
     - Render speed bar
     - Render music indicator
     - Render pause overlay (when paused)
-    
+
     NOT responsible for:
     - Game world rendering (use BoardRenderSystem)
     - Entity rendering (use EntityRenderSystem, SnakeRenderSystem)
