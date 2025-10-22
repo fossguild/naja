@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#
 #   This file is part of Naja.
 #
 #   Naja is free software: you can redistribute it and/or modify
@@ -17,8 +16,23 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Services module."""
+"""Color utility functions."""
 
-from src.game.services.game_initializer import GameInitializer
 
-__all__ = ["GameInitializer"]
+def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    """Convert hex color string to RGB tuple.
+
+    Args:
+        hex_color: Hex color string (e.g., "#00aa00" or "00aa00")
+
+    Returns:
+        RGB tuple (r, g, b) with values from 0-255
+
+    Example:
+        >>> hex_to_rgb("#00aa00")
+        (0, 170, 0)
+        >>> hex_to_rgb("ff0000")
+        (255, 0, 0)
+    """
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))

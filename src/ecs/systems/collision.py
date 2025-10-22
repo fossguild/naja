@@ -94,63 +94,76 @@ class CollisionSystem(BaseSystem):
         self._speed_increase_callback = speed_increase_callback
 
     def update(self, world: World) -> None:
-        """Check all collisions in correct order.
+        """Check for all collision types in priority order.
 
-        Order matters! Same as old code:
-        1. Wall collision (fatal)
-        2. Self-bite (fatal)
-        3. Obstacle collision (fatal)
-        4. Apple collision (non-fatal)
-
-        Fatal collisions stop further checks.
+        Priority (same as old code):
+        1. Wall collision (electric mode only)
+        2. Self-bite collision
+        3. Obstacle collision
+        4. Apple collision
 
         Args:
-            world: ECS world containing entities and components
+            world: ECS world to query entities
         """
-        # check fatal collisions first
+        # Check wall collision first (highest priority)
         if self._check_wall_collision():
+            print("☠️  DEATH CAUSE: Wall collision")
             if self._death_callback:
                 self._death_callback("wall")
-            return  # dead, no need to check other collisions
-
-        if self._check_self_bite():
-            if self._death_callback:
-                self._death_callback("self_bite")
             return
 
+        # Check self-bite collision
+        if self._check_self_bite():
+            print("☠️  DEATH CAUSE: Self-bite collision")
+            if self._death_callback:
+                self._death_callback("self-bite")
+            return
+
+        # Check obstacle collision
         if self._check_obstacle_collision(world):
+            print("☠️  DEATH CAUSE: Obstacle collision")
             if self._death_callback:
                 self._death_callback("obstacle")
             return
 
-        # if alive, check apple collision (non-fatal)
+        # Check apple collision (doesn't kill)
         self._check_apple_collision(world)
 
     def _check_wall_collision(self) -> bool:
         """Check collision with walls (electric mode only).
 
-        Maintains exact logic from old code (entities.py lines 111-119).
-        In electric mode: dies if out of bounds.
-        In wrapping mode: coordinates wrap around (handled elsewhere).
+        Checks if snake's CURRENT position is out of bounds.
+        Movement system handles wrapping when electric walls are disabled.
+        Collision system only checks if we're already out of bounds.
 
         Returns:
             bool: True if collision detected, False otherwise
         """
-        if not self._get_snake_next_position or not self._get_grid_dimensions:
+        if not self._get_snake_head_position or not self._get_grid_dimensions:
             return False
 
-        next_x, next_y = self._get_snake_next_position()
-        width, height, grid_size = self._get_grid_dimensions()
+        # Check CURRENT position, not next position
+        # Snake dies when it IS out of bounds, not when it WOULD BE out of bounds
+        current_x, current_y = self._get_snake_head_position()
+        grid_width, grid_height, cell_size = self._get_grid_dimensions()
 
         # get electric walls setting
         electric_walls = False
         if self._get_electric_walls:
             electric_walls = self._get_electric_walls()
 
-        # EXACT LOGIC from old code: only die if electric_walls is True
+        # Grid dimensions are now in cells, not pixels
+        # Valid positions are 0 to grid_width-1 and 0 to grid_height-1
+        # Snake dies when its current position is out of bounds
         if electric_walls and (
-            next_x not in range(0, width) or next_y not in range(0, height)
+            current_x < 0
+            or current_x >= grid_width
+            or current_y < 0
+            or current_y >= grid_height
         ):
+            print(
+                f"WALL COLLISION: current_pos=({current_x},{current_y}), grid=({grid_width}x{grid_height}), valid_range=(0-{grid_width - 1}, 0-{grid_height - 1})"
+            )
             return True
 
         return False
@@ -179,7 +192,9 @@ class CollisionSystem(BaseSystem):
     def _check_obstacle_collision(self, world: World) -> bool:
         """Check collision with obstacles.
 
-        Maintains exact logic from old code (entities.py lines 128-131).
+        Checks if snake's CURRENT position (after movement) collides with obstacle.
+        This matches the wall collision behavior - we check if snake IS on obstacle,
+        not if it WOULD BE on obstacle.
 
         Args:
             world: ECS world to query obstacles
@@ -187,19 +202,26 @@ class CollisionSystem(BaseSystem):
         Returns:
             bool: True if collision detected, False otherwise
         """
-        if not self._get_snake_next_position:
+        if not self._get_snake_head_position:
             return False
 
-        next_x, next_y = self._get_snake_next_position()
+        # Check CURRENT position (after movement), not next position
+        # Snake dies when it IS on an obstacle, not when it WOULD BE on an obstacle
+        current_x, current_y = self._get_snake_head_position()
 
-        # query obstacles from world (ECS way)
-        # EXACT LOGIC: iterate over each obstacle
-        for entity_id in world.registry.query_by_component("x", "y"):
-            entity = world.registry.get(entity_id)
-            # check if entity has obstacle component
-            if hasattr(entity, "x") and hasattr(entity, "y"):
-                # simple check: if entity has x, y and matches position
-                if next_x == entity.x and next_y == entity.y:
+        # Query all obstacles using EntityType
+        from src.ecs.entities.entity import EntityType
+
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+
+        # Check if snake's current position collides with any obstacle
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                # Obstacles store position in grid coordinates (tiles)
+                if (
+                    current_x == obstacle.position.x
+                    and current_y == obstacle.position.y
+                ):
                     return True
 
         return False
@@ -223,12 +245,14 @@ class CollisionSystem(BaseSystem):
 
         # query apples from world (ECS way)
         # EXACT LOGIC: iterate over each apple
-        for entity_id in world.registry.query_by_component("x", "y"):
-            entity = world.registry.get(entity_id)
+        from src.ecs.entities.entity import EntityType
 
-            # check if entity is at the same position as head
-            if hasattr(entity, "x") and hasattr(entity, "y"):
-                if head_x == entity.x and head_y == entity.y:
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        for entity_id, apple in apples.items():
+            # check if apple is at the same position as head
+            if hasattr(apple, "position"):
+                if head_x == apple.position.x and head_y == apple.position.y:
+                    print(f"APPLE EATEN: head=({head_x},{head_y})")
                     # apple eaten! call callbacks
                     if self._apple_eaten_callback:
                         self._apple_eaten_callback(entity_id, (head_x, head_y))

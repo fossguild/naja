@@ -17,4 +17,19 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Integration tests."""
+"""Apple configuration component."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class AppleConfig:
+    """Configuration for apple spawning in the game.
+
+    This component stores the desired number of apples that should
+    always be present in the game world.
+
+    Used by: AppleSpawnSystem
+    """
+
+    desired_count: int = 1  # Number of apples that should always exist

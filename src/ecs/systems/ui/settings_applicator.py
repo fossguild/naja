@@ -46,10 +46,18 @@ class SettingsApplicator:
     # Critical settings that require game reset
     CRITICAL_SETTINGS = [
         "cells_per_side",
-        "obstacle_difficulty",
-        "initial_speed",
         "number_of_apples",
         "electric_walls",
+    ]
+
+    # Settings that can be applied immediately without reset
+    IMMEDIATE_SETTINGS = [
+        "background_music",
+        "sound_effects",
+        "max_speed",  # Can be changed immediately during gameplay
+        "initial_speed",  # Can be changed immediately during gameplay
+        "snake_color_palette",  # Can be changed immediately during gameplay
+        "obstacle_difficulty",  # Can be changed immediately during gameplay
     ]
 
     def __init__(
@@ -58,6 +66,9 @@ class SettingsApplicator:
         state: Any,
         assets: Any,
         config: Any,
+        palette_changed_callback: Any = None,
+        speed_changed_callback: Any = None,
+        max_speed_changed_callback: Any = None,
     ):
         """Initialize the SettingsApplicator.
 
@@ -66,12 +77,21 @@ class SettingsApplicator:
             state: GameState instance (old code)
             assets: GameAssets instance for font management
             config: GameConfig instance for dimension calculations
+            palette_changed_callback: Optional callback when snake palette changes
+            speed_changed_callback: Optional callback when initial speed changes
+            max_speed_changed_callback: Optional callback when max speed changes
         """
         self._pygame_adapter = pygame_adapter
         self._state = state
         self._assets = assets
         self._config = config
         self._settings_snapshot: dict[str, Any] = {}
+        self._palette_changed_callback = palette_changed_callback
+        self._speed_changed_callback = speed_changed_callback
+        self._max_speed_changed_callback = max_speed_changed_callback
+        self._previous_palette: str = ""
+        self._previous_initial_speed: float = 0.0
+        self._previous_max_speed: float = 0.0
 
     def snapshot_critical_settings(self, settings: Any) -> None:
         """Take a snapshot of critical settings before changes.
@@ -139,6 +159,34 @@ class SettingsApplicator:
             pygame.mixer.music.unpause()
         else:
             pygame.mixer.music.pause()
+
+        # Check if snake color palette changed and notify callback
+        current_palette = settings.get("snake_color_palette", "")
+        if current_palette != self._previous_palette and self._palette_changed_callback:
+            self._palette_changed_callback()
+            self._previous_palette = current_palette
+
+        # Check if initial speed changed and notify callback
+        initial_speed = settings.get("initial_speed")
+        if initial_speed is not None:
+            current_initial_speed = float(initial_speed)
+            if (
+                current_initial_speed != self._previous_initial_speed
+                and self._speed_changed_callback
+            ):
+                self._speed_changed_callback(current_initial_speed)
+                self._previous_initial_speed = current_initial_speed
+
+        # Check if max speed changed and notify callback
+        max_speed = settings.get("max_speed")
+        if max_speed is not None:
+            current_max_speed = float(max_speed)
+            if (
+                current_max_speed != self._previous_max_speed
+                and self._max_speed_changed_callback
+            ):
+                self._max_speed_changed_callback(current_max_speed)
+                self._previous_max_speed = current_max_speed
 
         # Recompute window and recreate surface/fonts if grid changed
         if new_grid_size != old_grid:

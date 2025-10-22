@@ -47,25 +47,61 @@ class InterpolationSystem(BaseSystem):
     Note: This system runs before RenderSystem to prepare smooth positions.
     """
 
-    def __init__(self, electric_walls: bool = True):
+    def __init__(self, electric_walls: bool = True, get_electric_walls=None):
         """Initialize the InterpolationSystem.
 
         Args:
-            electric_walls: Whether walls are electric (no wrapping). Can be updated.
+            electric_walls: Default value for whether walls are electric (no wrapping)
+            get_electric_walls: Optional callback to dynamically get electric_walls setting
         """
         self._electric_walls = electric_walls
+        self._get_electric_walls = get_electric_walls
 
     def update(self, world: World) -> None:
         """Update interpolation values for all entities with movement.
 
         This method calculates smooth positions between grid cells based on
-        delta time and entity speed.
+        delta time and entity speed, matching the old code's interpolation logic.
 
         Args:
             world: ECS world containing entities and components
         """
-        # stub - will be implemented with actual interpolation logic
-        pass
+        from src.ecs.entities.entity import EntityType
+
+        # get delta time from world (set by GameplayScene each frame)
+        dt_ms = world.dt_ms
+
+        # update interpolation for all snakes
+        snakes = world.registry.query_by_type_and_components(
+            EntityType.SNAKE, "position", "interpolation", "velocity"
+        )
+
+        for _, snake in snakes.items():
+            # get snake speed from velocity component (cells per second)
+            # default to 12 if no velocity component or speed field
+            if hasattr(snake, "velocity") and hasattr(snake.velocity, "speed"):
+                speed = snake.velocity.speed
+            else:
+                speed = 12.0
+
+            # calculate move interval: time to move one grid cell
+            # old code: move_interval_ms = 1000.0 / snake.speed
+            move_interval_ms = 1000.0 / speed
+
+            # increment alpha based on delta time (like old code)
+            # old code: snake.move_progress += dt / move_interval_ms
+            increment = dt_ms / move_interval_ms
+
+            snake.interpolation.alpha = min(1.0, snake.interpolation.alpha + increment)
+
+            # detect edge wrapping for special rendering
+            if hasattr(snake, "position"):
+                pos = snake.position
+                # check if movement wrapped around edges
+                wrapped_x = self._detect_wrapping(
+                    world, pos.prev_x, pos.prev_y, pos.x, pos.y
+                )
+                snake.interpolation.wrapped_axis = wrapped_x
 
     def update_interpolation(
         self,
@@ -97,6 +133,8 @@ class InterpolationSystem(BaseSystem):
             - new_alpha: Updated interpolation factor [0.0, 1.0]
             - wrapped_axis: "none", "x", "y", or "both"
         """
+        _ = entity_id  # reserved for future use
+
         # if already at target, no interpolation needed
         if current_x == target_x and current_y == target_y:
             return 0.0, "none"
@@ -213,7 +251,12 @@ class InterpolationSystem(BaseSystem):
         Returns:
             "none", "x", "y", or "both" indicating which axes wrap
         """
-        if self._electric_walls:
+        # Use callback if available, otherwise use stored value
+        electric_walls = self._electric_walls
+        if self._get_electric_walls:
+            electric_walls = self._get_electric_walls()
+
+        if electric_walls:
             return "none"
 
         board = world.board

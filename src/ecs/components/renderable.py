@@ -20,7 +20,7 @@
 """Renderable component."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 
 from src.core.types.color import Color
 
@@ -31,8 +31,23 @@ class Renderable:
 
     Defines how an entity should be rendered on screen.
     Used by: Snake, Apple, Obstacle, UI elements
+
+    Following ECS principles, this component only stores data,
+    no rendering logic. Rendering systems read this component
+    to draw entities on screen.
     """
 
     shape: Literal["circle", "square", "rectangle", "text"]
     color: Color
     size: int = 20  # diameter for circles, side length for squares
+    sprite_path: Optional[str] = None  # Optional sprite image path
+    layer: int = 0  # Rendering layer (higher = drawn on top)
+    visible: bool = True  # Whether entity should be rendered
+
+    def get_color_tuple(self) -> tuple[int, int, int]:
+        """Get color as RGB tuple for rendering.
+
+        Returns:
+            Tuple of (r, g, b) values
+        """
+        return self.color.to_tuple()

@@ -62,9 +62,10 @@ def create_snake(
     if tail_color is None:
         tail_color = (0, 255, 0)  # light green
 
-    # starting position (one grid cell from origin)
-    start_x = grid_size
-    start_y = grid_size
+    # starting position in GRID COORDINATES (not pixels)
+    # board center
+    start_x = world.board.width // 2
+    start_y = world.board.height // 2
 
     # create snake entity with all required components
     snake = Snake(
