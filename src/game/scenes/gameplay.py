@@ -29,6 +29,7 @@ import pygame
 
 from src.game.scenes.base_scene import BaseScene
 from src.game.services.game_initializer import GameInitializer
+from src.game.services.audio_service import AudioService
 from src.ecs.world import World
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.systems.input import InputSystem
@@ -106,6 +107,7 @@ class GameplayScene(BaseScene):
         self._game_over = False
         self._death_reason = ""
         self._game_initializer = GameInitializer(settings=settings)
+        self._audio_service = AudioService(settings=settings)
 
     def on_attach(self) -> None:
         """Initialize and register all game systems.
@@ -265,12 +267,16 @@ class GameplayScene(BaseScene):
         # update world's delta time for systems that need it (e.g., InterpolationSystem)
         self._world.set_dt_ms(dt_ms)
 
+        # Define which systems should pause
+        # Systems 1-8 are game logic (movement, collision, spawning, scoring, etc.)
+        # Systems 0 (input) and 9+ (rendering, audio) always run
+        GAME_LOGIC_START = 1
+        GAME_LOGIC_END = 8
+
         # update all systems in order
-        # note: input and rendering systems run even when paused
         for i, system in enumerate(self._systems):
             # skip game logic systems when paused
-            if self._paused and i >= 1 and i <= 8:
-                # skip movement, collision, apple spawn, spawn, scoring, obstacles, settings, validation
+            if self._paused and GAME_LOGIC_START <= i <= GAME_LOGIC_END:
                 continue
 
             system.update(self._world)
@@ -297,14 +303,7 @@ class GameplayScene(BaseScene):
         self._game_initializer.reset_world(self._world)
 
         # Restore background music (in case we're coming from game over)
-        try:
-            if self._settings and self._settings.get("background_music"):
-                # Load and play background music
-                pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
-                pygame.mixer.music.play(-1)  # loop
-        except Exception as e:
-            print(f"Warning: Could not load background music: {e}")
-            pass  # ignore if music fails to load
+        self._audio_service.play_music("assets/sound/BoxCat_Games_CPU_Talk.ogg")
 
         self.on_attach()
         print("GameplayScene attached")
@@ -347,99 +346,92 @@ class GameplayScene(BaseScene):
         """
         return self._attached
 
+    # Helper methods for querying world state
+
+    def _get_snake_entity(self):
+        """Get the snake entity from the world.
+
+        This helper method reduces code duplication across callbacks
+        that need to access the snake entity.
+
+        Returns:
+            Snake entity or None if not found
+        """
+        from src.ecs.entities.entity import EntityType
+
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            return snake
+        return None
+
     # Input handling callbacks
+    # These callbacks are required by InputSystem to coordinate input with game state.
+    # They allow the Scene to act as a bridge between input and ECS entities.
 
     def _handle_direction_change(self, dx: int, dy: int) -> None:
         """Handle direction change from input.
+
+        Callback for InputSystem. Updates snake velocity based on user input.
 
         Args:
             dx: X direction (-1, 0, 1)
             dy: Y direction (-1, 0, 1)
         """
-        from src.ecs.entities.entity import EntityType
-
-        # find snake entity and update its velocity
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "velocity"):
-                snake.velocity.dx = dx
-                snake.velocity.dy = dy
-                break
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "velocity"):
+            snake.velocity.dx = dx
+            snake.velocity.dy = dy
 
     def _get_current_direction(self) -> tuple[int, int]:
         """Get current snake direction.
 
+        Callback for InputSystem. Provides current direction for input validation.
+
         Returns:
             Tuple of (dx, dy) for current direction
         """
-        from src.ecs.entities.entity import EntityType
-
-        # find snake entity and return its velocity
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "velocity"):
-                return (snake.velocity.dx, snake.velocity.dy)
-
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "velocity"):
+            return (snake.velocity.dx, snake.velocity.dy)
         return (0, 0)
 
     def _handle_quit(self) -> None:
-        """Handle quit request."""
+        """Handle quit request.
+
+        Callback for InputSystem. Transitions to menu instead of terminating.
+        """
         # transition to menu instead of quitting
         self.set_next_scene("menu")
 
     def _handle_pause(self) -> None:
-        """Handle pause toggle."""
+        """Handle pause toggle.
+
+        Callback for InputSystem. Toggles pause state for game logic systems.
+        """
         self._paused = not self._paused
 
     def _handle_menu(self) -> None:
-        """Handle menu open request."""
+        """Handle menu open request.
+
+        Callback for InputSystem. Pauses game and transitions to settings.
+        """
         # pause game and transition to settings scene
         self._paused = True
         self.set_next_scene("settings")
 
     def _handle_music_toggle(self) -> None:
-        """Handle music toggle - mutes/unmutes ALL game audio (music + sound effects)."""
-        # Toggle both background_music and sound_effects settings
-        current_music = self._settings.get("background_music")
-        current_sfx = self._settings.get("sound_effects")
+        """Handle music toggle.
 
-        # If either is on, turn both off. If both are off, turn both on.
-        new_state = not (current_music or current_sfx)
-
-        self._settings.set("background_music", new_state)
-        self._settings.set("sound_effects", new_state)
-
-        # Apply immediately to both music and sound effects
-        if new_state:
-            # Unmute: restore music and sound effects
-            # Check if music is currently loaded and playing
-            try:
-                # Try to unpause first (in case music was paused)
-                pygame.mixer.music.unpause()
-                # Check if music is actually playing
-                if not pygame.mixer.music.get_busy():
-                    # Music not playing, load and start it
-                    pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
-                    pygame.mixer.music.play(-1)  # loop
-            except Exception:
-                # If unpause failed, try loading and playing
-                try:
-                    pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
-                    pygame.mixer.music.play(-1)  # loop
-                except Exception:
-                    pass  # ignore if music fails to load
-
-            pygame.mixer.unpause()  # Unpause all sound effect channels
-        else:
-            # Mute: pause music and sound effects
-            pygame.mixer.music.pause()
-            pygame.mixer.pause()  # Pause all sound effect channels
+        Callback for InputSystem. Toggles all audio (music + sound effects).
+        Uses AudioService to manage audio state consistently.
+        """
+        self._audio_service.toggle_all_audio()
 
     def _handle_palette_randomize(self) -> None:
         """Handle palette randomization.
 
-        Randomizes snake colors in settings. The SettingsApplySystem will
-        automatically detect the palette change and apply it to the snake entity.
+        Callback for InputSystem. Randomizes snake colors in settings.
+        SettingsApplySystem automatically detects and applies the change.
         """
         if not self._settings:
             return
@@ -449,55 +441,81 @@ class GameplayScene(BaseScene):
         self._settings.randomize_snake_colors()
 
     # Collision callbacks
+    # These callbacks are required by CollisionSystem to query game state.
+    # They provide world queries that the system needs for collision detection.
 
     def _get_snake_head_position(self) -> tuple[int, int]:
-        """Get current snake head position."""
-        from src.ecs.entities.entity import EntityType
+        """Get current snake head position.
 
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "position"):
-                return (snake.position.x, snake.position.y)
+        Callback for CollisionSystem. Provides snake head position for collision checks.
+
+        Returns:
+            Tuple of (x, y) coordinates
+        """
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "position"):
+            return (snake.position.x, snake.position.y)
         return (0, 0)
 
     def _get_snake_tail_positions(self) -> list[tuple[int, int]]:
-        """Get snake tail segment positions."""
-        from src.ecs.entities.entity import EntityType
+        """Get snake tail segment positions.
 
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "body"):
-                return [(seg.x, seg.y) for seg in snake.body.segments]
+        Callback for CollisionSystem. Provides tail positions for self-collision checks.
+
+        Returns:
+            List of (x, y) coordinates for each tail segment
+        """
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "body"):
+            return [(seg.x, seg.y) for seg in snake.body.segments]
         return []
 
     def _get_snake_next_position(self) -> tuple[int, int]:
-        """Get next snake position based on current position and velocity."""
-        from src.ecs.entities.entity import EntityType
+        """Get next snake position based on current position and velocity.
 
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "position") and hasattr(snake, "velocity"):
-                # Calculate raw next position
-                next_x = snake.position.x + snake.velocity.dx
-                next_y = snake.position.y + snake.velocity.dy
+        Callback for CollisionSystem. Calculates next position for lookahead collision detection.
+        Handles grid wrapping when electric walls are disabled.
 
-                electric_walls = self._get_electric_walls()
+        Returns:
+            Tuple of (x, y) for next position
+        """
+        snake = self._get_snake_entity()
+        if (
+            not snake
+            or not hasattr(snake, "position")
+            or not hasattr(snake, "velocity")
+        ):
+            return (0, 0)
 
-                # Only wrap if electric walls are disabled
-                # If electric walls are enabled, collision system will detect out-of-bounds
-                if not electric_walls:
-                    next_x = next_x % self._world.board.width
-                    next_y = next_y % self._world.board.height
+        # Calculate raw next position
+        next_x = snake.position.x + snake.velocity.dx
+        next_y = snake.position.y + snake.velocity.dy
 
-                return (next_x, next_y)
-        return (0, 0)
+        electric_walls = self._get_electric_walls()
+
+        # Only wrap if electric walls are disabled
+        # If electric walls are enabled, collision system will detect out-of-bounds
+        if not electric_walls:
+            next_x = next_x % self._world.board.width
+            next_y = next_y % self._world.board.height
+
+        return (next_x, next_y)
 
     def _get_electric_walls(self) -> bool:
-        """Check if electric walls are enabled."""
+        """Check if electric walls are enabled.
+
+        Callback for CollisionSystem and MovementSystem.
+        Returns electric walls setting for collision logic.
+
+        Returns:
+            True if electric walls are enabled, False otherwise
+        """
         return self._settings.get("electric_walls") if self._settings else True
 
     def _get_grid_dimensions(self) -> tuple[int, int, int]:
         """Get grid dimensions in cells.
+
+        Callback for CollisionSystem. Provides grid size for boundary checks.
 
         Returns:
             Tuple of (grid_width_cells, grid_height_cells, cell_size_pixels)
@@ -512,56 +530,53 @@ class GameplayScene(BaseScene):
         )
 
     def _get_current_speed(self) -> float:
-        """Get current snake speed."""
-        from src.ecs.entities.entity import EntityType
+        """Get current snake speed.
 
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "velocity"):
-                return snake.velocity.speed
+        Callback for CollisionSystem. Provides current speed for collision logic.
+
+        Returns:
+            Current snake speed in cells per second
+        """
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "velocity"):
+            return snake.velocity.speed
         return 4.0
 
     def _get_max_speed(self) -> float:
-        """Get maximum allowed speed."""
+        """Get maximum allowed speed.
+
+        Callback for CollisionSystem. Provides speed limit for clamping.
+
+        Returns:
+            Maximum speed from settings
+        """
         return float(self._settings.get("max_speed")) if self._settings else 20.0
 
     def _handle_death(self, reason: str) -> None:
-        """Handle snake death."""
-        from src.ecs.entities.entity import EntityType
+        """Handle snake death.
 
-        # kill the snake
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "body"):
-                snake.body.alive = False
-                break
+        Callback for CollisionSystem. Executed when snake dies from collision.
+        Handles game over state, audio, and scene transition.
 
-        # play death sound (only if sound effects are enabled)
-        if self._settings and self._settings.get("sound_effects"):
-            try:
-                import pygame
+        Args:
+            reason: Death reason message (e.g., "Hit wall", "Hit self")
+        """
+        # Kill the snake
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "body"):
+            snake.body.alive = False
 
-                pygame.mixer.Sound("assets/sound/gameover.wav").play()
-            except Exception:
-                pass  # ignore if sound file not found
+        # Play death sound and music using AudioService
+        self._audio_service.play_sound("assets/sound/gameover.wav")
+        self._audio_service.play_music("assets/sound/death_song.mp3")
 
-        # play death music (only if background music is enabled)
-        if self._settings and self._settings.get("background_music"):
-            try:
-                import pygame
-
-                pygame.mixer.music.load("assets/sound/death_song.mp3")
-                pygame.mixer.music.play(-1)  # loop death music
-            except Exception:
-                pass  # ignore if music file not found
-
-        # set game over state
+        # Set game over state
         self._game_over = True
         self._death_reason = reason
 
         print(f"GAME OVER: {reason}")
 
-        # transition to game over scene
+        # Transition to game over scene
         self.set_next_scene("game_over")
 
     def _handle_apple_eaten(
@@ -569,38 +584,31 @@ class GameplayScene(BaseScene):
     ) -> None:
         """Handle apple being eaten.
 
-        Args:
-            apple_entity: Apple entity ID or object
-            apple_position: Position of eaten apple (unused, required)
-        """
-        from src.ecs.entities.entity import EntityType
+        Callback for CollisionSystem. Executed when snake eats an apple.
+        Handles score increment, snake growth, audio, and apple removal.
 
+        Args:
+            apple_entity: Apple entity ID or object to remove
+            apple_position: Position of eaten apple (unused, required by interface)
+        """
         _ = apple_position  # suppress unused warning
 
-        # play apple eating sound (only if sound effects are enabled)
-        if self._settings and self._settings.get("sound_effects"):
-            try:
-                import pygame
+        # Play apple eating sound using AudioService
+        self._audio_service.play_sound("assets/sound/eat.flac")
 
-                pygame.mixer.Sound("assets/sound/eat.flac").play()
-            except Exception:
-                pass  # ignore if sound file not found
+        # Grow snake
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "body"):
+            snake.body.size += 1
 
-        # grow snake
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "body"):
-                snake.body.size += 1
-                break
-
-        # increment score
+        # Increment score
         score_entities = self._world.registry.query_by_component("score")
         if score_entities:
             score_entity = list(score_entities.values())[0]
             if hasattr(score_entity, "score"):
                 score_entity.score.current += 1
 
-        # remove eaten apple
+        # Remove eaten apple
         if apple_entity:
             self._world.registry.remove(apple_entity)
 
@@ -608,11 +616,13 @@ class GameplayScene(BaseScene):
         # to maintain the desired count, so we don't need to spawn here
 
     def _handle_speed_increase(self, new_speed: float) -> None:
-        """Handle speed increase when apple is eaten."""
-        from src.ecs.entities.entity import EntityType
+        """Handle speed increase when apple is eaten.
 
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "velocity"):
-                snake.velocity.speed = new_speed
-                break
+        Callback for CollisionSystem. Updates snake speed after eating apple.
+
+        Args:
+            new_speed: New speed value to apply
+        """
+        snake = self._get_snake_entity()
+        if snake and hasattr(snake, "velocity"):
+            snake.velocity.speed = new_speed
