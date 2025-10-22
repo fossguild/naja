@@ -350,6 +350,23 @@ class GameplayScene(BaseScene):
                 random_seed=None,  # use true randomness
             )
 
+        # Create score entity to track apples eaten
+        from src.ecs.components.score import Score
+        from src.ecs.entities.entity import EntityType
+
+        # Create a simple object to hold the score component
+        # We don't use a specific entity type since this is just for UI tracking
+        class ScoreEntity:
+            def __init__(self):
+                self.score = Score(current=0, high_score=0)
+            
+            def get_type(self):
+                """Return a dummy type to satisfy registry interface."""
+                return None  # No specific type for UI entities
+
+        score_entity = ScoreEntity()
+        self._world.registry.add(score_entity)
+
     def render(self) -> None:
         """Render the gameplay scene."""
         # Rendering is handled by the BoardRenderSystem in update()
@@ -584,6 +601,13 @@ class GameplayScene(BaseScene):
             if hasattr(snake, "body"):
                 snake.body.size += 1
                 break
+
+        # increment score
+        score_entities = self._world.registry.query_by_component("score")
+        if score_entities:
+            score_entity = list(score_entities.values())[0]
+            if hasattr(score_entity, "score"):
+                score_entity.score.current += 1
 
         # remove eaten apple
         if apple_entity:

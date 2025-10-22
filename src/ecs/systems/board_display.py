@@ -500,6 +500,60 @@ class BoardRenderSystem(BaseSystem):
             # if font loading fails, just show overlay
             pass
 
+    def draw_score(self, world: World, surface_width: int, surface_height: int) -> None:
+        """Draw score counter horizontally centered near the top, semi-transparent.
+
+        Matches the old style: big number, centered on X, high on Y with a margin,
+        using the same font as Game Over and low opacity so the grid is visible through it.
+
+        Args:
+            world: Game world to query snake size
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        # Query score component from world
+        score_entities = world.registry.query_by_component("score")
+        if not score_entities:
+            return
+
+        # Get first score entity (should only be one)
+        score_entity = list(score_entities.values())[0]
+        if not hasattr(score_entity, "score"):
+            return
+
+        current_score = score_entity.score.current
+
+        try:
+            # Large font size, like Game Over
+            font_size = int(surface_width / 8)
+            font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+            try:
+                score_font = pygame.font.Font(font_path, font_size)
+            except Exception:
+                score_font = pygame.font.Font(None, font_size)
+
+            # Use the same tone as Game Over (MESSAGE_COLOR #808080)
+            score_color = (128, 128, 128)
+
+            # Render score text
+            score_text = score_font.render(str(current_score), True, score_color)
+
+            # Make it more translucent than before (~25% opaque)
+            score_text.set_alpha(64)
+
+            # Horizontal center; vertically near the top with a grid-sized margin
+            top_margin = getattr(world.board, "cell_size", max(10, surface_height // 20))
+            score_rect = score_text.get_rect()
+            score_rect.midtop = (surface_width // 2, top_margin)
+
+            # Blit to main surface
+            self._renderer.blit(score_text, score_rect)
+
+        except Exception:
+            # Silently fail if font loading or rendering fails
+            pass
+
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
 
@@ -528,3 +582,10 @@ class BoardRenderSystem(BaseSystem):
 
         # render normal game world
         self.render_frame(world)
+
+        # Draw score counter on top of game world
+        surface = pygame.display.get_surface()
+        if surface:
+            self.draw_score(world, surface.get_width(), surface.get_height())
+        
+        # (draw_score already called once; avoid duplicate rendering)
