@@ -75,6 +75,7 @@ class GameInitializer:
         """Create all initial game entities.
 
         Creates:
+        - GameState entity for game flow control
         - ColorScheme entity for rendering colors
         - Snake entity at center of board
         - AppleConfig entity to track desired apple count
@@ -86,6 +87,9 @@ class GameInitializer:
             world: ECS world instance to populate with entities
         """
         grid_size = world.board.cell_size
+
+        # create game state entity for game flow control
+        self._create_game_state(world)
 
         # create color scheme entity for rendering systems
         self._create_color_scheme(world)
@@ -104,6 +108,33 @@ class GameInitializer:
 
         # create score entity
         self._create_score_entity(world)
+
+    def _create_game_state(self, world: World) -> None:
+        """Create GameState entity for game flow control.
+
+        This entity stores the global game state like pause, game over,
+        and scene transitions. Following ECS principles, this is a
+        singleton entity that systems query and modify.
+
+        Args:
+            world: ECS world instance
+        """
+        from src.ecs.components.game_state import GameState
+
+        class GameStateEntity:
+            def __init__(self):
+                self.game_state = GameState(
+                    paused=False,
+                    game_over=False,
+                    death_reason="",
+                    next_scene=None,
+                )
+
+            def get_type(self):
+                return None  # config entity has no specific type
+
+        game_state_entity = GameStateEntity()
+        world.registry.add(game_state_entity)
 
     def _create_color_scheme(self, world: World) -> None:
         """Create ColorScheme entity for rendering systems.

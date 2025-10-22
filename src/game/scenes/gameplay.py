@@ -132,13 +132,7 @@ class GameplayScene(BaseScene):
         # 1. InputSystem - convert user input to commands/component changes
         input_system = InputSystem(
             pygame_adapter=self._pygame_adapter,
-            direction_callback=self._handle_direction_change,
-            get_current_direction_callback=self._get_current_direction,
-            quit_callback=self._handle_quit,
-            pause_callback=self._handle_pause,
-            menu_callback=self._handle_menu,
-            music_toggle_callback=self._handle_music_toggle,
-            palette_randomize_callback=self._handle_palette_randomize,
+            settings=self._settings,
         )
         self._systems.append(input_system)
 
@@ -291,6 +285,10 @@ class GameplayScene(BaseScene):
         # update world's delta time for systems that need it (e.g., InterpolationSystem)
         self._world.set_dt_ms(dt_ms)
 
+        # get game state from world
+        game_state = self._get_game_state()
+        is_paused = game_state.paused if game_state else False
+
         # Define which systems should pause
         # Systems 1-8 are game logic (movement, collision, spawning, scoring, etc.)
         # Systems 0 (input) and 9+ (rendering, audio) always run
@@ -300,21 +298,26 @@ class GameplayScene(BaseScene):
         # update all systems in order
         for i, system in enumerate(self._systems):
             # skip game logic systems when paused
-            if self._paused and GAME_LOGIC_START <= i <= GAME_LOGIC_END:
+            if is_paused and GAME_LOGIC_START <= i <= GAME_LOGIC_END:
                 continue
 
             system.update(self._world)
 
         # draw pause overlay if paused
-        if self._paused and self._ui_render_system and self._renderer:
+        if is_paused and self._ui_render_system and self._renderer:
             surface = pygame.display.get_surface()
             if surface:
                 self._ui_render_system.draw_pause_overlay(
                     surface.get_width(), surface.get_height()
                 )
 
-        # return next scene if set
-        return self.get_next_scene()
+        # check for scene transitions from GameState
+        if game_state and game_state.next_scene:
+            next_scene = game_state.next_scene
+            game_state.next_scene = None  # clear the transition
+            return next_scene
+
+        return None
 
     def on_enter(self) -> None:
         """Called when entering gameplay scene."""
@@ -371,6 +374,19 @@ class GameplayScene(BaseScene):
         return self._attached
 
     # Helper methods for querying world state
+
+    def _get_game_state(self):
+        """Get the GameState component from world.
+
+        Returns:
+            GameState component or None if not found
+        """
+        game_state_entities = self._world.registry.query_by_component("game_state")
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                return entity.game_state
+        return None
 
     def _get_snake_entity(self):
         """Get the snake entity from the world.
