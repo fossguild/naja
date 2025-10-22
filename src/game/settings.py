@@ -30,12 +30,11 @@ class GameSettings:
         "cells_per_side": 16,  # Will be calculated from screen size
         "initial_speed": 4.0,
         "max_speed": 20.0,
-        "death_sound": True,
         "obstacle_difficulty": "None",
         "number_of_apples": 1,
         "background_music": True,
+        "sound_effects": True,  # Controls all sound effects (eat, death, etc.)
         "reset_game_on_apply": False,
-        "eat_sound": True,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
     }
@@ -66,7 +65,6 @@ class GameSettings:
             "max": 60.0,
             "step": 1.0,
         },
-        {"key": "death_sound", "label": "Death Sound", "type": "bool"},
         {
             "key": "obstacle_difficulty",
             "label": "Obstacles",
@@ -82,12 +80,8 @@ class GameSettings:
             "step": 1,
         },
         {"key": "background_music", "label": "Background Music", "type": "bool"},
+        {"key": "sound_effects", "label": "Sound Effects", "type": "bool"},
         {"key": "reset_game_on_apply", "label": "Reset Game on Apply", "type": "bool"},
-        {
-            "key": "eat_sound",
-            "label": "Eat sound",
-            "type": "bool",
-        },
         {
             "key": "electric_walls",
             "label": "Electric walls",

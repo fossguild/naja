@@ -501,13 +501,19 @@ class GameplayScene(BaseScene):
         self.set_next_scene("settings")
 
     def _handle_music_toggle(self) -> None:
-        """Handle music toggle - mutes/unmutes ALL game sounds."""
-        # toggle the setting
-        current = self._settings.get("background_music")
-        self._settings.set("background_music", not current)
+        """Handle music toggle - mutes/unmutes ALL game audio (music + sound effects)."""
+        # Toggle both background_music and sound_effects settings
+        current_music = self._settings.get("background_music")
+        current_sfx = self._settings.get("sound_effects")
+        
+        # If either is on, turn both off. If both are off, turn both on.
+        new_state = not (current_music or current_sfx)
+        
+        self._settings.set("background_music", new_state)
+        self._settings.set("sound_effects", new_state)
 
-        # apply immediately to both music and sound effects
-        if self._settings.get("background_music"):
+        # Apply immediately to both music and sound effects
+        if new_state:
             # Unmute: restore music and sound effects
             # Check if music is currently loaded and playing
             try:
@@ -625,16 +631,24 @@ class GameplayScene(BaseScene):
                 snake.body.alive = False
                 break
 
-        # play death sound and music (only if audio is not muted)
-        if self._settings and self._settings.get("background_music"):
+        # play death sound (only if sound effects are enabled)
+        if self._settings and self._settings.get("sound_effects"):
             try:
                 import pygame
 
                 pygame.mixer.Sound("assets/sound/gameover.wav").play()
+            except Exception:
+                pass  # ignore if sound file not found
+        
+        # play death music (only if background music is enabled)
+        if self._settings and self._settings.get("background_music"):
+            try:
+                import pygame
+
                 pygame.mixer.music.load("assets/sound/death_song.mp3")
                 pygame.mixer.music.play(-1)  # loop death music
             except Exception:
-                pass  # ignore if sound files not found
+                pass  # ignore if music file not found
 
         # set game over state
         self._game_over = True
@@ -659,8 +673,8 @@ class GameplayScene(BaseScene):
 
         _ = apple_position  # suppress unused warning
 
-        # play apple eating sound (only if audio is not muted)
-        if self._settings and self._settings.get("background_music"):
+        # play apple eating sound (only if sound effects are enabled)
+        if self._settings and self._settings.get("sound_effects"):
             try:
                 import pygame
 

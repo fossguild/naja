@@ -87,33 +87,40 @@ class SettingsScene(BaseScene):
                         self._settings.MENU_FIELDS
                     )
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
+                    field_key = self._settings.MENU_FIELDS[self._selected_index]["key"]
                     self._settings.step_setting(
                         self._settings.MENU_FIELDS[self._selected_index], -1
                     )
-                    # apply music setting immediately if changed
-                    if (
-                        self._settings.MENU_FIELDS[self._selected_index]["key"]
-                        == "background_music"
-                    ):
-                        if self._settings.get("background_music"):
-                            pygame.mixer.music.unpause()
-                        else:
-                            pygame.mixer.music.pause()
+                    # Apply audio settings immediately
+                    self._apply_audio_setting_if_changed(field_key)
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                    field_key = self._settings.MENU_FIELDS[self._selected_index]["key"]
                     self._settings.step_setting(
                         self._settings.MENU_FIELDS[self._selected_index], +1
                     )
-                    # apply music setting immediately if changed
-                    if (
-                        self._settings.MENU_FIELDS[self._selected_index]["key"]
-                        == "background_music"
-                    ):
-                        if self._settings.get("background_music"):
-                            pygame.mixer.music.unpause()
-                        else:
-                            pygame.mixer.music.pause()
+                    # Apply audio settings immediately
+                    self._apply_audio_setting_if_changed(field_key)
 
         return None
+
+    def _apply_audio_setting_if_changed(self, field_key: str) -> None:
+        """Apply audio settings immediately when changed.
+        
+        Args:
+            field_key: The key of the field that was changed
+        """
+        if field_key == "background_music":
+            # Only control background music
+            if self._settings.get("background_music"):
+                pygame.mixer.music.unpause()
+            else:
+                pygame.mixer.music.pause()
+        elif field_key == "sound_effects":
+            # Control all sound effect channels
+            if self._settings.get("sound_effects"):
+                pygame.mixer.unpause()
+            else:
+                pygame.mixer.pause()
 
     def render(self) -> None:
         """Render the settings screen."""
