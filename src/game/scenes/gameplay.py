@@ -306,10 +306,10 @@ class GameplayScene(BaseScene):
             system.update(self._world)
 
         # draw pause overlay if paused
-        if self._paused and self._board_render_system and self._renderer:
+        if self._paused and self._ui_render_system and self._renderer:
             surface = pygame.display.get_surface()
             if surface:
-                self._board_render_system.draw_pause_overlay(
+                self._ui_render_system.draw_pause_overlay(
                     surface.get_width(), surface.get_height()
                 )
 
