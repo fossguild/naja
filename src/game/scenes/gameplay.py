@@ -41,6 +41,7 @@ from src.ecs.systems.interpolation import InterpolationSystem
 from src.ecs.systems.board_display import BoardRenderSystem
 from src.ecs.systems.validation import ValidationSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
+from src.ecs.systems.settings_apply import SettingsApplySystem
 
 
 class GameplayScene(BaseScene):
@@ -104,7 +105,6 @@ class GameplayScene(BaseScene):
         self._board_render_system: Optional[BoardRenderSystem] = None
         self._game_over = False
         self._death_reason = ""
-        self._previous_obstacle_difficulty = ""  # Track obstacle difficulty changes
         self._game_initializer = GameInitializer(settings=settings)
 
     def on_attach(self) -> None:
@@ -181,9 +181,12 @@ class GameplayScene(BaseScene):
         self._systems.append(obstacle_generation_system)
 
         # 8. SettingsApplySystem - apply runtime settings changes
-        # TODO: implement SettingsApplySystem and wire it here
-        # settings_apply_system = SettingsApplySystem(...)
-        # self._systems.append(settings_apply_system)
+        settings_apply_system = SettingsApplySystem(
+            settings=self._settings,
+            config=self._config,
+            assets=self._assets,
+        )
+        self._systems.append(settings_apply_system)
 
         # 9. ValidationSystem - debug validation (can be disabled in production)
         validation_system = ValidationSystem(
@@ -259,16 +262,6 @@ class GameplayScene(BaseScene):
         if not self._attached:
             return None
 
-        # Check for obstacle difficulty changes and apply immediately
-        if self._settings:
-            current_difficulty = self._settings.get("obstacle_difficulty")
-            if (
-                current_difficulty
-                and current_difficulty != self._previous_obstacle_difficulty
-            ):
-                self._apply_obstacle_difficulty(current_difficulty)
-                self._previous_obstacle_difficulty = current_difficulty
-
         # update world's delta time for systems that need it (e.g., InterpolationSystem)
         self._world.set_dt_ms(dt_ms)
 
@@ -276,8 +269,8 @@ class GameplayScene(BaseScene):
         # note: input and rendering systems run even when paused
         for i, system in enumerate(self._systems):
             # skip game logic systems when paused
-            if self._paused and i >= 1 and i <= 7:
-                # skip movement, collision, apple spawn, spawn, scoring, obstacles, settings
+            if self._paused and i >= 1 and i <= 8:
+                # skip movement, collision, apple spawn, spawn, scoring, obstacles, settings, validation
                 continue
 
             system.update(self._world)
@@ -300,15 +293,6 @@ class GameplayScene(BaseScene):
         # Clear any pending scene transition from previous session
         self.set_next_scene(None)
 
-        # Initialize obstacle difficulty tracker
-        if self._settings:
-            self._previous_obstacle_difficulty = (
-                self._settings.get("obstacle_difficulty") or ""
-            )
-
-        # Apply settings before resetting world (including grid size changes)
-        self._apply_settings_to_world()
-
         # Reset world state for new game using GameInitializer service
         self._game_initializer.reset_world(self._world)
 
@@ -330,70 +314,6 @@ class GameplayScene(BaseScene):
         print("Exiting GameplayScene")
         self.on_detach()
         print("GameplayScene detached")
-
-    def _apply_settings_to_world(self) -> None:
-        """Apply current settings to the game world.
-
-        This updates the world board dimensions based on cells_per_side setting.
-        Should be called before resetting the game world.
-        """
-        if not self._settings or not self._config:
-            return
-
-        # Get desired cells per side from settings
-        desired_cells = max(10, int(self._settings.get("cells_per_side")))
-
-        # Calculate optimal grid/cell size
-        new_cell_size = self._config.get_optimal_grid_size(desired_cells)
-
-        # Calculate new window dimensions (must be multiple of cell size)
-        new_width_pixels, new_height_pixels = self._config.calculate_window_size(
-            new_cell_size
-        )
-
-        # Calculate board dimensions in cells
-        new_width_cells = new_width_pixels // new_cell_size
-        new_height_cells = new_height_pixels // new_cell_size
-
-        # Create a new board with the new dimensions
-        from src.ecs.board import Board
-
-        new_board = Board(
-            width=new_width_cells, height=new_height_cells, cell_size=new_cell_size
-        )
-
-        # Replace the board in the world
-        self._world.board = new_board
-
-        # Update pygame display if dimensions changed
-        current_surface = pygame.display.get_surface()
-        if current_surface:
-            current_w, current_h = current_surface.get_size()
-            if current_w != new_width_pixels or current_h != new_height_pixels:
-                pygame.display.set_mode((new_width_pixels, new_height_pixels))
-
-                # Reload fonts with new dimensions if assets available
-                if self._assets:
-                    self._assets.reload_fonts(new_width_pixels)
-
-        print(
-            f"Applied settings: {desired_cells}x{desired_cells} cells, cell_size={new_cell_size}px, board={new_width_cells}x{new_height_cells} cells, window={new_width_pixels}x{new_height_pixels}px"
-        )
-
-        # Apply snake palette in case it changed
-        self._apply_snake_palette()
-
-        # Apply initial speed in case it changed
-        if self._settings:
-            initial_speed = self._settings.get("initial_speed")
-            if initial_speed is not None:
-                self._apply_initial_speed(float(initial_speed))
-
-        # Apply max speed in case it changed
-        if self._settings:
-            max_speed = self._settings.get("max_speed")
-            if max_speed is not None:
-                self._apply_max_speed(float(max_speed))
 
     def render(self) -> None:
         """Render the gameplay scene."""
@@ -694,120 +614,6 @@ class GameplayScene(BaseScene):
             if hasattr(snake, "velocity"):
                 snake.velocity.speed = new_speed
                 break
-
-    def _apply_snake_palette(self) -> None:
-        """Apply current palette colors to snake entity."""
-        if not self._settings:
-            return
-
-        # Get the colors from the current palette
-        snake_colors = self._settings.get_snake_colors()
-        head_color_hex = snake_colors.get("head")
-        tail_color_hex = snake_colors.get("tail")
-
-        # Convert hex colors to RGB tuples
-        head_color = self._hex_to_rgb(head_color_hex)
-        tail_color = self._hex_to_rgb(tail_color_hex)
-
-        # Find the snake entity and update its palette
-        from src.ecs.entities.entity import EntityType
-
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "palette"):
-                # Update the palette colors
-                snake.palette.primary_color = head_color
-                snake.palette.secondary_color = tail_color
-                break
-
-    def _apply_initial_speed(self, new_speed: float) -> None:
-        """Apply new initial speed to snake entity.
-
-        This resets the snake's speed to the new initial speed value.
-        Useful when the user changes initial_speed in settings during gameplay.
-
-        Args:
-            new_speed: New initial speed value
-        """
-        from src.ecs.entities.entity import EntityType
-
-        # Get max_speed to ensure initial_speed doesn't exceed it
-        max_speed = self._settings.get("max_speed") if self._settings else 20.0
-        max_speed = float(max_speed) if max_speed is not None else 20.0
-
-        # Cap initial_speed to max_speed if needed
-        if new_speed > max_speed:
-            new_speed = max_speed
-            print(f"Warning: initial_speed capped to max_speed ({max_speed})")
-
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "velocity"):
-                # Reset speed to new initial value
-                snake.velocity.speed = new_speed
-                print(f"Applied new initial speed: {new_speed}")
-                break
-
-    def _apply_max_speed(self, new_max_speed: float) -> None:
-        """Apply new max speed limit to snake entity.
-
-        If the current speed exceeds the new max speed, it will be capped.
-        This ensures the snake never moves faster than the configured maximum.
-
-        Args:
-            new_max_speed: New maximum speed value
-        """
-        from src.ecs.entities.entity import EntityType
-
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "velocity"):
-                current_speed = snake.velocity.speed
-                # Cap current speed to new max if it exceeds it
-                if current_speed > new_max_speed:
-                    snake.velocity.speed = new_max_speed
-                    print(
-                        f"Applied new max speed: {new_max_speed} (capped from {current_speed:.2f})"
-                    )
-                else:
-                    print(
-                        f"Applied new max speed: {new_max_speed} (current speed {current_speed:.2f} is within limit)"
-                    )
-                break
-
-    def _apply_obstacle_difficulty(self, new_difficulty: str) -> None:
-        """Regenerate obstacles with new difficulty level.
-
-        Removes all existing obstacles and creates new ones based on the
-        difficulty setting (None, Easy, Medium, Hard, Impossible).
-
-        Args:
-            new_difficulty: New difficulty level string
-        """
-        from src.ecs.entities.entity import EntityType
-
-        # Remove all existing obstacles
-        obstacles = self._world.registry.query_by_type(EntityType.OBSTACLE)
-        obstacle_ids = list(obstacles.keys())
-        for obstacle_id in obstacle_ids:
-            self._world.registry.remove(obstacle_id)
-
-        # Generate new obstacles if difficulty is not "None"
-        if new_difficulty and new_difficulty != "None":
-            from src.ecs.prefabs.obstacle_field import create_obstacles
-
-            grid_size = self._world.board.cell_size
-
-            new_obstacle_ids = create_obstacles(
-                world=self._world,
-                difficulty=new_difficulty,
-                grid_size=grid_size,
-                random_seed=None,  # use true randomness
-            )
-
-            print(
-                f"Applied obstacle difficulty '{new_difficulty}': {len(new_obstacle_ids)} obstacles created"
-            )
 
     def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
         """Convert hex color string to RGB tuple.
