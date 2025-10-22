@@ -26,6 +26,7 @@ import random
 from typing import Any, Optional
 
 from src.ecs.world import World
+from src.core.types.color_utils import hex_to_rgb
 
 
 class GameInitializer:
@@ -115,8 +116,8 @@ class GameInitializer:
         tail_color_hex = snake_colors.get("tail")
 
         # convert hex colors to RGB tuples
-        head_color = self._hex_to_rgb(head_color_hex)
-        tail_color = self._hex_to_rgb(tail_color_hex)
+        head_color = hex_to_rgb(head_color_hex)
+        tail_color = hex_to_rgb(tail_color_hex)
 
         _ = create_snake(
             world=world,
@@ -231,18 +232,6 @@ class GameInitializer:
 
         score_entity = ScoreEntity()
         world.registry.add(score_entity)
-
-    def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
-        """Convert hex color string to RGB tuple.
-
-        Args:
-            hex_color: Hex color string (e.g., "#00aa00")
-
-        Returns:
-            RGB tuple (r, g, b)
-        """
-        hex_color = hex_color.lstrip("#")
-        return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
     def game_over(self) -> bool:

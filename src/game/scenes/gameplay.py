@@ -436,15 +436,17 @@ class GameplayScene(BaseScene):
             pygame.mixer.pause()  # Pause all sound effect channels
 
     def _handle_palette_randomize(self) -> None:
-        """Handle palette randomization."""
+        """Handle palette randomization.
+
+        Randomizes snake colors in settings. The SettingsApplySystem will
+        automatically detect the palette change and apply it to the snake entity.
+        """
         if not self._settings:
             return
 
-        # Randomize the palette in settings
+        # randomize the palette in settings
+        # SettingsApplySystem will detect and apply the change automatically
         self._settings.randomize_snake_colors()
-
-        # Apply the new palette to the snake
-        self._apply_snake_palette()
 
     # Collision callbacks
 
@@ -614,15 +616,3 @@ class GameplayScene(BaseScene):
             if hasattr(snake, "velocity"):
                 snake.velocity.speed = new_speed
                 break
-
-    def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
-        """Convert hex color string to RGB tuple.
-
-        Args:
-            hex_color: Hex color string (e.g., "#00aa00")
-
-        Returns:
-            RGB tuple (r, g, b)
-        """
-        hex_color = hex_color.lstrip("#")
-        return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))

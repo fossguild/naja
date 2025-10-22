@@ -30,6 +30,7 @@ import pygame
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
+from src.core.types.color_utils import hex_to_rgb
 
 
 class SettingsApplySystem(BaseSystem):
@@ -206,8 +207,8 @@ class SettingsApplySystem(BaseSystem):
         tail_color_hex = snake_colors.get("tail")
 
         # convert hex colors to RGB tuples
-        head_color = self._hex_to_rgb(head_color_hex)
-        tail_color = self._hex_to_rgb(tail_color_hex)
+        head_color = hex_to_rgb(head_color_hex)
+        tail_color = hex_to_rgb(tail_color_hex)
 
         # find the snake entity and update its palette
         snakes = world.registry.query_by_type(EntityType.SNAKE)
@@ -341,15 +342,3 @@ class SettingsApplySystem(BaseSystem):
             )
         else:
             print(f"Applied obstacle difficulty '{new_difficulty}': obstacles removed")
-
-    def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
-        """Convert hex color string to RGB tuple.
-
-        Args:
-            hex_color: Hex color string (e.g., "#00aa00")
-
-        Returns:
-            RGB tuple (r, g, b)
-        """
-        hex_color = hex_color.lstrip("#")
-        return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
