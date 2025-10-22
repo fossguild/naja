@@ -562,6 +562,99 @@ class BoardRenderSystem(BaseSystem):
             # Silently fail if font loading or rendering fails
             pass
 
+    def draw_speed_bar(
+        self, world: World, surface_width: int, surface_height: int
+    ) -> None:
+        """Draw a horizontal bar showing the snake's current speed.
+
+        The bar fills proportionally based on the current snake speed.
+        It's drawn in the top-left corner for visibility and uses
+        consistent proportional scaling like other UI elements.
+        Color changes from green (slow) to red (fast).
+
+        Args:
+            world: World containing entities
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        if not self._settings:
+            return
+
+        # Get speed settings
+        initial_speed = self._settings.get("initial_speed")
+        max_speed = self._settings.get("max_speed")
+        if initial_speed is None or max_speed is None:
+            return
+
+        min_speed = float(initial_speed)
+        max_speed = float(max_speed)
+
+        # Get current speed from snake
+        from src.ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        current_speed = min_speed
+        for _, snake in snakes.items():
+            if hasattr(snake, "velocity"):
+                current_speed = snake.velocity.speed
+                break
+
+        # --- Geometry ---
+        padding_x = int(surface_width * 0.02)
+        padding_y = int(surface_height * 0.02)
+        bar_width = int(surface_width * 0.25)
+        bar_height = int(surface_height * 0.02)
+        gap = 6  # pixels between bar and label
+
+        # --- Colors ---
+        # Bar color changes smoothly from green (slow) to red (fast)
+        if max_speed > min_speed:
+            ratio = (current_speed - min_speed) / (max_speed - min_speed)
+        else:
+            ratio = 0.0
+        ratio = max(0.0, min(ratio, 1.0))
+        bar_color = (
+            int(255 * ratio),  # Red increases with speed
+            int(255 * (1 - ratio)),  # Green decreases with speed
+            0,
+        )
+        border_color = (50, 50, 50)
+        text_color = (200, 200, 200)
+
+        # --- Bar Position ---
+        bar_x = padding_x
+        bar_y = padding_y
+
+        # Create a temporary surface for the speed bar (to draw with pygame.draw)
+        bar_surface = pygame.Surface((bar_width, bar_height))
+        bar_surface.fill(border_color)
+        
+        # Draw filled portion
+        filled_width = int(bar_width * ratio)
+        if filled_width > 0:
+            filled_rect = pygame.Rect(0, 0, filled_width, bar_height)
+            pygame.draw.rect(bar_surface, bar_color, filled_rect)
+
+        # Blit bar to screen using renderer
+        self._renderer.blit(bar_surface, (bar_x, bar_y))
+
+        # --- Draw text label below ---
+        label_text = f"Speed: {current_speed:.1f}"
+        font_size = int(surface_width / 50)
+        font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+        try:
+            font = pygame.font.Font(font_path, font_size)
+        except Exception:
+            font = pygame.font.Font(None, font_size)
+
+        label_surf = font.render(label_text, True, text_color)
+        label_rect = label_surf.get_rect()
+        label_rect.midtop = (bar_x + bar_width // 2, bar_y + bar_height + gap)
+
+        # Blit label using renderer
+        self._renderer.blit(label_surf, label_rect)
+
     def draw_music_indicator(
         self, surface_width: int, surface_height: int, music_on: bool
     ) -> None:
@@ -663,6 +756,9 @@ class BoardRenderSystem(BaseSystem):
         surface = pygame.display.get_surface()
         if surface:
             self.draw_score(world, surface.get_width(), surface.get_height())
+
+            # Draw speed bar in top-left corner
+            self.draw_speed_bar(world, surface.get_width(), surface.get_height())
 
             # Draw music indicator in bottom-right corner
             if self._settings:
