@@ -18,3 +18,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Services module."""
+
+from src.game.services.game_initializer import GameInitializer
+
+__all__ = ["GameInitializer"]

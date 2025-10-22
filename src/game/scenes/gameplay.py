@@ -28,6 +28,7 @@ from typing import Optional, Any, List
 import pygame
 
 from src.game.scenes.base_scene import BaseScene
+from src.game.services.game_initializer import GameInitializer
 from src.ecs.world import World
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.systems.input import InputSystem
@@ -104,6 +105,7 @@ class GameplayScene(BaseScene):
         self._game_over = False
         self._death_reason = ""
         self._previous_obstacle_difficulty = ""  # Track obstacle difficulty changes
+        self._game_initializer = GameInitializer(settings=settings)
 
     def on_attach(self) -> None:
         """Initialize and register all game systems.
@@ -307,8 +309,8 @@ class GameplayScene(BaseScene):
         # Apply settings before resetting world (including grid size changes)
         self._apply_settings_to_world()
 
-        # Reset world state for new game
-        self._reset_game_world()
+        # Reset world state for new game using GameInitializer service
+        self._game_initializer.reset_world(self._world)
 
         # Restore background music (in case we're coming from game over)
         try:
@@ -392,119 +394,6 @@ class GameplayScene(BaseScene):
             max_speed = self._settings.get("max_speed")
             if max_speed is not None:
                 self._apply_max_speed(float(max_speed))
-
-    def _reset_game_world(self) -> None:
-        """Reset the game world for a new game.
-
-        This clears all existing entities and recreates them with fresh state.
-        Called when entering gameplay scene to ensure clean state.
-        """
-        # Clear all entities from the world
-        self._world.registry.clear()
-
-        # Reset game over state
-        self._game_over = False
-        self._death_reason = ""
-
-        # Recreate initial entities
-        grid_size = self._world.board.cell_size
-
-        # Create snake at center of board
-        from src.ecs.prefabs.snake import create_snake
-
-        # Get snake colors from settings
-        snake_colors = self._settings.get_snake_colors()
-        head_color_hex = snake_colors.get("head")
-        tail_color_hex = snake_colors.get("tail")
-
-        # Convert hex colors to RGB tuples
-        head_color = self._hex_to_rgb(head_color_hex)
-        tail_color = self._hex_to_rgb(tail_color_hex)
-
-        _ = create_snake(
-            world=self._world,
-            grid_size=grid_size,
-            initial_speed=float(self._settings.get("initial_speed")),
-            head_color=head_color,
-            tail_color=tail_color,
-        )
-
-        # Create AppleConfig entity to track desired apple count
-        from src.ecs.components.apple_config import AppleConfig
-
-        class AppleConfigEntity:
-            def __init__(self, desired_count: int):
-                self.apple_config = AppleConfig(desired_count=desired_count)
-
-            def get_type(self):
-                return None  # Config entity has no specific type
-
-        desired_apples = self._settings.validate_apples_count(
-            self._world.board.width * self._world.board.cell_size,
-            self._world.board.cell_size,
-            self._world.board.height * self._world.board.cell_size,
-        )
-        apple_config_entity = AppleConfigEntity(desired_apples)
-        self._world.registry.add(apple_config_entity)
-
-        # Create initial apples
-        from src.ecs.prefabs.apple import create_apple
-        from src.ecs.entities.entity import EntityType
-        import random
-
-        # Get occupied positions (snake)
-        occupied_positions = set()
-        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        for _, snake in snakes.items():
-            if hasattr(snake, "position"):
-                occupied_positions.add((snake.position.x, snake.position.y))
-                if hasattr(snake, "body"):
-                    for segment in snake.body.segments:
-                        occupied_positions.add((segment.x, segment.y))
-
-        # Spawn initial apples
-        for _ in range(desired_apples):
-            # Try to find a valid position
-            attempts = 0
-            max_attempts = 1000
-            while attempts < max_attempts:
-                x = random.randint(0, self._world.board.width - 1)
-                y = random.randint(0, self._world.board.height - 1)
-
-                if (x, y) not in occupied_positions:
-                    create_apple(self._world, x=x, y=y, grid_size=grid_size, color=None)
-                    occupied_positions.add((x, y))
-                    break
-
-                attempts += 1
-
-        # Create obstacles based on difficulty
-        difficulty = self._settings.get("obstacle_difficulty")
-        if difficulty and difficulty != "None":
-            from src.ecs.prefabs.obstacle_field import create_obstacles
-
-            _ = create_obstacles(
-                world=self._world,
-                difficulty=difficulty,
-                grid_size=grid_size,
-                random_seed=None,  # use true randomness
-            )
-
-        # Create score entity to track apples eaten
-        from src.ecs.components.score import Score
-
-        # Create a simple object to hold the score component
-        # We don't use a specific entity type since this is just for UI tracking
-        class ScoreEntity:
-            def __init__(self):
-                self.score = Score(current=0, high_score=0)
-
-            def get_type(self):
-                """Return a dummy type to satisfy registry interface."""
-                return None  # No specific type for UI entities
-
-        score_entity = ScoreEntity()
-        self._world.registry.add(score_entity)
 
     def render(self) -> None:
         """Render the gameplay scene."""
