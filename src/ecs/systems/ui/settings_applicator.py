@@ -52,12 +52,21 @@ class SettingsApplicator:
         "electric_walls",
     ]
 
+    # Settings that can be applied immediately without reset
+    IMMEDIATE_SETTINGS = [
+        "background_music",
+        "sound_effects",
+        "max_speed",
+        "snake_color_palette",  # Can be changed immediately during gameplay
+    ]
+
     def __init__(
         self,
         pygame_adapter: Any,
         state: Any,
         assets: Any,
         config: Any,
+        palette_changed_callback: Any = None,
     ):
         """Initialize the SettingsApplicator.
 
@@ -66,12 +75,15 @@ class SettingsApplicator:
             state: GameState instance (old code)
             assets: GameAssets instance for font management
             config: GameConfig instance for dimension calculations
+            palette_changed_callback: Optional callback when snake palette changes
         """
         self._pygame_adapter = pygame_adapter
         self._state = state
         self._assets = assets
         self._config = config
         self._settings_snapshot: dict[str, Any] = {}
+        self._palette_changed_callback = palette_changed_callback
+        self._previous_palette: str = ""
 
     def snapshot_critical_settings(self, settings: Any) -> None:
         """Take a snapshot of critical settings before changes.
@@ -139,6 +151,12 @@ class SettingsApplicator:
             pygame.mixer.music.unpause()
         else:
             pygame.mixer.music.pause()
+
+        # Check if snake color palette changed and notify callback
+        current_palette = settings.get("snake_color_palette", "")
+        if current_palette != self._previous_palette and self._palette_changed_callback:
+            self._palette_changed_callback()
+            self._previous_palette = current_palette
 
         # Recompute window and recreate surface/fonts if grid changed
         if new_grid_size != old_grid:

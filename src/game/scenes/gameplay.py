@@ -355,6 +355,9 @@ class GameplayScene(BaseScene):
                     self._assets.reload_fonts(new_width_pixels)
         
         print(f"Applied settings: {desired_cells}x{desired_cells} cells, cell_size={new_cell_size}px, board={new_width_cells}x{new_height_cells} cells, window={new_width_pixels}x{new_height_pixels}px")
+        
+        # Apply snake palette in case it changed
+        self._apply_snake_palette()
 
     def _reset_game_world(self) -> None:
         """Reset the game world for a new game.
@@ -375,12 +378,21 @@ class GameplayScene(BaseScene):
         # Create snake at center of board
         from src.ecs.prefabs.snake import create_snake
 
+        # Get snake colors from settings
+        snake_colors = self._settings.get_snake_colors()
+        head_color_hex = snake_colors.get("head")
+        tail_color_hex = snake_colors.get("tail")
+        
+        # Convert hex colors to RGB tuples
+        head_color = self._hex_to_rgb(head_color_hex)
+        tail_color = self._hex_to_rgb(tail_color_hex)
+
         _ = create_snake(
             world=self._world,
             grid_size=grid_size,
             initial_speed=float(self._settings.get("initial_speed")),
-            head_color=None,  # will use default from palette
-            tail_color=None,  # will use default from palette
+            head_color=head_color,
+            tail_color=tail_color,
         )
 
         # Create AppleConfig entity to track desired apple count
@@ -582,8 +594,14 @@ class GameplayScene(BaseScene):
 
     def _handle_palette_randomize(self) -> None:
         """Handle palette randomization."""
-        # TODO: implement palette randomization
-        print("Palette randomize requested (not yet implemented)")
+        if not self._settings:
+            return
+
+        # Randomize the palette in settings
+        self._settings.randomize_snake_colors()
+
+        # Apply the new palette to the snake
+        self._apply_snake_palette()
 
     # Collision callbacks
 
@@ -754,3 +772,40 @@ class GameplayScene(BaseScene):
             if hasattr(snake, "velocity"):
                 snake.velocity.speed = new_speed
                 break
+
+    def _apply_snake_palette(self) -> None:
+        """Apply current palette colors to snake entity."""
+        if not self._settings:
+            return
+
+        # Get the colors from the current palette
+        snake_colors = self._settings.get_snake_colors()
+        head_color_hex = snake_colors.get("head")
+        tail_color_hex = snake_colors.get("tail")
+
+        # Convert hex colors to RGB tuples
+        head_color = self._hex_to_rgb(head_color_hex)
+        tail_color = self._hex_to_rgb(tail_color_hex)
+
+        # Find the snake entity and update its palette
+        from src.ecs.entities.entity import EntityType
+
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "palette"):
+                # Update the palette colors
+                snake.palette.primary_color = head_color
+                snake.palette.secondary_color = tail_color
+                break
+
+    def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
+        """Convert hex color string to RGB tuple.
+        
+        Args:
+            hex_color: Hex color string (e.g., "#00aa00")
+            
+        Returns:
+            RGB tuple (r, g, b)
+        """
+        hex_color = hex_color.lstrip("#")
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
