@@ -329,11 +329,14 @@ class BoardRenderSystem(BaseSystem):
         grid_height: int,
         color: tuple,
     ) -> None:
-        """Draw the snake tail with smooth interpolation.
+        """Draw the snake tail with smooth interpolation for each segment.
+
+        Each tail segment interpolates from its previous position to current position,
+        creating a smooth "floating" effect for the entire snake body.
 
         Args:
             body: Snake body component
-            interpolation: Interpolation component
+            interpolation: Interpolation component with alpha and wrapping info
             head_position: Current head position
             cell_size: Size of grid cells
             grid_width: Total grid width in pixels
@@ -345,9 +348,10 @@ class BoardRenderSystem(BaseSystem):
             return
 
         # draw each tail segment with interpolation
-        # this creates smooth movement and natural overlap when turning
+        # each segment smoothly floats from prev to current position
         for segment in body.segments:
-            # calculate interpolated position for each segment
+            # calculate interpolated position for this segment
+            # segments have their own prev_x, prev_y from when they were copied
             draw_x, draw_y = self._calculate_interpolated_position(
                 segment.x * cell_size,
                 segment.y * cell_size,

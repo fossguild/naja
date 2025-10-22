@@ -47,19 +47,38 @@ class MovementSystem(BaseSystem):
             get_electric_walls: Optional callback to check if electric walls are enabled.
                                If None, wrapping is always applied (default behavior).
         """
-        self._frame_counter = 0
-        self._frames_per_move = 12  # move every 12 frames (at 60fps = 5 moves/second)
+        self._accumulated_time = 0.0  # accumulated time in milliseconds
         self._get_electric_walls = get_electric_walls
 
     def update(self, world: World) -> None:
-        # simple frame-based movement (more reliable than time-based for now)
-        self._frame_counter += 1
+        # time-based movement that respects snake speed
+        dt_ms = world.dt_ms
+        self._accumulated_time += dt_ms
 
-        # only move every N frames
-        if self._frame_counter < self._frames_per_move:
+        # Get snake speed to determine move interval
+        snakes = world.registry.query_by_type_and_components(
+            EntityType.SNAKE, "position", "velocity", "body"
+        )
+
+        if not snakes:
             return
 
-        self._frame_counter = 0
+        # Get first snake's speed
+        _, first_snake = next(iter(snakes.items()))
+        if hasattr(first_snake, "velocity") and hasattr(first_snake.velocity, "speed"):
+            speed = first_snake.velocity.speed
+        else:
+            speed = 12.0  # default speed
+
+        # Calculate how long one grid cell movement should take
+        move_interval_ms = 1000.0 / speed
+
+        # Only move when accumulated time reaches the move interval
+        if self._accumulated_time < move_interval_ms:
+            return
+
+        # Reset accumulated time for next movement
+        self._accumulated_time = 0.0
 
         registry = world.registry
         board = world.board
@@ -87,21 +106,68 @@ class MovementSystem(BaseSystem):
             position.prev_x = position.x
             position.prev_y = position.y
 
-            # Insert a new segment to the head's current position
-            body.segments.insert(0, replace(position))
+            # Update all segment positions to follow the one ahead
+            # Work backwards to avoid overwriting positions we still need
+            # This creates the "caterpillar" following effect
 
-            # Keep exactly the right number of segments (consistent size)
-            # This prevents the tail from growing/shrinking during movement
+            # Save the old positions before shifting
+            if body.segments:
+                # Shift all segments backward (each takes the position ahead)
+                for i in range(len(body.segments) - 1, 0, -1):
+                    # Save where this segment currently is (for prev)
+                    old_x = body.segments[i].x
+                    old_y = body.segments[i].y
+
+                    # Move this segment to where the segment ahead is
+                    body.segments[i].x = body.segments[i - 1].x
+                    body.segments[i].y = body.segments[i - 1].y
+
+                    # Set prev to where it was before moving
+                    body.segments[i].prev_x = old_x
+                    body.segments[i].prev_y = old_y
+
+                # First segment follows the head
+                old_x = body.segments[0].x
+                old_y = body.segments[0].y
+                body.segments[0].x = position.x  # Head's OLD position
+                body.segments[0].y = position.y
+                body.segments[0].prev_x = old_x
+                body.segments[0].prev_y = old_y
+
+            # Maintain correct number of segments based on body size
             desired_tail_len = max(0, body.size - 1)
+
+            # Add or remove segments as needed
             if len(body.segments) > desired_tail_len:
-                # Remove excess segments from the end
+                # Snake shrunk - remove excess segments from the end
                 body.segments = body.segments[:desired_tail_len]
             elif len(body.segments) < desired_tail_len:
-                # Add missing segments at the end (duplicate last position)
+                # Snake grew - add new segments at the end
                 if body.segments:
+                    # Add segments at the last segment's PREVIOUS position
+                    # This allows them to interpolate smoothly as they follow the tail
                     last_segment = body.segments[-1]
                     for _ in range(desired_tail_len - len(body.segments)):
-                        body.segments.append(replace(last_segment))
+                        # New segment starts at last segment's previous position
+                        # and will interpolate to the last segment's current position
+                        new_seg = Position(
+                            x=last_segment.prev_x,  # Start at prev position
+                            y=last_segment.prev_y,
+                            prev_x=last_segment.prev_x,  # No interpolation on first frame
+                            prev_y=last_segment.prev_y,
+                        )
+                        body.segments.append(new_seg)
+                        # Update reference for next segment (if adding multiple)
+                        last_segment = new_seg
+                else:
+                    # First segment - create at head's position
+                    new_seg = Position(
+                        x=position.x,
+                        y=position.y,
+                        prev_x=position.x,
+                        prev_y=position.y,
+                    )
+                    body.segments.append(new_seg)
 
             # Move head by exactly one grid cell in velocity direction
             # Only wrap around if electric walls are disabled

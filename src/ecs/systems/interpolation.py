@@ -59,12 +59,15 @@ class InterpolationSystem(BaseSystem):
         """Update interpolation values for all entities with movement.
 
         This method calculates smooth positions between grid cells based on
-        delta time and entity speed.
+        delta time and entity speed, matching the old code's interpolation logic.
 
         Args:
             world: ECS world containing entities and components
         """
         from src.ecs.entities.entity import EntityType
+
+        # get delta time from world (set by GameplayScene each frame)
+        dt_ms = world.dt_ms
 
         # update interpolation for all snakes
         snakes = world.registry.query_by_type_and_components(
@@ -72,13 +75,20 @@ class InterpolationSystem(BaseSystem):
         )
 
         for _, snake in snakes.items():
-            # increment alpha smoothly over time
-            # this creates smooth movement between grid positions
-            # alpha goes from 0.0 (at previous position) to 1.0 (at current position)
+            # get snake speed from velocity component (cells per second)
+            # default to 12 if no velocity component or speed field
+            if hasattr(snake, "velocity") and hasattr(snake.velocity, "speed"):
+                speed = snake.velocity.speed
+            else:
+                speed = 12.0
 
-            # increment by a fixed amount per frame (60fps assumed)
-            # to complete the interpolation in 12 frames (matching MovementSystem)
-            increment = 1.0 / 12.0
+            # calculate move interval: time to move one grid cell
+            # old code: move_interval_ms = 1000.0 / snake.speed
+            move_interval_ms = 1000.0 / speed
+
+            # increment alpha based on delta time (like old code)
+            # old code: snake.move_progress += dt / move_interval_ms
+            increment = dt_ms / move_interval_ms
 
             snake.interpolation.alpha = min(1.0, snake.interpolation.alpha + increment)
 

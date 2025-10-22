@@ -254,10 +254,8 @@ class GameplayScene(BaseScene):
         if not self._attached:
             return None
 
-        # note: dt_ms is currently unused because systems get timing from world.clock
-        # this will be refactored when we unify timing across all systems
-        # for now, we maintain the signature for future compatibility
-        _ = dt_ms  # suppress unused warning
+        # update world's delta time for systems that need it (e.g., InterpolationSystem)
+        self._world.set_dt_ms(dt_ms)
 
         # update all systems in order
         # note: input and rendering systems run even when paused
