@@ -47,19 +47,38 @@ class MovementSystem(BaseSystem):
             get_electric_walls: Optional callback to check if electric walls are enabled.
                                If None, wrapping is always applied (default behavior).
         """
-        self._frame_counter = 0
-        self._frames_per_move = 12  # move every 12 frames (at 60fps = 5 moves/second)
+        self._accumulated_time = 0.0  # accumulated time in milliseconds
         self._get_electric_walls = get_electric_walls
 
     def update(self, world: World) -> None:
-        # simple frame-based movement (more reliable than time-based for now)
-        self._frame_counter += 1
+        # time-based movement that respects snake speed
+        dt_ms = world.dt_ms
+        self._accumulated_time += dt_ms
 
-        # only move every N frames
-        if self._frame_counter < self._frames_per_move:
+        # Get snake speed to determine move interval
+        snakes = world.registry.query_by_type_and_components(
+            EntityType.SNAKE, "position", "velocity", "body"
+        )
+
+        if not snakes:
             return
 
-        self._frame_counter = 0
+        # Get first snake's speed
+        _, first_snake = next(iter(snakes.items()))
+        if hasattr(first_snake, "velocity") and hasattr(first_snake.velocity, "speed"):
+            speed = first_snake.velocity.speed
+        else:
+            speed = 12.0  # default speed
+
+        # Calculate how long one grid cell movement should take
+        move_interval_ms = 1000.0 / speed
+
+        # Only move when accumulated time reaches the move interval
+        if self._accumulated_time < move_interval_ms:
+            return
+
+        # Reset accumulated time for next movement
+        self._accumulated_time = 0.0
 
         registry = world.registry
         board = world.board
@@ -125,16 +144,21 @@ class MovementSystem(BaseSystem):
             elif len(body.segments) < desired_tail_len:
                 # Snake grew - add new segments at the end
                 if body.segments:
-                    # Add segments at the last segment's position
+                    # Add segments at the last segment's PREVIOUS position
+                    # This allows them to interpolate smoothly as they follow the tail
                     last_segment = body.segments[-1]
                     for _ in range(desired_tail_len - len(body.segments)):
+                        # New segment starts at last segment's previous position
+                        # and will interpolate to the last segment's current position
                         new_seg = Position(
-                            x=last_segment.x,
-                            y=last_segment.y,
-                            prev_x=last_segment.x,
-                            prev_y=last_segment.y,
+                            x=last_segment.prev_x,  # Start at prev position
+                            y=last_segment.prev_y,
+                            prev_x=last_segment.prev_x,  # No interpolation on first frame
+                            prev_y=last_segment.prev_y,
                         )
                         body.segments.append(new_seg)
+                        # Update reference for next segment (if adding multiple)
+                        last_segment = new_seg
                 else:
                     # First segment - create at head's position
                     new_seg = Position(
