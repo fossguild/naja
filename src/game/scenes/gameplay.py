@@ -260,7 +260,10 @@ class GameplayScene(BaseScene):
         # Check for obstacle difficulty changes and apply immediately
         if self._settings:
             current_difficulty = self._settings.get("obstacle_difficulty")
-            if current_difficulty and current_difficulty != self._previous_obstacle_difficulty:
+            if (
+                current_difficulty
+                and current_difficulty != self._previous_obstacle_difficulty
+            ):
                 self._apply_obstacle_difficulty(current_difficulty)
                 self._previous_obstacle_difficulty = current_difficulty
 
@@ -297,7 +300,9 @@ class GameplayScene(BaseScene):
 
         # Initialize obstacle difficulty tracker
         if self._settings:
-            self._previous_obstacle_difficulty = self._settings.get("obstacle_difficulty") or ""
+            self._previous_obstacle_difficulty = (
+                self._settings.get("obstacle_difficulty") or ""
+            )
 
         # Apply settings before resetting world (including grid size changes)
         self._apply_settings_to_world()
@@ -902,24 +907,18 @@ class GameplayScene(BaseScene):
         if new_difficulty and new_difficulty != "None":
             from src.ecs.prefabs.obstacle_field import create_obstacles
 
-            # Get snake position for safe zone
-            snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-            snake_pos = (0, 0)
-            for _, snake in snakes.items():
-                if hasattr(snake, "position"):
-                    snake_pos = (snake.position.x, snake.position.y)
-                    break
-
             grid_size = self._world.board.cell_size
-            
+
             new_obstacle_ids = create_obstacles(
                 world=self._world,
                 difficulty=new_difficulty,
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )
-            
-            print(f"Applied obstacle difficulty '{new_difficulty}': {len(new_obstacle_ids)} obstacles created")
+
+            print(
+                f"Applied obstacle difficulty '{new_difficulty}': {len(new_obstacle_ids)} obstacles created"
+            )
 
     def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
         """Convert hex color string to RGB tuple.

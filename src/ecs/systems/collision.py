@@ -213,12 +213,15 @@ class CollisionSystem(BaseSystem):
         from src.ecs.entities.entity import EntityType
 
         obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
-        
+
         # Check if snake's current position collides with any obstacle
         for _, obstacle in obstacles.items():
             if hasattr(obstacle, "position"):
                 # Obstacles store position in grid coordinates (tiles)
-                if current_x == obstacle.position.x and current_y == obstacle.position.y:
+                if (
+                    current_x == obstacle.position.x
+                    and current_y == obstacle.position.y
+                ):
                     return True
 
         return False

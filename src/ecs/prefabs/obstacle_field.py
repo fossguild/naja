@@ -65,8 +65,7 @@ def create_obstacles(
 
     # get board dimensions
     board = world.board
-    grid_size_pixels = grid_size
-    
+
     # board.width and board.height are in TILES, not pixels
     grid_width_tiles = board.width
     grid_height_tiles = board.height
