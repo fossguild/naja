@@ -109,34 +109,23 @@ class GameplayScene(BaseScene):
 
         self._systems.extend(
             [
-                # 0: read user input and update velocity/game state
-                InputSystem(self._pygame_adapter, self._settings),
-                # 1: update entity positions based on velocity
-                MovementSystem(self._get_electric_walls),
-                # 2: detect collisions (wall, self-bite, obstacles, apples)
-                CollisionSystem(self._settings, self._audio_service),
-                # 3: maintain correct number of apples on board
-                AppleSpawnSystem(1000),
-                # 4: create new entities at valid positions
-                SpawnSystem(1000, (255, 0, 0), None),
-                # 5: track score and high score
-                ScoringSystem(None),
-                # 6: generate obstacles with connectivity guarantees
-                ObstacleGenerationSystem(100, 8, 2, None),
-                # 7: apply runtime settings changes (colors, difficulty, etc)
-                SettingsApplySystem(self._settings, self._config, self._assets),
-                # 8: debug validation of game state integrity
-                ValidationSystem(True, 1, 20),
+                InputSystem(self._pygame_adapter, self._settings),  # 0: read user input and update velocity/game state
+                MovementSystem(self._get_electric_walls),  # 1: update entity positions based on velocity
+                CollisionSystem(self._settings, self._audio_service),  # 2: detect collisions (wall, self-bite, obstacles, apples)
+                AppleSpawnSystem(1000),  # 3: maintain correct number of apples on board
+                SpawnSystem(1000, (255, 0, 0), None),  # 4: create new entities at valid positions
+                ScoringSystem(None),  # 5: track score and high score
+                ObstacleGenerationSystem(100, 8, 2, None),  # 6: generate obstacles with connectivity guarantees
+                SettingsApplySystem(self._settings, self._config, self._assets),  # 7: apply runtime settings changes (colors, difficulty, etc)
+                ValidationSystem(True, 1, 20),  # 8: debug validation of game state integrity
             ]
         )
 
         # rendering and audio systems (indices 9+, always run even when paused)
         self._systems.extend(
             [
-                # 9: calculate smooth positions for rendering
-                InterpolationSystem(self._get_electric_walls(), self._get_electric_walls),
-                # 10: play sounds and music
-                AudioSystem(None, None, 0.2),
+                InterpolationSystem(self._get_electric_walls(), self._get_electric_walls),  # 9: calculate smooth positions for rendering
+                AudioSystem(None, None, 0.2),  # 10: play sounds and music
             ]
         )
 
