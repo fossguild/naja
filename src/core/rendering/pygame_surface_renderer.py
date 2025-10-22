@@ -40,20 +40,29 @@ class DrawCommand:
 
 
 class RenderEnqueue(Protocol):
-    """Protocol defining read-only surface properties and enqueue-only operations.
+    """Protocol defining read-only surface properties and primitive drawing operations.
 
     Systems receive this interface to queue draw commands without access to
     frame control methods (begin_frame, update).
+
+    Provides only primitive drawing operations (fill, blit, draw_line, draw_rect).
+    Scenes/systems compose these primitives to create complex UI, following
+    proper separation of concerns.
     """
 
     @property
     def width(self) -> int: ...
+
     @property
     def height(self) -> int: ...
+
     @property
     def size(self) -> tuple[int, int]: ...
+
     def get_size(self) -> tuple[int, int]: ...
+
     def fill(self, color: tuple[int, int, int] | tuple[int, int, int, int]) -> None: ...
+
     def blit(
         self,
         source: pygame.Surface,
@@ -61,6 +70,7 @@ class RenderEnqueue(Protocol):
         area: Optional[pygame.Rect] = None,
         special_flags: int = 0,
     ) -> None: ...
+
     def draw_line(
         self,
         color: tuple[int, int, int],
@@ -68,14 +78,10 @@ class RenderEnqueue(Protocol):
         end_pos: tuple[int, int],
         width: int = 1,
     ) -> None: ...
+
     def draw_rect(
         self, color: tuple[int, int, int], rect: pygame.Rect, width: int = 0
     ) -> None: ...
-    def draw_settings_menu(
-        self, settings_fields: list[dict], selected_index: int, settings_values: dict
-    ) -> None: ...
-    def draw_reset_warning_dialog(self, selected_option: int) -> None: ...
-    def draw_game_over_screen(self, final_score: int, selected_option: int) -> None: ...
 
 
 class _RendererView(RenderEnqueue):
