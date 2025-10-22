@@ -107,13 +107,10 @@ class GameplayScene(BaseScene):
         self._assets = assets
         self._systems: List[BaseSystem] = []
         self._attached = False
-        self._paused = False
         self._board_render_system: Optional[BoardRenderSystem] = None
         self._snake_render_system: Optional[SnakeRenderSystem] = None
         self._entity_render_system: Optional[EntityRenderSystem] = None
         self._ui_render_system: Optional[UIRenderSystem] = None
-        self._game_over = False
-        self._death_reason = ""
         self._game_initializer = GameInitializer(settings=settings)
         self._audio_service = AudioService(settings=settings)
 
@@ -403,82 +400,6 @@ class GameplayScene(BaseScene):
         for _, snake in snakes.items():
             return snake
         return None
-
-    # Input handling callbacks
-    # These callbacks are required by InputSystem to coordinate input with game state.
-    # They allow the Scene to act as a bridge between input and ECS entities.
-
-    def _handle_direction_change(self, dx: int, dy: int) -> None:
-        """Handle direction change from input.
-
-        Callback for InputSystem. Updates snake velocity based on user input.
-
-        Args:
-            dx: X direction (-1, 0, 1)
-            dy: Y direction (-1, 0, 1)
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            snake.velocity.dx = dx
-            snake.velocity.dy = dy
-
-    def _get_current_direction(self) -> tuple[int, int]:
-        """Get current snake direction.
-
-        Callback for InputSystem. Provides current direction for input validation.
-
-        Returns:
-            Tuple of (dx, dy) for current direction
-        """
-        snake = self._get_snake_entity()
-        if snake and hasattr(snake, "velocity"):
-            return (snake.velocity.dx, snake.velocity.dy)
-        return (0, 0)
-
-    def _handle_quit(self) -> None:
-        """Handle quit request.
-
-        Callback for InputSystem. Transitions to menu instead of terminating.
-        """
-        # transition to menu instead of quitting
-        self.set_next_scene("menu")
-
-    def _handle_pause(self) -> None:
-        """Handle pause toggle.
-
-        Callback for InputSystem. Toggles pause state for game logic systems.
-        """
-        self._paused = not self._paused
-
-    def _handle_menu(self) -> None:
-        """Handle menu open request.
-
-        Callback for InputSystem. Pauses game and transitions to settings.
-        """
-        # pause game and transition to settings scene
-        self._paused = True
-        self.set_next_scene("settings")
-
-    def _handle_music_toggle(self) -> None:
-        """Handle music toggle.
-
-        Callback for InputSystem. Toggles all audio (music + sound effects).
-        Uses AudioService to manage audio state consistently.
-        """
-        self._audio_service.toggle_all_audio()
-
-    def _handle_palette_randomize(self) -> None:
-        """Handle palette randomization.
-
-        Callback for InputSystem. Randomizes snake colors in settings.
-        SettingsApplySystem automatically detects and applies the change.
-        """
-        if not self._settings:
-            return
-
-        # randomize the palette in settings
-        # SettingsApplySystem will detect and apply the change automatically
-        self._settings.randomize_snake_colors()
 
     # Collision callbacks
     # These callbacks are required by CollisionSystem to query game state.
