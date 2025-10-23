@@ -67,10 +67,6 @@ class ECSGameApp:
 
     def initialize(self) -> None:
         """Initialize all game systems and resources."""
-        # initialize pygame
-        self.pygame_adapter = PygameIOAdapter()
-        self.pygame_adapter.init()
-        self.pygame_adapter.init_mixer()
 
         # initialize configuration
         self.config = GameConfig()
@@ -79,6 +75,13 @@ class ECSGameApp:
         self.settings = GameSettings(
             self.config.initial_width, self.config.initial_grid_size
         )
+        # initialize pygame
+        self.pygame_adapter = PygameIOAdapter()
+        self.pygame_adapter.init()
+
+        # verify if background music is enabled
+        if self.settings.get("background_music"):
+            self.pygame_adapter.init_mixer()
 
         # create game window
         self.surface = self.pygame_adapter.set_mode(
