@@ -79,9 +79,11 @@ class ECSGameApp:
         self.pygame_adapter = PygameIOAdapter()
         self.pygame_adapter.init()
 
-        # verify if background music is enabled
-        if self.settings.get("background_music"):
-            self.pygame_adapter.init_mixer()
+        # initialize mixer for music and sound effects
+        try:
+            pygame.mixer.init()
+        except pygame.error:
+            self.settings.set("background_music", False)
 
         # create game window
         self.surface = self.pygame_adapter.set_mode(
