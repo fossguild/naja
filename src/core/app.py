@@ -223,39 +223,6 @@ class ECSGameApp:
         total_cells = self.world.board.width * self.world.board.height
         return int(total_cells * percentage)
 
-    def _apply_settings_changes(self) -> None:
-        """Apply settings changes made in menu."""
-        # control music based on setting
-        if self.settings.get("background_music"):
-            pygame.mixer.music.unpause()
-        else:
-            pygame.mixer.music.pause()
-
-    def _run_start_menu(self) -> None:
-        """Run the start menu before gameplay."""
-        # Import here to avoid circular imports
-        from kobra import start_menu
-
-        # create a minimal state object for menu compatibility
-        class MenuState:
-            def __init__(self, width, height, grid_size):
-                self.width = width
-                self.height = height
-                self.grid_size = grid_size
-                self.arena = None
-
-        menu_state = MenuState(
-            self.config.initial_width,
-            self.config.initial_height,
-            self.config.initial_grid_size,
-        )
-        menu_state.arena = self.surface
-
-        start_menu(menu_state, self.assets, self.config, self.settings)
-
-        # apply settings that were changed in menu
-        self._apply_settings_changes()
-
     def run(self) -> None:
         """Run the main game loop."""
         if not self.scene_manager:
