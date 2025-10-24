@@ -26,8 +26,6 @@ across game resets and settings changes.
 
 from __future__ import annotations
 
-from typing import Optional, Callable
-
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 
@@ -50,16 +48,9 @@ class ScoringSystem(BaseSystem):
     Each apple eaten adds points based on Edible.points component.
     """
 
-    def __init__(
-        self,
-        score_callback: Optional[Callable[[int, int], None]] = None,
-    ):
-        """Initialize the ScoringSystem.
-
-        Args:
-            score_callback: Optional callback when score changes (current, high)
-        """
-        self._score_callback = score_callback
+    def __init__(self):
+        """Initialize the ScoringSystem."""
+        pass
 
     def update(self, world: World) -> None:
         """Update score based on game state.
@@ -105,10 +96,6 @@ class ScoringSystem(BaseSystem):
         if score_entity.current > score_entity.high_score:
             score_entity.high_score = score_entity.current
 
-        # call callback if provided
-        if self._score_callback:
-            self._score_callback(score_entity.current, score_entity.high_score)
-
     def update_score_from_snake_length(
         self, world: World, snake_tail_length: int
     ) -> None:
@@ -141,10 +128,6 @@ class ScoringSystem(BaseSystem):
         if score_entity.current > score_entity.high_score:
             score_entity.high_score = score_entity.current
 
-        # call callback if provided
-        if self._score_callback:
-            self._score_callback(score_entity.current, score_entity.high_score)
-
     def reset_current_score(self, world: World) -> None:
         """Reset current score to 0 while preserving high score.
 
@@ -167,13 +150,6 @@ class ScoringSystem(BaseSystem):
 
         # reset current score to 0
         score_entity.current = 0
-
-        # call callback if provided
-        if self._score_callback:
-            self._score_callback(
-                score_entity.current,
-                score_entity.high_score if hasattr(score_entity, "high_score") else 0,
-            )
 
     def get_current_score(self, world: World) -> int:
         """Get current score.
@@ -238,13 +214,6 @@ class ScoringSystem(BaseSystem):
 
         if hasattr(score_entity, "high_score"):
             score_entity.high_score = high_score
-
-            # call callback if provided
-            if self._score_callback:
-                self._score_callback(
-                    score_entity.current if hasattr(score_entity, "current") else 0,
-                    score_entity.high_score,
-                )
 
     def get_scores(self, world: World) -> tuple[int, int]:
         """Get both current and high scores.

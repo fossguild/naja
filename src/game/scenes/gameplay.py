@@ -120,7 +120,7 @@ class GameplayScene(BaseScene):
                 SpawnSystem(
                     1000, (255, 0, 0), None
                 ),  # 4: create new entities at valid positions
-                ScoringSystem(None),  # 5: track score and high score
+                ScoringSystem(),  # 5: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
                 ),  # 6: generate obstacles with connectivity guarantees
