@@ -70,7 +70,7 @@ class SettingsScene(BaseScene):
             Next scene name or None
         """
         # Handle input
-        for event in pygame.event.get():
+        for event in self._pygame_adapter.get_events():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
