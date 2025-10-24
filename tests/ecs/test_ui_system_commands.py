@@ -24,7 +24,8 @@ import pytest
 from unittest.mock import Mock
 import pygame
 
-from src.ecs.systems.ui import UISystem, CommandConverter
+from tests.legacy.ui_system import UISystem
+from src.ecs.systems.ui import CommandConverter
 from src.ecs.components.commands import (
     MoveCommand,
     PauseCommand,
