@@ -25,8 +25,6 @@ work together harmoniously.
 
 from typing import Optional, Any, List
 
-import pygame
-
 from src.game.scenes.base_scene import BaseScene
 from src.game.services.game_initializer import GameInitializer
 from src.game.services.audio_service import AudioService
@@ -198,11 +196,9 @@ class GameplayScene(BaseScene):
 
         # draw pause overlay on top of frozen game
         if is_paused and self._ui_render_system:
-            surface = pygame.display.get_surface()
-            if surface:
-                self._ui_render_system.draw_pause_overlay(
-                    surface.get_width(), surface.get_height()
-                )
+            self._ui_render_system.draw_pause_overlay(
+                self._renderer.width, self._renderer.height
+            )
 
         # handle scene transitions from GameState.next_scene
         if game_state and game_state.next_scene:
