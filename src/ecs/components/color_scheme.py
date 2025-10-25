@@ -21,6 +21,14 @@
 
 from dataclasses import dataclass, field
 from src.core.types.color import Color
+from src.game.constants import (
+    ARENA_COLOR,
+    GRID_COLOR,
+    HEAD_COLOR,
+    TAIL_COLOR,
+    APPLE_COLOR,
+    OBSTACLE_COLOR,
+)
 
 
 @dataclass
@@ -31,6 +39,9 @@ class ColorScheme:
     Rendering systems can query this component to get consistent
     colors across the game without hard-coding values.
 
+    Default colors are imported from src.game.constants to maintain
+    consistency across the codebase and avoid duplication.
+
     Attributes:
         arena: Background color
         grid: Grid line color
@@ -40,12 +51,12 @@ class ColorScheme:
         obstacle: Obstacle/wall color
     """
 
-    arena: Color = field(default_factory=lambda: Color.from_hex("#202020"))
-    grid: Color = field(default_factory=lambda: Color.from_hex("#3c3c3b"))
-    snake_head: Color = field(default_factory=lambda: Color.from_hex("#00aa00"))
-    snake_body: Color = field(default_factory=lambda: Color.from_hex("#00ff00"))
-    apple: Color = field(default_factory=lambda: Color.from_hex("#aa0000"))
-    obstacle: Color = field(default_factory=lambda: Color.from_hex("#666666"))
+    arena: Color = field(default_factory=lambda: Color.from_hex(ARENA_COLOR))
+    grid: Color = field(default_factory=lambda: Color.from_hex(GRID_COLOR))
+    snake_head: Color = field(default_factory=lambda: Color.from_hex(HEAD_COLOR))
+    snake_body: Color = field(default_factory=lambda: Color.from_hex(TAIL_COLOR))
+    apple: Color = field(default_factory=lambda: Color.from_hex(APPLE_COLOR))
+    obstacle: Color = field(default_factory=lambda: Color.from_hex(OBSTACLE_COLOR))
 
     def get_color(self, name: str) -> Color:
         """Get a color by name.
