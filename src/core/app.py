@@ -25,8 +25,6 @@ depending on old_code.
 
 import sys
 
-import pygame
-
 from src.ecs.world import World
 from src.ecs.board import Board
 from src.ecs.prefabs.snake import create_snake
