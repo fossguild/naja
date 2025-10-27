@@ -218,17 +218,23 @@ class InputSystem(BaseSystem):
     #         game_state.next_scene = "settings"
 
     def _handle_music_toggle(self) -> None:
-        """Handle music toggle key press.
+        """Handle audio toggle key press.
 
-        Note: This temporarily uses settings until audio components are added.
+        Toggles all audio (both music and sound effects).
         """
         if self._settings:
-            # toggle background music setting
-            current = self._settings.get("background_music")
-            self._settings.set("background_music", not current)
+            # toggle both background music and sound effects
+            current_music = self._settings.get("background_music")
+            current_sfx = self._settings.get("sound_effects")
+            
+            # If either is on, turn both off. If both are off, turn both on.
+            new_state = not (current_music or current_sfx)
+            
+            self._settings.set("background_music", new_state)
+            self._settings.set("sound_effects", new_state)
 
-            # apply immediately
-            if self._settings.get("background_music"):
+            # apply music change immediately
+            if new_state:
                 pygame.mixer.music.unpause()
             else:
                 pygame.mixer.music.pause()

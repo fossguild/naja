@@ -28,6 +28,7 @@ from typing import Optional, Any, List
 from src.game.scenes.base_scene import BaseScene
 from src.game.services.game_initializer import GameInitializer
 from src.game.services.audio_service import AudioService
+from src.game.services.sfx_queue_service import SfxQueueService
 from src.ecs.world import World
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.systems.input import InputSystem
@@ -90,6 +91,7 @@ class GameplayScene(BaseScene):
         self._ui_render_system: Optional[UIRenderSystem] = None
         self._game_initializer = GameInitializer(settings=settings)
         self._audio_service = AudioService(settings=settings)
+        self._sfx_queue_service = SfxQueueService()
 
     def on_attach(self) -> None:
         """Initialize and register all game systems in execution order.
@@ -139,7 +141,9 @@ class GameplayScene(BaseScene):
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
                 ),  # 9: calculate smooth positions for rendering
-                AudioSystem(None, None, 0.2),  # 10: play sounds and music
+                AudioSystem(
+                    self._sfx_queue_service, None, None, 0.2
+                ),  # 10: play sounds and music
             ]
         )
 
