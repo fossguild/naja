@@ -29,12 +29,10 @@ class UIState:
 
     Contains:
     - active_menu: Currently active menu (None if no menu)
-    - active_dialog: Currently active dialog (None if no dialog)
     - show_settings: Whether settings dialog should be shown
 
     Used by: UISystem for overall UI control
     """
 
     active_menu: Optional[str]
-    active_dialog: Optional[str]
     show_settings: bool

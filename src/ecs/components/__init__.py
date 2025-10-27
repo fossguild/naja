@@ -30,7 +30,6 @@ from src.ecs.components.grid import Grid
 from src.ecs.components.validated import Validated
 from src.ecs.components.ui_state import UIState
 from src.ecs.components.menu_item import MenuItem
-from src.ecs.components.dialog import Dialog
 from src.ecs.components.input_state import InputState
 
 __all__ = [
@@ -46,6 +45,5 @@ __all__ = [
     "Validated",
     "UIState",
     "MenuItem",
-    "Dialog",
     "InputState",
 ]
