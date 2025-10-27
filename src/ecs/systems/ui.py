@@ -25,6 +25,7 @@ from src.ecs.systems.assets import AssetsSystem
 from src.ecs.world import World
 from src.core.types.color import Color
 from src.core.rendering.pygame_surface_renderer import RenderEnqueue
+from src.game import constants
 
 
 class StaticUISystem(BaseSystem):
@@ -63,35 +64,6 @@ class StaticUISystem(BaseSystem):
         """
         self._renderer = renderer
         self._assets = assets
-
-        # TODO: In the future, UI colors should come from a config
-        # or settings system, allowing runtime customization
-        self._colors: dict[str, Color] = {
-            "text": Color.from_hex("#ffffff"),  # Default text color
-            "text_dim": Color.from_hex("#808080"),  # Dimmed text color
-            "score": Color.from_hex("#ffffff"),  # Score text color
-            "message": Color.from_hex("#808080"),  # Message text color
-        }
-
-    def set_color(self, name: str, color: Color) -> None:
-        """Update a color in the color scheme.
-
-        Args:
-            name: Color name (e.g., "text", "score")
-            color: New Color instance
-        """
-        self._colors[name] = color
-
-    def get_color(self, name: str) -> Color:
-        """Get a color from the color scheme.
-
-        Args:
-            name: Color name
-
-        Returns:
-            Color: Color instance
-        """
-        return self._colors.get(name, Color(255, 255, 255))
 
     def _draw_text(
         self,
@@ -166,7 +138,7 @@ class StaticUISystem(BaseSystem):
             title,
             width // 2,
             height // 10,
-            self.get_color("text"),
+            Color.from_hex(constants.SCORE_COLOR),
             size_px=int(width / 12),
             centered=True,
         )
@@ -184,7 +156,7 @@ class StaticUISystem(BaseSystem):
             message,
             width // 2,
             y,
-            self.get_color("message"),
+            Color.from_hex(constants.MESSAGE_COLOR),
             size_name="small",
             centered=True,
         )
@@ -203,7 +175,7 @@ class StaticUISystem(BaseSystem):
             "Paused",
             width // 2,
             height // 2,
-            self.get_color("message"),
+            Color.from_hex(constants.MESSAGE_COLOR),
             size_name="big",
             centered=True,
         )
@@ -213,7 +185,7 @@ class StaticUISystem(BaseSystem):
             "Press P to continue",
             width // 2,
             height * 2 // 3,
-            self.get_color("message"),
+            Color.from_hex(constants.MESSAGE_COLOR),
             size_name="small",
             centered=True,
         )
@@ -229,7 +201,7 @@ class StaticUISystem(BaseSystem):
             f"Score: {score}",
             int(width * 0.05),
             int(width * 0.03),
-            self.get_color("score"),
+            Color.from_hex(constants.SCORE_COLOR),
             size_px=int(width / 30),
             centered=False,
         )
@@ -245,7 +217,7 @@ class StaticUISystem(BaseSystem):
             hint_text,
             width // 2,
             int(height * 0.95),
-            self.get_color("text_dim"),
+            Color.from_hex(constants.MESSAGE_COLOR),
             size_px=int(width / 50),
             centered=True,
         )
@@ -264,7 +236,7 @@ class StaticUISystem(BaseSystem):
             title,
             width // 2,
             int(height / 2.6),
-            self.get_color("message"),
+            Color.from_hex(constants.MESSAGE_COLOR),
             size_px=int(width / 8),
             centered=True,
         )
@@ -274,7 +246,7 @@ class StaticUISystem(BaseSystem):
             subtitle,
             width // 2,
             int(height / 1.8),
-            self.get_color("message"),
+            Color.from_hex(constants.MESSAGE_COLOR),
             size_px=int(width / 20),
             centered=True,
         )

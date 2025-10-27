@@ -28,12 +28,14 @@ from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
 from src.core.rendering.pygame_surface_renderer import RenderEnqueue
+from src.core.types.color import Color
+from src.game import constants
 
 
 class UIRenderSystem(BaseSystem):
     """System responsible for rendering UI overlays.
 
-    Responsibilities (following SRP):
+    Responsibilities:
     - Render score counter
     - Render speed bar
     - Render music indicator
@@ -84,8 +86,8 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 score_font = pygame.font.Font(None, font_size)
 
-            # Gray color
-            score_color = (128, 128, 128)
+            # Get color from constants
+            score_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
 
             # Render score text
             score_text = score_font.render(str(current_score), True, score_color)
@@ -150,13 +152,14 @@ class UIRenderSystem(BaseSystem):
         else:
             ratio = 0.0
         ratio = max(0.0, min(ratio, 1.0))
+        # Bar color changes from green (slow) to red (fast) - calculated dynamically
         bar_color = (
             int(255 * ratio),
             int(255 * (1 - ratio)),
             0,
         )
-        border_color = (50, 50, 50)
-        text_color = (200, 200, 200)
+        border_color = Color.from_hex(constants.GRID_COLOR).to_tuple()
+        text_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
 
         # Bar position
         bar_x = padding_x
@@ -218,8 +221,12 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 sprite = None
 
-            # Render hint text
-            hint_color = (255, 255, 255) if music_on else (60, 60, 59)
+            # Render hint text - white when on, dim grid color when off
+            hint_color = (
+                Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                if music_on
+                else Color.from_hex(constants.GRID_COLOR).to_tuple()
+            )
             hint_text = "[N]"
             hint_font_size = int(surface_width / 50)
             font_path = "assets/font/GetVoIP-Grotesque.ttf"
@@ -264,7 +271,7 @@ class UIRenderSystem(BaseSystem):
             # Create semi-transparent overlay
             overlay = pygame.Surface((surface_width, surface_height))
             overlay.set_alpha(128)  # 50% transparent
-            overlay.fill((0, 0, 0))  # black
+            overlay.fill(Color.from_hex(constants.ARENA_COLOR).to_tuple())
             self._renderer.blit(overlay, (0, 0))
 
             # Render "PAUSED" text
@@ -276,7 +283,9 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 pause_font = pygame.font.Font(None, font_size)
 
-            pause_text = pause_font.render("PAUSED", True, (255, 255, 255))
+            pause_text = pause_font.render(
+                "PAUSED", True, Color.from_hex(constants.SCORE_COLOR).to_tuple()
+            )
             pause_rect = pause_text.get_rect()
             pause_rect.center = (surface_width // 2, surface_height // 2)
 
@@ -290,7 +299,9 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 hint_font = pygame.font.Font(None, hint_font_size)
 
-            hint_text = hint_font.render("Press P to resume", True, (200, 200, 200))
+            hint_text = hint_font.render(
+                "Press P to resume", True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+            )
             hint_rect = hint_text.get_rect()
             hint_rect.midtop = (surface_width // 2, pause_rect.bottom + 20)
 

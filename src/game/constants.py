@@ -20,6 +20,15 @@ MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
 
+# Difficulty percentages for obstacle count
+DIFFICULTY_PERCENTAGES = {
+    "None": 0.0,
+    "Easy": 0.04,
+    "Medium": 0.06,
+    "Hard": 0.10,
+    "Impossible": 0.15,
+}
+
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [
     # Classic Green

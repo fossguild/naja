@@ -173,24 +173,25 @@ def test_input_system_handles_quit_key(world, mock_pygame_adapter, mock_callback
     mock_callbacks["quit"].assert_called_once()
 
 
-def test_input_system_handles_menu_keys(world, mock_pygame_adapter, mock_callbacks):
-    """Test that InputSystem handles M and ESC keys for menu."""
-    for menu_key in [pygame.K_m, pygame.K_ESCAPE]:
-        mock_callbacks["menu"].reset_mock()
-
-        keydown_event = Mock()
-        keydown_event.type = pygame.KEYDOWN
-        keydown_event.key = menu_key
-        mock_pygame_adapter.get_events.return_value = [keydown_event]
-
-        system = InputSystem(
-            pygame_adapter=mock_pygame_adapter,
-            menu_callback=mock_callbacks["menu"],
-        )
-
-        system.update(world)
-
-        mock_callbacks["menu"].assert_called_once()
+# disabled: menu key functionality removed from gameplay scene
+# def test_input_system_handles_menu_keys(world, mock_pygame_adapter, mock_callbacks):
+#     """Test that InputSystem handles M and ESC keys for menu."""
+#     for menu_key in [pygame.K_m, pygame.K_ESCAPE]:
+#         mock_callbacks["menu"].reset_mock()
+#
+#         keydown_event = Mock()
+#         keydown_event.type = pygame.KEYDOWN
+#         keydown_event.key = menu_key
+#         mock_pygame_adapter.get_events.return_value = [keydown_event]
+#
+#         system = InputSystem(
+#             pygame_adapter=mock_pygame_adapter,
+#             menu_callback=mock_callbacks["menu"],
+#         )
+#
+#         system.update(world)
+#
+#         mock_callbacks["menu"].assert_called_once()
 
 
 def test_input_system_handles_music_toggle_key(

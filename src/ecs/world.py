@@ -20,7 +20,6 @@
 """World composition class containing game state components."""
 
 import pygame
-
 from src.ecs.entity_registry import EntityRegistry
 from src.ecs.board import Board
 
@@ -75,11 +74,8 @@ class World:
 
     @property
     def registry(self) -> EntityRegistry:
-        """Get the entity registry for entity management.
+        # Get the entity registry for entity management.
 
-        Returns:
-            EntityRegistry: The entity registry instance
-        """
         return self._registry
 
     @property
@@ -93,11 +89,6 @@ class World:
 
     @board.setter
     def board(self, new_board: Board) -> None:
-        """Set a new board instance.
-
-        Args:
-            new_board: New board instance to use
-        """
         self._board = new_board
 
     @property
@@ -119,9 +110,5 @@ class World:
         return self._dt_ms
 
     def set_dt_ms(self, dt_ms: float) -> None:
-        """Set delta time for this frame.
-
-        Args:
-            dt_ms: Delta time in milliseconds
-        """
+        # set delta time for this frame.
         self._dt_ms = dt_ms

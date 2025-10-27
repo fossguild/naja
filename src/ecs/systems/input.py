@@ -117,8 +117,8 @@ class InputSystem(BaseSystem):
             self._handle_quit(world)
         elif key == pygame.K_p:
             self._handle_pause(world)
-        elif key == pygame.K_m:
-            self._handle_menu(world)
+        # elif key == pygame.K_m:
+        #     self._handle_menu(world)  # disabled: removed ability to open settings from gameplay
         elif key == pygame.K_n:
             self._handle_music_toggle()
         elif key == pygame.K_c:
@@ -205,16 +205,17 @@ class InputSystem(BaseSystem):
         if game_state:
             game_state.paused = not game_state.paused
 
-    def _handle_menu(self, world: World) -> None:
-        """Handle menu key press by pausing and setting next_scene.
-
-        Args:
-            world: ECS world
-        """
-        game_state = self._get_game_state(world)
-        if game_state:
-            game_state.paused = True
-            game_state.next_scene = "settings"
+    # disabled: removed ability to open settings from gameplay
+    # def _handle_menu(self, world: World) -> None:
+    #     """Handle menu key press by pausing and setting next_scene.
+    #
+    #     Args:
+    #         world: ECS world
+    #     """
+    #     game_state = self._get_game_state(world)
+    #     if game_state:
+    #         game_state.paused = True
+    #         game_state.next_scene = "settings"
 
     def _handle_music_toggle(self) -> None:
         """Handle music toggle key press.

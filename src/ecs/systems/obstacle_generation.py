@@ -36,16 +36,8 @@ from src.ecs.world import World
 from src.ecs.entities.obstacle_field import Obstacle as ObstacleEntity
 from src.ecs.components.position import Position
 from src.ecs.components.obstacle import ObstacleTag
+from src.game import constants
 
-
-# difficulty percentages for obstacle count
-DIFFICULTY_PERCENTAGES = {
-    "None": 0.0,
-    "Easy": 0.04,
-    "Medium": 0.06,
-    "Hard": 0.10,
-    "Impossible": 0.15,
-}
 
 # grid directions (up, down, left, right)
 GRID_DIRECTIONS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
@@ -172,7 +164,7 @@ class ObstacleGenerationSystem(BaseSystem):
     def calculate_obstacle_count(board, _grid_size: int, difficulty: str) -> int:
         """Calculate number of obstacles from difficulty level."""
         total_cells = (board.width // _grid_size) * (board.height // _grid_size)
-        return int(total_cells * DIFFICULTY_PERCENTAGES.get(difficulty, 0.0))
+        return int(total_cells * constants.DIFFICULTY_PERCENTAGES.get(difficulty, 0.0))
 
     def _get_available_positions(
         self, board, grid_size: int, snake_start_pos: tuple[int, int]

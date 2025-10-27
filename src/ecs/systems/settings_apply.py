@@ -24,9 +24,7 @@ and entities in real-time during gameplay.
 """
 
 from typing import Any, Optional
-
 import pygame
-
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
@@ -206,17 +204,18 @@ class SettingsApplySystem(BaseSystem):
         head_color_hex = snake_colors.get("head")
         tail_color_hex = snake_colors.get("tail")
 
-        # convert hex colors to RGB tuples
-        head_color = hex_to_rgb(head_color_hex)
-        tail_color = hex_to_rgb(tail_color_hex)
+        # convert hex colors to Color objects
+        from src.core.types.color import Color
+        head_color = Color.from_hex(head_color_hex)
+        tail_color = Color.from_hex(tail_color_hex)
 
-        # find the snake entity and update its palette
+        # find the snake entity and update its renderable colors
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
-            if hasattr(snake, "palette"):
-                # update the palette colors
-                snake.palette.primary_color = head_color
-                snake.palette.secondary_color = tail_color
+            if hasattr(snake, "renderable"):
+                # update both head and tail colors in renderable
+                snake.renderable.color = head_color
+                snake.renderable.secondary_color = tail_color
                 print(f"Applied palette: head={head_color_hex}, tail={tail_color_hex}")
                 break
 

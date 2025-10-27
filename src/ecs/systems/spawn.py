@@ -73,18 +73,17 @@ class SpawnSystem(BaseSystem):
         )
 
     def update(self, world: World) -> None:
-        """Check for spawn requests and create entities.
+        """Update method required by BaseSystem.
 
-        This method is called every tick. It can be triggered by:
-        - Collision events (apple eaten)
-        - Initial game setup
-        - Settings changes
+        This system is event-driven and doesn't perform periodic updates.
+        Spawning is triggered explicitly through spawn_apple() method calls.
 
         Args:
-            world: ECS world containing entities and components
+            world: Game world (unused in this system)
         """
-        # stub implementation - will be connected to event system
-        # when event handling is implemented in future issues
+        # Spawning is handled explicitly via spawn_apple() calls
+        # No periodic behavior needed
+        pass
 
     def spawn_apple(self, world: World) -> Optional[int]:
         """Spawn a single apple at a valid free position.

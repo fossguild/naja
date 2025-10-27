@@ -25,9 +25,7 @@ asset reload when needed.
 """
 
 from __future__ import annotations
-
 from typing import Optional, Callable
-
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 
