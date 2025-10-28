@@ -78,47 +78,37 @@ Central registry that stores:
 - Entity IDs (just integers)
 - Component storage (maps entity_id -> component data)
 - System instances (in execution order)
-- Event queues for inter-system communication
 
 ### Prefabs
 Factory functions that create common entity configurations:
-- `create_snake()` -> entity with Position, Velocity, SnakeBody, Collider, Renderable
+- `create_snake()` -> entity with Position, Velocity, SnakeBody, Renderable, Interpolation
 - `create_apple()` -> entity with Position, Edible, Renderable
-- `create_obstacle()` -> entity with Position, ObstacleTag, Collider, Renderable
+- `create_obstacle_field()` -> creates multiple obstacle entities with Position, Obstacle
 
 ### Queries
 Systems query the world for entities with specific component combinations:
+```python
+# Query by component names
+entities = world.registry.query_by_component("position", "velocity")
+for entity_id, entity in entities.items():
+    # access components via entity attributes
+    entity.position.x += entity.velocity.dx
+    entity.position.y += entity.velocity.dy
+
+# Query by entity type
+from src.ecs.entities.entity import EntityType
+snakes = world.registry.query_by_type(EntityType.SNAKE)
 ```
-for entity_id in world.query(Position, Velocity):
-    pos = world.get_component(entity_id, Position)
-    vel = world.get_component(entity_id, Velocity)
-    # update logic
-```
-
-## Migration Strategy
-
-We will migrate gradually, keeping the game playable after each step:
-1. Create infrastructure (world, component definitions, empty systems)
-2. Move rendering logic to RenderSystem
-3. Move input handling to InputSystem
-4. Extract game logic into specialized systems
-5. Replace old classes with prefab factories
-6. Add tests for each system
-
-See `ecs_migration_plan.mdc` for detailed steps.
 
 ## Documentation Structure
 
-- `ecs_overview.mdc` (this file) - architectural overview
-- `ecs_entities_components.mdc` - catalog of entities and components
-- `ecs_systems.mdc` - catalog of systems and their responsibilities
-- `ecs_base_system.mdc` - abstract GameSystem base class design
-- `ecs_render_system.mdc` - rendering system specifics
-- `ecs_ui_system.mdc` - UI system specifics
-- `ecs_project_structure.mdc` - file and directory organization
-- `ecs_migration_plan.mdc` - step-by-step migration guide
-- `ecs_coding_standards.mdc` - code style for ECS
-- `ecs_testing.mdc` - testing strategies for ECS
+For comprehensive ECS documentation, see:
+- `docs/architecture.md` - Complete ECS architecture guide for contributors
+- `docs/adr/0001-choose-ecs.md` - Architecture decision record
+- `.cursor/rules/ecs_overview.mdc` (this file) - Quick reference
+- `.cursor/rules/ecs_coding_standards.mdc` - Code style for ECS
+- `.cursor/rules/ecs_testing.mdc` - Testing strategies
+- `.cursor/rules/contribution_workflow.mdc` - Git workflow
 
 ## References
 

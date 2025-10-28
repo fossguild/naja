@@ -30,7 +30,7 @@ alwaysApply: true
   - `kobra.py`: Thin bootstrap entrypoint only
 
 ## Key Files and Directories
-- `kobra.py`: Bootstrap entry point (minimal, <50 lines after refactor)
+- `kobra.py`: Bootstrap entry point
 - `pyproject.toml`: Project metadata and dependencies
 - `src/core/app.py`: Main game loop orchestrator
 - `src/ecs/world.py`: Entity registry and component storage
@@ -48,18 +48,19 @@ alwaysApply: true
 - `tests/ecs/`: System unit tests
 - `tests/game/`: Integration tests
 
-## ECS Documentation
-See `.cursor/rules/` for detailed ECS guidelines:
+## Documentation
+See `.cursor/rules/` for AI assistant guidelines:
 - `ecs_overview.mdc`: Architecture overview and principles
-- `ecs_entities_components.mdc`: Component catalog
-- `ecs_systems.mdc`: System catalog and execution order
-- `ecs_base_system.mdc`: GameSystem abstract base design
-- `ecs_render_system.mdc`: Rendering system specifics
-- `ecs_ui_system.mdc`: UI system specifics
-- `ecs_project_structure.mdc`: Directory structure
-- `ecs_migration_plan.mdc`: Step-by-step migration guide
 - `ecs_coding_standards.mdc`: Code style for ECS
 - `ecs_testing.mdc`: Testing strategies
+- `contribution_workflow.mdc`: Git workflow and branching
+- `project_info.mdc`: This file
+
+See `docs/` for human-readable documentation:
+- `docs/architecture.md`: Complete ECS architecture guide
+- `docs/CONTRIBUTING.md`: How to contribute
+- `docs/manual.md`: User manual
+- `docs/adr/0001-choose-ecs.md`: Why we chose ECS
 
 ## Development Standards
 - **Formatter**: Black

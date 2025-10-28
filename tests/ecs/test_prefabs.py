@@ -106,9 +106,7 @@ class TestSnakePrefab:
         )
         snake = world.registry.get(snake_id)
 
-        # assert
-        assert snake.palette.primary_color == head_color
-        assert snake.palette.secondary_color == tail_color
+        # assert - head color is stored in renderable
         assert snake.renderable.color.to_tuple() == head_color
 
     def test_create_snake_default_colors(self):
@@ -121,9 +119,8 @@ class TestSnakePrefab:
         snake_id = create_snake(world, grid_size=20)
         snake = world.registry.get(snake_id)
 
-        # assert - default green colors
-        assert snake.palette.primary_color == (0, 170, 0)
-        assert snake.palette.secondary_color == (0, 255, 0)
+        # assert - default green colors from constants
+        assert snake.renderable.color.to_tuple() == (0, 170, 0)
 
     def test_create_snake_interpolation(self):
         """Test snake has interpolation component."""

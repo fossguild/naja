@@ -35,6 +35,9 @@ class Renderable:
     Following ECS principles, this component only stores data,
     no rendering logic. Rendering systems read this component
     to draw entities on screen.
+
+    For snake entities, `color` represents head color and
+    `secondary_color` represents tail/body color.
     """
 
     shape: Literal["circle", "square", "rectangle", "text"]
@@ -43,6 +46,9 @@ class Renderable:
     sprite_path: Optional[str] = None  # Optional sprite image path
     layer: int = 0  # Rendering layer (higher = drawn on top)
     visible: bool = True  # Whether entity should be rendered
+    secondary_color: Optional[Color] = (
+        None  # Optional secondary color (e.g., snake tail)
+    )
 
     def get_color_tuple(self) -> tuple[int, int, int]:
         """Get color as RGB tuple for rendering.

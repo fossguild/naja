@@ -27,12 +27,10 @@ from src.ecs.components.obstacle import ObstacleTag, Obstacle
 from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
 from src.ecs.components.grid import Grid
-from src.ecs.components.audio_queue import AudioQueue
-from src.ecs.components.validated import Validated
-from src.ecs.components.ui_state import UIState
-from src.ecs.components.menu_item import MenuItem
-from src.ecs.components.dialog import Dialog
-from src.ecs.components.input_state import InputState
+from src.ecs.components.apple_config import AppleConfig
+from src.ecs.components.color_scheme import ColorScheme
+from src.ecs.components.game_state import GameState
+from src.ecs.components.score import Score
 
 __all__ = [
     "Position",
@@ -44,10 +42,8 @@ __all__ = [
     "Interpolation",
     "Renderable",
     "Grid",
-    "AudioQueue",
-    "Validated",
-    "UIState",
-    "MenuItem",
-    "Dialog",
-    "InputState",
+    "AppleConfig",
+    "ColorScheme",
+    "GameState",
+    "Score",
 ]

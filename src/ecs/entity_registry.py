@@ -54,22 +54,11 @@ class EntityRegistry:
         return entity_id
 
     def get(self, entity_id: int) -> Entity | None:
-        """Get an entity by ID.
-
-        Args:
-            entity_id: ID of entity to retrieve
-
-        Returns:
-            Entity or None if not found
-        """
+        # get an entity by ID.
         return self._entities.get(entity_id)
 
     def remove(self, entity_id: int) -> None:
-        """Remove an entity from the registry.
-
-        Args:
-            entity_id: ID of entity to remove
-        """
+        # remove an entity from the registry.
         self._entities.pop(entity_id, None)
 
     def query_by_type(self, entity_type: EntityType) -> dict[int, Entity]:

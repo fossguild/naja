@@ -30,9 +30,10 @@ from src.ecs.entities.entity import EntityType
 from src.ecs.components.position import Position
 from src.ecs.components.snake_body import SnakeBody
 from src.ecs.components.interpolation import Interpolation
-from src.ecs.components.palette import Palette
 from src.ecs.components.color_scheme import ColorScheme
 from src.core.rendering.pygame_surface_renderer import RenderEnqueue
+from src.core.types.color import Color
+from src.game import constants
 
 
 class SnakeRenderSystem(BaseSystem):
@@ -79,7 +80,7 @@ class SnakeRenderSystem(BaseSystem):
         position: Position,
         body: SnakeBody,
         interpolation: Interpolation,
-        palette: Palette = None,
+        renderable=None,
     ) -> None:
         """Draw the snake with smooth interpolation.
 
@@ -88,7 +89,7 @@ class SnakeRenderSystem(BaseSystem):
             position: Head position component
             body: Snake body component
             interpolation: Interpolation component for smooth movement
-            palette: Optional palette component for custom colors
+            renderable: Optional renderable component for head color
         """
         if not body.alive:
             return
@@ -97,14 +98,17 @@ class SnakeRenderSystem(BaseSystem):
         grid_width = world.board.width * cell_size
         grid_height = world.board.height * cell_size
 
-        # Get colors from palette component or ColorScheme fallback
-        if palette:
-            head_color = palette.primary_color
-            tail_color = palette.secondary_color
+        # Get colors from renderable or use constants as fallback
+        if renderable and hasattr(renderable, "color"):
+            head_color = renderable.color.to_tuple()
+            # Use secondary color for tail if available, otherwise derive from head or use constant
+            if hasattr(renderable, "secondary_color") and renderable.secondary_color:
+                tail_color = renderable.secondary_color.to_tuple()
+            else:
+                tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()
         else:
-            color_scheme = self._get_color_scheme(world)
-            head_color = color_scheme.snake_head.to_tuple()
-            tail_color = color_scheme.snake_body.to_tuple()
+            head_color = Color.from_hex(constants.HEAD_COLOR).to_tuple()
+            tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()
 
         # Draw tail segments with interpolation
         self._draw_snake_tail(
@@ -341,7 +345,7 @@ class SnakeRenderSystem(BaseSystem):
             position = snake.position
             body = snake.body
             interpolation = snake.interpolation
-            palette = getattr(snake, "palette", None)
+            renderable = getattr(snake, "renderable", None)
 
             # Render snake
-            self.draw_snake(world, position, body, interpolation, palette)
+            self.draw_snake(world, position, body, interpolation, renderable)

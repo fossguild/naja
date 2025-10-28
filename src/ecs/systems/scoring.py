@@ -53,18 +53,17 @@ class ScoringSystem(BaseSystem):
         pass
 
     def update(self, world: World) -> None:
-        """Update score based on game state.
+        """Update method required by BaseSystem.
 
-        This method is called every tick. It can be triggered by:
-        - Apple eaten events
-        - Snake growth
-        - Game reset
+        This system is event-driven and doesn't perform periodic updates.
+        Score updates are triggered explicitly through method calls.
 
         Args:
-            world: ECS world containing entities and components
+            world: Game world (unused in this system)
         """
-        # stub implementation - will be connected to event system
-        # when event handling is implemented in future issues
+        # Scoring is handled explicitly via event methods
+        # No periodic behavior needed
+        pass
 
     def on_apple_eaten(self, world: World, points: int) -> None:
         """Handle apple eaten event and update score.

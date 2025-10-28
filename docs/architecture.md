@@ -1,806 +1,754 @@
 # Naja ECS Architecture
 
-> **Version:** 1.0  
-> **Last Updated:** October 2025  
-> **Status:** ✅ Fully Implemented
+> **Version:** 1.0 
+> **Last Updated:** October 2025
+> **Status:** Fully Implemented
 
-This document describes the Entity-Component-System (ECS) architecture used in the Naja snake game.
-
----
+Essential guide to Naja's ECS architecture for contributors.
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [What is ECS?](#what-is-ecs)
-3. [Why ECS for Naja?](#why-ecs-for-naja)
-4. [Core Principles](#core-principles)
-5. [Architecture Components](#architecture-components)
-6. [Game Flow](#game-flow)
-7. [System Execution Order](#system-execution-order)
-8. [Project Structure](#project-structure)
-9. [Key Components](#key-components)
-10. [Key Systems](#key-systems)
-11. [Design Patterns](#design-patterns)
-12. [Examples](#examples)
-13. [Testing Strategy](#testing-strategy)
-14. [References](#references)
+1. [What is ECS](#1-what-is-ecs)
+2. [Why ECS](#2-why-ecs)
+3. [Fundamental Principles](#3-fundamental-principles)
+4. [Main Components](#4-main-components)
+5. [Main Systems](#5-main-systems)
+6. [Execution Order](#6-execution-order)
+7. [How to Add Features](#7-how-to-add-features)
+8. [Code Examples](#8-code-examples)
+9. [Tests](#9-tests)
+10. [External Resources](#10-external-resources)
 
----
 
-## Overview
+## 1. What is ECS?
 
-Naja is a classic snake game built using the **Entity-Component-System (ECS)** architectural pattern. ECS provides a clear separation between data (components), logic (systems), and entities, making the codebase:
+**Entity-Component-System** is an architectural pattern that separates data from behavior:
 
-- ✅ **Modular**: Each system has a single, well-defined responsibility
-- ✅ **Testable**: Systems can be tested in isolation with mock components
-- ✅ **Maintainable**: Small, focused systems are easier to understand and modify
-- ✅ **Scalable**: New features can be added as new components and systems
-- ✅ **Collaborative**: Multiple developers can work on different systems with minimal conflicts
+* **Entity:** Game object (Snake, Apple, Obstacle)
+* **Component:** Pure data without logic (`@dataclass`)
+* **System:** All game logic, processes entities
 
----
+```python
+# Entity: Snake
+snake = Snake(
+    position=Position(x=10, y=20),      # where it is
+    velocity=Velocity(dx=1, dy=0),      # where it's going
+    body=SnakeBody(segments=[...]),     # body
+    renderable=Renderable(...)          # how to draw
+)
 
-## What is ECS?
-
-ECS is an architectural pattern that separates game logic into three distinct concepts:
-
-### **Entity**
-- A unique identifier (just an integer)
-- Serves as a container for components
-- Has no logic or data itself
-- Example: `entity_id = 42`
-
-### **Component**
-- Pure data structures (no methods, no logic)
-- Describes one aspect of an entity
-- Built using Python `@dataclass`
-- Examples: `Position(x=10, y=20)`, `Velocity(dx=1, dy=0)`
-
-### **System**
-- Contains all game logic
-- Processes entities that have specific component combinations
-- Runs every game tick in a fixed order
-- Examples: `MovementSystem`, `CollisionSystem`, `RenderSystem`
-
-```
-┌────────────────────────────────────────────────┐
-│                   ENTITY 42                    │
-│              (just an ID number)               │
-└────────────────────────────────────────────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        │               │               │
-        ▼               ▼               ▼
-  ┌──────────┐   ┌──────────┐   ┌──────────┐
-  │ Position │   │ Velocity │   │Renderable│
-  │  x: 10   │   │ dx: 1    │   │color: red│
-  │  y: 20   │   │ dy: 0    │   │shape:rect│
-  └──────────┘   └──────────┘   └──────────┘
-        │               │               │
-        └───────────────┼───────────────┘
-                        ▼
-              ┌──────────────────┐
-              │  MovementSystem  │
-              │  RenderSystem    │
-              └──────────────────┘
+# Systems process these components:
+# MovementSystem: reads velocity, updates position
+# CollisionSystem: reads position, detects collisions
+# RenderSystem: reads position + renderable, draws
 ```
 
----
+## 2. Why ECS?
 
-## Why ECS for Naja?
+**Advantages:**
+- ✅ **Modular:** each system does one thing
+- ✅ **Testable:** isolated systems, easy to test
+- ✅ **Maintainable:** small and focused code
+- ✅ **Collaborative:** fewer merge conflicts
 
-### **Benefits**
+**Disadvantages:**
+- ❌ More files/abstractions
+- ❌ Learning curve
 
-1. **Separation of Concerns**
-   - Data (components) separated from logic (systems)
-   - Easy to reason about what each part does
+For an educational open-source project, the advantages outweigh the disadvantages.
 
-2. **Composition Over Inheritance**
-   - Build complex entities by combining simple components
-   - No deep inheritance hierarchies to navigate
+## 3. Fundamental Principles
 
-3. **Testability**
-   - Systems can be tested in isolation
-   - Mock components are easy to create
-   - No need for complex test fixtures
+### Components = Pure Data
 
-4. **Parallel Development**
-   - Multiple developers can work on different systems simultaneously
-   - Minimal merge conflicts since systems are independent
-
-5. **Maintainability**
-   - Small, focused systems (< 300 lines each)
-   - Clear responsibilities and boundaries
-   - Easy to find and fix bugs
-
-### **Trade-offs**
-
-1. **Initial Complexity**: More files and abstractions than a monolithic approach
-2. **Learning Curve**: Team needs to understand ECS principles
-3. **Indirection**: Following data flow requires understanding component-system relationships
-
-For an educational project like Naja, these trade-offs are worthwhile as they teach valuable architectural patterns used in professional game development.
-
----
-
-## Core Principles
-
-### 1️⃣ **Components are Pure Data**
-
-✅ **Good:**
 ```python
 @dataclass
 class Position:
-    """Entity location in grid space."""
-    x: float
-    y: float
+    """Position on the grid (in cell coordinates)."""
+    x: int
+    y: int
+    prev_x: int = 0  # for interpolation
+    prev_y: int = 0
 ```
 
-❌ **Bad:**
-```python
-@dataclass
-class Position:
-    x: float
-    y: float
-    
-    def move(self, dx, dy):  # ❌ Logic in component!
-        self.x += dx
-        self.y += dy
-```
+### Systems = All Logic
 
-### 2️⃣ **Systems Contain All Logic**
-
-✅ **Good:**
 ```python
 class MovementSystem(BaseSystem):
-    def update(self, world: World) -> None:
-        for entity_id in world.query(Position, Velocity):
-            pos = world.get_component(entity_id, Position)
-            vel = world.get_component(entity_id, Velocity)
-            pos.x += vel.dx
-            pos.y += vel.dy
-```
-
-❌ **Bad:**
-```python
-# Logic scattered across components
-velocity.apply_to(position)  # ❌ Components calling each other!
-```
-
-### 3️⃣ **Entities are Just IDs**
-
-✅ **Good:**
-```python
-snake_id = world.create_entity()
-world.add_component(snake_id, Position(10, 20))
-world.add_component(snake_id, Velocity(1, 0))
-```
-
-❌ **Bad:**
-```python
-class SnakeEntity:  # ❌ Entity with fields and methods!
-    def __init__(self):
-        self.x = 10
-        self.y = 20
-    def move(self):
-        self.x += 1
-```
-
-### 4️⃣ **Systems are Independent**
-
-✅ **Good:**
-```python
-# Systems communicate through components
-class InputSystem:
+    """Moves entities based on velocity."""
+    
     def update(self, world):
-        # Read input, modify Velocity component
+        # Query entities with position + velocity
+        entities = world.registry.query_by_component("position", "velocity")
         
-class MovementSystem:
-    def update(self, world):
-        # Read Velocity, modify Position component
+        for entity in entities.values():
+            # Update position based on velocity
+            entity.position.prev_x = entity.position.x
+            entity.position.prev_y = entity.position.y
+            entity.position.x += entity.velocity.dx
+            entity.position.y += entity.velocity.dy
 ```
 
-❌ **Bad:**
-```python
-# Systems calling each other directly
-movement_system.move_snake()  # ❌ Direct coupling!
-```
+### Systems Communicate via Components
 
----
-
-## Architecture Components
-
-### **World Registry**
-
-Central hub that manages:
-- Entity ID generation
-- Component storage (maps `entity_id` → component instances)
-- System registration and execution order
-- Event queues for inter-system communication
-
-**Location:** `src/ecs/world.py`
+Systems **do not** call other systems. They modify components that other systems read:
 
 ```python
-world = World()
-entity_id = world.create_entity()
-world.add_component(entity_id, Position(10, 20))
-position = world.get_component(entity_id, Position)
+# ✅ Correct: InputSystem modifies velocity
+velocity.dx = 1
+velocity.dy = 0
+
+# MovementSystem reads velocity and moves
+position.x += velocity.dx
+
+# ❌ Wrong: system calling another system
+movement_system.move(entity)
 ```
 
-### **Prefabs**
+## 4. Main Components
 
-Factory functions that create common entity configurations:
+Components are `@dataclass` in `src/ecs/components/`:
 
-```python
-def create_snake(world: World, start_x: int, start_y: int) -> int:
-    """Create a snake entity with all necessary components."""
-    entity_id = world.create_entity()
-    world.add_component(entity_id, Position(start_x, start_y))
-    world.add_component(entity_id, Velocity(1, 0))
-    world.add_component(entity_id, SnakeBody(segments=[], length=3))
-    world.add_component(entity_id, Collider(shape=SEGMENTS))
-    world.add_component(entity_id, Renderable(color=(0, 255, 0)))
-    return entity_id
-```
+### Spatial
 
-**Location:** `src/ecs/prefabs/`
-
-### **Scenes**
-
-Scenes orchestrate systems for different game modes:
-
-- **MenuScene**: Main menu, settings menu
-- **GameplayScene**: Active gameplay with all game systems
-- **GameOverScene**: Game over screen with restart option
-
-Each scene registers systems in a specific order.
-
-**Location:** `src/game/scenes/`
-
----
-
-## Game Flow
-
-Each game tick follows this execution order:
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   GAME TICK START                   │
-└─────────────────────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│              1. INPUT PHASE                         │
-│  InputSystem: Read events, update Velocity/GameState│
-└─────────────────────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│              2. GAME LOGIC PHASE                    │
-│  MovementSystem: Update positions                   │
-│  CollisionSystem: Detect collisions, emit events    │
-│  AppleSpawnSystem: Spawn apples as needed           │
-│  ScoringSystem: Update score from events            │
-│  ObstacleGenerationSystem: Generate obstacles       │
-└─────────────────────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│              3. SETTINGS PHASE                      │
-│  SettingsApplySystem: Apply runtime changes         │
-│  ValidationSystem: Verify game state integrity      │
-└─────────────────────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│              4. AUDIO PHASE                         │
-│  AudioSystem: Play sounds and music                 │
-└─────────────────────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│              5. RENDER PHASE                        │
-│  InterpolationSystem: Calculate smooth positions    │
-│  BoardRenderSystem: Draw grid and background        │
-│  EntityRenderSystem: Draw game entities             │
-│  SnakeRenderSystem: Draw snake with interpolation   │
-│  UIRenderSystem: Draw HUD, score, overlays          │
-└─────────────────────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────┐
-│                  GAME TICK END                      │
-│              Display update, repeat                 │
-└─────────────────────────────────────────────────────┘
-```
-
-### **Pause Behavior**
-
-When `GameState.paused = True`:
-- Input system (0) **continues running** (to detect unpause)
-- Game logic systems (1-8) **are skipped**
-- Rendering systems (9+) **continue running** (frozen game with overlay)
-
----
-
-## System Execution Order
-
-Systems run in a **fixed order** each tick. This order is critical for correct behavior:
-
-| # | System | Responsibility | Pausable? |
-|---|--------|---------------|-----------|
-| 0 | **InputSystem** | Read events, update Velocity/GameState | ❌ No |
-| 1 | **MovementSystem** | Update positions based on velocity | ✅ Yes |
-| 2 | **CollisionSystem** | Detect collisions, emit events | ✅ Yes |
-| 3 | **AppleSpawnSystem** | Maintain correct apple count | ✅ Yes |
-| 4 | **SpawnSystem** | Create new entities at valid positions | ✅ Yes |
-| 5 | **ScoringSystem** | Update score from events | ✅ Yes |
-| 6 | **ObstacleGenerationSystem** | Generate obstacles with connectivity | ✅ Yes |
-| 7 | **SettingsApplySystem** | Apply runtime settings changes | ✅ Yes |
-| 8 | **ValidationSystem** | Verify game state integrity | ✅ Yes |
-| 9 | **InterpolationSystem** | Calculate smooth positions | ❌ No |
-| 10 | **AudioSystem** | Play sounds and music | ❌ No |
-| 11 | **BoardRenderSystem** | Draw grid and background | ❌ No |
-| 12 | **EntityRenderSystem** | Draw game entities | ❌ No |
-| 13 | **SnakeRenderSystem** | Draw snake with interpolation | ❌ No |
-| 14 | **UIRenderSystem** | Draw HUD and overlays | ❌ No |
-
-**Defined in:** `src/game/scenes/gameplay.py`
-
----
-
-## Project Structure
-
-```
-naja/
-├── kobra.py                    # Thin bootstrap entrypoint
-├── pyproject.toml              # Project metadata, dependencies
-├── Makefile                    # Common tasks (run, test, lint)
-├── docs/
-│   ├── architecture.md         # This file
-│   ├── CONTRIBUTING.md         # Contribution guidelines
-│   └── manual.md               # User documentation
-│
-├── src/
-│   ├── core/                   # Core engine systems
-│   │   ├── app.py              # Main game loop orchestrator
-│   │   ├── clock.py            # Fixed timestep
-│   │   └── io/
-│   │       └── pygame_adapter.py  # Pygame I/O abstraction
-│   │
-│   ├── ecs/                    # ECS framework
-│   │   ├── world.py            # Entity registry, component storage
-│   │   ├── components/         # Pure data components (20+ files)
-│   │   ├── systems/            # Logic systems (15+ files)
-│   │   └── prefabs/            # Entity factories
-│   │
-│   └── game/                   # Game-specific code
-│       ├── scenes/             # Scene managers (menu, gameplay, etc.)
-│       ├── services/           # Singleton services (assets, audio)
-│       ├── config.py           # Screen detection, dimensions
-│       ├── constants.py        # Colors, defaults, magic numbers
-│       └── settings.py         # Runtime configurable options
-│
-└── tests/                      # Test suite
-    ├── ecs/                    # ECS unit tests
-    ├── game/                   # Game integration tests
-    └── legacy/                 # Deprecated test code
-```
-
----
-
-## Key Components
-
-### **Position Component**
 ```python
 @dataclass
 class Position:
-    """Entity location in grid or screen space."""
-    x: float
-    y: float
-```
-**Used by:** Snake, Apple, Obstacle, Wall
+    """Location on the grid."""
+    x: int
+    y: int
+    prev_x: int = 0
+    prev_y: int = 0
 
-### **Velocity Component**
-```python
 @dataclass
 class Velocity:
-    """Movement direction and speed."""
-    dx: int  # Direction: -1, 0, or 1
-    dy: int  # Direction: -1, 0, or 1
+    """Direction and speed."""
+    dx: int  # -1, 0, or 1
+    dy: int
+    speed: float = 10.0  # cells per second
 ```
-**Used by:** Snake
 
-### **SnakeBody Component**
+### Snake
+
 ```python
 @dataclass
-class Body:
-    """Snake segments and growth queue."""
-    segments: list[tuple[int, int]]
-    length: int
-    growth_queue: int = 0
+class SnakeBody:
+    """Snake segments."""
+    segments: list[Position]
+    size: int = 1
+    alive: bool = True
 ```
-**Used by:** Snake
 
-### **GameState Component**
+### Global State (Singleton)
+
 ```python
 @dataclass
 class GameState:
-    """Global game state flags."""
+    """Global game state (one instance)."""
     paused: bool = False
     game_over: bool = False
     death_reason: str = ""
     next_scene: Optional[str] = None
-```
-**Used by:** Global game entity (singleton)
 
-### **Score Component**
-```python
 @dataclass
 class Score:
-    """Current score and high score."""
+    """Score (one instance)."""
     current: int = 0
     high_score: int = 0
 ```
-**Used by:** Global game entity (singleton)
 
-### **Renderable Component**
+### Rendering
+
 ```python
 @dataclass
 class Renderable:
-    """Visual representation data."""
-    color: tuple[int, int, int]
-    shape: str  # "rect", "circle", "sprite"
-    layer: int  # Draw order
+    """How to draw the entity."""
+    shape: Literal["circle", "square", "rectangle", "text"]
+    color: Color
+    size: int = 20
+    secondary_color: Optional[Color] = None  # tail color
     visible: bool = True
 ```
-**Used by:** Snake, Apple, Obstacle, Wall, HUD
 
-**Full catalog:** See `src/ecs/components/` directory
+**See all:** `src/ecs/components/`
 
----
+## 5. Main Systems
 
-## Key Systems
+Systems in `src/ecs/systems/` process entities:
 
-### **InputSystem** 
-**File:** `src/ecs/systems/input.py`  
-**Responsibility:** Convert raw pygame events into component mutations
-
-**Reads:** Pygame events  
-**Writes:** `Velocity`, `GameState`  
-**Queries:** Entities with `Velocity` component
-
-**Key behaviors:**
-- Maps arrow keys/WASD to direction changes
-- Prevents 180-degree turns
-- Handles P (pause), Q (quit), M (menu), N (music toggle), C (palette randomize)
-- Updates `GameState.paused` when P is pressed
-- Sets `GameState.next_scene` when M is pressed
-
----
-
-### **MovementSystem**
-**File:** `src/ecs/systems/movement.py`  
-**Responsibility:** Update entity positions based on velocity
-
-**Reads:** `Position`, `Velocity`, `GameSettings`  
-**Writes:** `Position`, `Body.segments`  
-**Queries:** Entities with `Position` and `Velocity`
-
-**Key behaviors:**
-- Moves snake head by `(dx, dy)` each tick
-- Updates snake body segments (follow the leader)
-- Handles grid wrapping for non-electric walls
-- Maintains snake segment history for rendering
-
----
-
-### **CollisionSystem**
-**File:** `src/ecs/systems/collision.py`  
-**Responsibility:** Detect collisions and update game state
-
-**Reads:** `Position`, `Body`, `GameSettings`  
-**Writes:** `GameState`, `Score`, `Body.growth_queue`  
-**Queries:** Entities with `Position` and collision tags
-
-**Key behaviors:**
-- Checks snake head against apples → increases score and snake length
-- Checks snake head against walls (electric mode) → game over
-- Checks snake head against obstacles → game over
-- Checks snake head against its own body → game over
-- Plays collision sounds via `AudioService`
-
----
-
-### **RenderSystem (BoardRenderSystem, EntityRenderSystem, SnakeRenderSystem, UIRenderSystem)**
-**Files:** `src/ecs/systems/*_render.py`  
-**Responsibility:** Draw all visual elements to screen
-
-**Reads:** `Position`, `Renderable`, `Body`, `GameSettings`, `Interpolation`  
-**Writes:** None (read-only)  
-**Queries:** Entities with `Position` and `Renderable`
-
-**Key behaviors:**
-- Clears screen with arena color
-- Draws grid lines
-- Draws obstacles as rectangles
-- Draws snake with smooth interpolation
-- Draws apples
-- Draws UI overlays (score, music indicator, pause screen)
-
----
-
-### **AudioSystem**
-**File:** `src/ecs/systems/audio.py`  
-**Responsibility:** Play sound effects and background music
-
-**Reads:** `AudioState`, music state entity  
-**Writes:** None (triggers pygame mixer)  
-**Queries:** Entities with audio components
-
-**Key behaviors:**
-- Processes SFX queue, plays sounds on available channels
-- Manages background music playback, pause, stop
-- Respects music enabled flag
-
----
-
-**Full catalog:** See `.cursor/rules/ecs_systems.mdc`
-
----
-
-## Design Patterns
-
-### **Singleton Components**
-
-Some components exist on a single global entity:
-- `GameState` - global game state flags
-- `Score` - current and high score
-- `GameSettings` - color scheme, difficulty, etc.
+### Input
 
 ```python
-# Get the global game state
-game_state = world.get_singleton(GameState)
-game_state.paused = True
-```
-
-### **Tag Components**
-
-Components with no data, used to mark entity types:
-- `ObstacleTag` - marks obstacles
-- `EdibleTag` - marks apples
-
-```python
-@dataclass
-class ObstacleTag:
-    """Marker for obstacle entities."""
-    pass
-```
-
-### **Event-Based Communication**
-
-Systems communicate through:
-1. **Component mutations:** One system writes, another reads
-2. **Audio events:** Systems queue sounds via `AudioService`
-3. **Scene transitions:** Systems set `GameState.next_scene`
-
-### **Command Pattern**
-
-Input events are converted to commands:
-```python
-@dataclass
-class MoveCommand:
-    """Command to change snake direction."""
-    dx: int
-    dy: int
-```
-
-### **Prefab Factories**
-
-Common entity configurations are encapsulated:
-```python
-def create_snake(world: World, x: int, y: int) -> int:
-    """Create a snake entity with all components."""
-    entity_id = world.create_entity()
-    world.add_component(entity_id, Position(x, y))
-    world.add_component(entity_id, Velocity(1, 0))
-    world.add_component(entity_id, Body(segments=[], length=3))
-    world.add_component(entity_id, Renderable(color=(0, 255, 0)))
-    return entity_id
-```
-
----
-
-## Examples
-
-### **Example 1: Adding a New Component**
-
-**Goal:** Add a `Speed` component to control entity movement speed.
-
-```python
-# 1. Create component file: src/ecs/components/speed.py
-from dataclasses import dataclass
-
-@dataclass
-class Speed:
-    """Movement speed multiplier."""
-    value: float = 1.0
-```
-
-```python
-# 2. Add to prefab: src/ecs/prefabs/snake.py
-def create_snake(world, x, y):
-    entity_id = world.create_entity()
-    world.add_component(entity_id, Position(x, y))
-    world.add_component(entity_id, Velocity(1, 0))
-    world.add_component(entity_id, Speed(1.0))  # ← New component
-    # ...
-    return entity_id
-```
-
-```python
-# 3. Use in system: src/ecs/systems/movement.py
-def update(self, world):
-    for entity_id in world.query(Position, Velocity, Speed):
-        pos = world.get_component(entity_id, Position)
-        vel = world.get_component(entity_id, Velocity)
-        speed = world.get_component(entity_id, Speed)  # ← Read new component
-        
-        pos.x += vel.dx * speed.value  # ← Use speed multiplier
-        pos.y += vel.dy * speed.value
-```
-
-### **Example 2: Adding a New System**
-
-**Goal:** Add a `PowerupSystem` that spawns power-ups periodically.
-
-```python
-# 1. Create system file: src/ecs/systems/powerup.py
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-
-class PowerupSystem(BaseSystem):
-    """Spawns power-ups at random positions."""
+class InputSystem(BaseSystem):
+    """Converts input into component changes."""
     
-    def __init__(self, spawn_interval_ms: int):
-        self._spawn_interval = spawn_interval_ms
-        self._time_since_spawn = 0
+    # Reads: pygame events
+    # Writes: Velocity, GameState
     
+    # Example: right arrow
+    if key == K_RIGHT and velocity.dx != -1:
+        velocity.dx = 1
+        velocity.dy = 0
+```
+
+### Logic
+
+```python
+class MovementSystem(BaseSystem):
+    """Moves entities based on velocity."""
+    # Reads: Position, Velocity
+    # Writes: Position
+
+class CollisionSystem(BaseSystem):
+    """Detects collisions."""
+    # Reads: Position, SnakeBody
+    # Writes: GameState, Score
+
+class ScoringSystem(BaseSystem):
+    """Updates score."""
+    # Reads: Score, collision events
+    # Writes: Score
+```
+
+### Rendering
+
+```python
+class SnakeRenderSystem(BaseSystem):
+    """Draws the snake with interpolation."""
+    # Reads: Position, SnakeBody, Renderable, Interpolation
+    # Writes: pygame surface
+
+class UIRenderSystem(BaseSystem):
+    """Draws HUD, score, pause."""
+    # Reads: Score, GameState
+    # Writes: pygame surface
+```
+
+**See all:** `src/ecs/systems/`
+
+## 6. Execution Order
+
+Systems execute in **fixed order** each frame. This order is defined in `GameplayScene` and ensures that data flows correctly between systems.
+
+### Concept: Three Execution Phases
+
+Every game frame goes through **3 phases** in order:
+
+#### **Phase 1: Input**
+- **Goal:** Capture player actions
+- **Behavior:** Always executed (even when paused)
+- **Why?** The player needs to unpause the game
+- **Example:** Read pressed keys and update snake direction
+
+#### **Phase 2: Game Logic**
+- **Goal:** Process rules and simulate the world
+- **Behavior:** Pausable (doesn't execute when `GameState.paused = True`)
+- **Why?** The game "freezes" when paused
+- **Examples:**
+  - Move entities based on velocity
+  - Detect collisions
+  - Spawn new objects
+  - Update score
+  - Generate obstacles
+  - Apply settings
+
+#### **Phase 3: Rendering & Audio**
+- **Goal:** Present the game state to the player
+- **Behavior:** Always executed (even when paused)
+- **Why?** The player needs to see "PAUSED" on screen
+- **Examples:**
+  - Calculate smooth animations (interpolation)
+  - Play sounds and music
+  - Draw board
+  - Draw entities
+  - Draw UI (score, pause, etc)
+
+### How Pause Works
+
+```
+When GameState.paused = True:
+
+✅ PHASE 1 (Input)       → EXECUTES (to detect "unpause")
+❌ PHASE 2 (Logic)       → SKIPS (game frozen)
+✅ PHASE 3 (Rendering)   → EXECUTES (shows paused frame)
+```
+
+The implementation checks each system's index and skips those belonging to the logic phase when the game is paused.
+
+### Why Order Matters
+
+The execution order **within each phase** is critical to avoid bugs:
+
+**✅ Correct Order:**
+```
+1. Read player input
+2. Update velocity based on input
+3. Move entities based on velocity
+4. Detect collisions at new positions
+5. Draw entities at final positions
+```
+
+**❌ Wrong Order causes problems:**
+```
+If rendering before moving:
+→ Draws snake at old position (delayed movement)
+
+If detecting collision before moving:
+→ Detects collisions at old position (collision bugs)
+
+If reading input after moving:
+→ Input has 1 frame delay (sluggish controls)
+```
+
+### Rules for Adding Systems
+
+When adding a new system, ask:
+
+**1. Which phase does it belong to?**
+- Input? → First position (always active)
+- Game logic? → Middle (pausable)
+- Rendering? → End (always active)
+
+**2. What data does it read?**
+- Place **after** systems that write that data
+
+**3. What data does it write?**
+- Place **before** systems that read that data
+
+**Practical example:**
+```
+New PowerupSystem that:
+- Reads: Position (written by MovementSystem)
+- Writes: Speed (read by MovementSystem in next frame)
+
+Correct order:
+MovementSystem → PowerupSystem → CollisionSystem
+```
+
+### Where to See Current Order
+
+The exact system order is in:
+- **File:** `src/game/scenes/gameplay.py`
+- **Method:** `GameplayScene.on_attach()` or `_create_systems()`
+
+The system list is defined in that method and executed in order in `GameplayScene.update()`.
+
+## 7. How to Add Features
+
+This section shows the **complete pipeline** to add a feature to Naja, from idea to tested and integrated code.
+
+### Contribution Pipeline
+
+We'll use a **real example** already implemented in the project: **`AppleSpawnSystem`**
+
+This system always maintains the correct number of apples in the game, spawning new ones when needed.
+
+#### **Step 1: Plan the Feature**
+
+Before starting to code, answer:
+
+1. **What new components do I need?**
+   - `AppleConfig` - configuration for how many apples should exist
+   - Reuse: `Position`, `Renderable`, `Edible` (already exist)
+
+2. **What new systems do I need?**
+   - `AppleSpawnSystem` - maintains correct number of apples in game
+   - Don't need to modify `CollisionSystem` (already removes eaten apples)
+
+3. **What data does each system read/write?**
+   ```
+   AppleSpawnSystem:
+   - Reads: AppleConfig (how many apples we want)
+   - Reads: Apple entities (how many exist now)
+   - Reads: Positions of Snake, Obstacles, other Apples
+   - Writes: Creates new Apple entities via prefab
+   ```
+
+4. **Where in execution order?**
+   ```
+   AppleSpawnSystem → Phase 2 (Logic) - pausable
+   Position: after CollisionSystem (which removes apples)
+   Before ScoringSystem (to spawn before counting)
+   ```
+
+#### **Step 2: Create the Components**
+
+**Required components:**
+- `AppleConfig` - configuration for how many apples we want (new)
+- `Position`, `Renderable`, `Edible` - reused (already existed)
+
+```python
+# src/ecs/components/apple_config.py
+@dataclass
+class AppleConfig:
+    """Global apple configuration in the game."""
+    desired_count: int = 1  # How many apples should exist
+```
+
+**Key concept:** Components are just data. `AppleConfig` is a singleton that stores **configuration**, not logic.
+
+📁 **See full implementation:** [`src/ecs/components/apple_config.py`](../src/ecs/components/apple_config.py)
+
+#### **Step 3: Create the Prefab**
+
+**What it does:** Factory that creates apples with all necessary components.
+
+```python
+# src/ecs/prefabs/apple.py
+def create_apple(world: World, x: int, y: int, grid_size: int, 
+                 color=None, points=10, growth=1) -> int:
+    """Creates apple at position (x, y) with configured components."""
+    apple = Apple(
+        position=Position(x=x, y=y),
+        edible=Edible(points=points, growth=growth),
+        renderable=Renderable(shape="circle", color=..., size=grid_size)
+    )
+    return world.registry.add(apple)
+```
+
+**Key concept:** Prefabs encapsulate entity creation. Makes it easy to reuse and maintain consistency.
+
+📁 **See full implementation:** [`src/ecs/prefabs/apple.py`](../src/ecs/prefabs/apple.py)
+
+#### **Step 4: Create the System**
+
+**System responsibilities:**
+1. Count how many apples exist
+2. Compare with desired count
+3. Spawn new ones if necessary
+4. Find valid positions (avoid snake, obstacles, etc)
+
+```python
+# src/ecs/systems/apple_spawn.py
+class AppleSpawnSystem(BaseSystem):
     def update(self, world: World) -> None:
-        """Update powerup spawning logic."""
-        self._time_since_spawn += world.dt_ms
+        # 1. How many do we want?
+        desired_count = self._get_desired_apple_count(world)
         
-        if self._time_since_spawn >= self._spawn_interval:
-            self._spawn_powerup(world)
-            self._time_since_spawn = 0
+        # 2. How many do we have?
+        current_apples = world.registry.query_by_type(EntityType.APPLE)
+        current_count = len(current_apples)
+        
+        # 3. Spawn difference
+        for _ in range(desired_count - current_count):
+            position = self._find_valid_position(world)
+            if position:
+                create_apple(world, x=position[0], y=position[1], ...)
     
-    def _spawn_powerup(self, world: World) -> None:
-        """Create a powerup entity at random position."""
-        # Implementation here
-        pass
+    def _find_valid_position(self, world):
+        """Finds position that doesn't collide with anything."""
+        occupied = self._get_occupied_positions(world)
+        # Try to find free position...
 ```
 
+**Key concepts:**
+- System **only has logic**, no own data
+- Uses **queries** to get data from components
+- Uses **prefabs** to create entities
+- Private methods organize responsibilities
+
+📁 **See full implementation:** [`src/ecs/systems/apple_spawn.py`](../src/ecs/systems/apple_spawn.py)
+
+#### **Step 5: Register the System**
+
+**Where:** `src/game/scenes/gameplay.py` in the `on_attach()` method
+
 ```python
-# 2. Register in scene: src/game/scenes/gameplay.py
-def on_attach(self):
-    self._systems.extend([
-        InputSystem(...),
-        MovementSystem(...),
-        CollisionSystem(...),
-        PowerupSystem(5000),  # ← New system: spawn every 5 seconds
-        # ...
-    ])
+self._systems.extend([
+    InputSystem(...),          # 0: Input (always active)
+    MovementSystem(...),       # 1: Movement
+    CollisionSystem(...),      # 2: Collision (removes eaten apples)
+    AppleSpawnSystem(1000),    # 3: Spawn (restocks apples) ← HERE!
+    ScoringSystem(...),        # 4: Scoring
+    # ...
+])
 ```
 
-### **Example 3: Querying Entities**
+**Key concept:** Order matters! `AppleSpawnSystem` comes **after** `CollisionSystem` because:
+- `CollisionSystem` removes eaten apples
+- `AppleSpawnSystem` counts how many remain and spawns new ones
+- If reversed, it would spawn before removing!
 
-```python
-# Get all entities with Position and Velocity
-for entity_id in world.query(Position, Velocity):
-    pos = world.get_component(entity_id, Position)
-    vel = world.get_component(entity_id, Velocity)
-    print(f"Entity {entity_id} at ({pos.x}, {pos.y}) moving ({vel.dx}, {vel.dy})")
+📁 **See where it's registered:** [`src/game/scenes/gameplay.py`](../src/game/scenes/gameplay.py)
 
-# Get the snake entity (assuming only one exists)
-snake_entities = world.query(Position, Body)
-if snake_entities:
-    snake_id = list(snake_entities)[0]
-    snake_pos = world.get_component(snake_id, Position)
+#### **Step 6: Create the Tests**
+
+**Create file:**
+```bash
+touch tests/ecs/test_apple_spawn.py
 ```
 
----
-
-## Testing Strategy
-
-### **Unit Tests for Systems**
-
-Test systems in isolation with mock components:
+**Important tests:**
 
 ```python
-def test_movement_system():
-    # Arrange: Create world and entities
-    world = World()
-    entity_id = world.create_entity()
-    world.add_component(entity_id, Position(10, 20))
-    world.add_component(entity_id, Velocity(1, 0))
+# tests/ecs/test_apple_spawn.py
+
+def test_spawn_maintains_apple_count():
+    """System maintains desired number of apples."""
+    # Setup: want 3 apples
+    config = Entity(apple_config=AppleConfig(desired_count=3))
+    world.registry.add(config)
     
-    # Act: Run system
-    system = MovementSystem()
+    # Execute system
     system.update(world)
     
-    # Assert: Check position changed
-    pos = world.get_component(entity_id, Position)
-    assert pos.x == 11
-    assert pos.y == 20
+    # Verify: has 3 apples?
+    assert len(world.registry.query_by_type(EntityType.APPLE)) == 3
+
+def test_respawn_after_eating():
+    """Spawns new apple when one is eaten."""
+    # ... create apple, remove (simulate eating), execute system
+    # ... verify new one spawned
+
+def test_no_spawn_on_full_board():
+    """Doesn't spawn if there's no space."""
+    # ... fill entire board, try to spawn
+    # ... verify didn't spawn
+
+def test_avoids_snake_position():
+    """Apple doesn't spawn on snake."""
+    # ... create snake, spawn apple
+    # ... verify it's not in same position
 ```
 
-### **Integration Tests**
+**Key concepts:**
+- Test **setup** (create world, entities)
+- Test **execution** (run system)
+- Test **verification** (assert)
+- Each test covers **one scenario**
 
-Test full game scenarios:
+📁 **See full tests:** [`tests/ecs/test_spawn_system.py`](../tests/ecs/test_spawn_system.py) (real project tests)
+
+**Run:**
+```bash
+pytest tests/ecs/test_apple_spawn.py -v
+pytest tests/ecs/  # all ECS tests
+```
+
+#### **Step 7: Integrate and Document**
+
+**To contribute your feature:**
+
+📚 **Follow the complete contribution guide:** [`docs/CONTRIBUTING.md`](CONTRIBUTING.md)
+
+The guide covers:
+- How to make atomic commits
+- Commit message conventions
+- How to create Pull Requests
+- Code review process
+- Documentation best practices
+
+### Contribution Checklist
+
+When adding a feature, verify:
+
+- [ ] **Components created** with `@dataclass` and exported
+- [ ] **Prefabs created** to facilitate entity creation
+- [ ] **Systems implement `BaseSystem`** and `update(world)` method
+- [ ] **Pausable systems check `GameState.paused`**
+- [ ] **Systems registered in correct order** in `GameplayScene`
+- [ ] **Unit tests** for each system
+- [ ] **Integration tests** for complete flow
+- [ ] **Documentation updated** (if necessary)
+- [ ] **Code follows conventions** of the project (see `CONTRIBUTING.md`)
+
+## 8. Code Examples
+
+### Entity Queries
+
+```python
+# Query by components - returns dict[int, Entity]
+entities = world.registry.query_by_component("position", "velocity")
+for entity_id, entity in entities.items():
+    print(f"Entity {entity_id} at ({entity.position.x}, {entity.position.y})")
+
+# Query by type - returns dict[int, Entity]
+from src.ecs.entities.entity import EntityType
+snakes = world.registry.query_by_type(EntityType.SNAKE)
+if snakes:
+    entity_id, snake = next(iter(snakes.items()))
+    print(f"Snake at ({snake.position.x}, {snake.position.y})")
+
+# Combined query (type + components)
+snakes = world.registry.query_by_type_and_components(
+    EntityType.SNAKE, "position", "velocity", "body"
+)
+```
+
+### Access Singleton Component
+
+```python
+# GameState is singleton (one instance)
+def _get_game_state(world):
+    entities = world.registry.query_by_component("game_state")
+    if entities:
+        entity = next(iter(entities.values()))
+        return getattr(entity, "game_state", None)
+    return None
+
+# Usage:
+game_state = _get_game_state(world)
+if game_state:
+    if game_state.paused:
+        return  # Skip system
+    game_state.game_over = True
+```
+
+### Create Entity with Prefab
+
+```python
+# Using prefab (recommended)
+from src.ecs.prefabs.snake import create_snake
+
+snake_id = create_snake(
+    world,
+    grid_size=20,
+    initial_speed=10.0,
+    head_color=(255, 0, 0),    # red
+    tail_color=(255, 100, 100)  # light red
+)
+
+# Access created entity
+snake = world.registry.get(snake_id)
+snake.velocity.dx = 1
+```
+
+### System that Detects Collision
+
+```python
+class CollisionSystem(BaseSystem):
+    """Detects snake vs apple/obstacle/wall collisions."""
+    
+    def update(self, world):
+        # Get snake
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        if not snakes:
+            return
+        
+        snake_id, snake = next(iter(snakes.items()))
+        head_pos = (snake.position.x, snake.position.y)
+        
+        # Check collision with apples
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        for apple_id, apple in apples.items():
+            apple_pos = (apple.position.x, apple.position.y)
+            if head_pos == apple_pos:
+                # Collision! Grow snake and remove apple
+                snake.body.size += 1
+                world.registry.remove(apple_id)
+                
+                # Update score
+                score_entities = world.registry.query_by_component("score")
+                if score_entities:
+                    score_entity = next(iter(score_entities.values()))
+                    score_entity.score.current += 10
+```
+
+## 9. Tests
+
+### Test System
+
+```python
+# tests/ecs/test_movement_system.py
+def test_movement_system_moves_entity():
+    """MovementSystem should move entity based on velocity."""
+    # Setup
+    board = Board(width=20, height=20, cell_size=20)
+    world = World(board)
+    
+    # Create test entity
+    entity = Entity(
+        position=Position(x=10, y=10),
+        velocity=Velocity(dx=1, dy=0, speed=10.0)
+    )
+    entity_id = world.registry.add(entity)
+    
+    # Create system
+    system = MovementSystem()
+    
+    # Simulate enough time to move
+    world.dt_ms = 100  # 100ms
+    
+    # Execute
+    system.update(world)
+    
+    # Verify
+    entity = world.registry.get(entity_id)
+    assert entity.position.x == 11
+    assert entity.position.y == 10
+```
+
+### Test Integration
 
 ```python
 def test_snake_eats_apple():
-    # Arrange: Create game with snake and apple
-    world = create_test_world()
-    snake_id = create_snake(world, 10, 20)
-    apple_id = create_apple(world, 11, 20)  # Apple in front of snake
+    """Snake should grow and score increase when eating apple."""
+    # Setup
+    board = Board(width=20, height=20, cell_size=20)
+    world = World(board)
     
-    # Act: Run game tick
-    movement_system.update(world)
+    # Create snake and apple at same position
+    snake_id = create_snake(world, grid_size=20)
+    snake = world.registry.get(snake_id)
+    snake.position.x = 10
+    snake.position.y = 10
+    
+    apple_id = create_apple(world, grid_size=20)
+    apple = world.registry.get(apple_id)
+    apple.position.x = 10
+    apple.position.y = 10
+    
+    # Create score
+    score_entity = Entity(score=Score(current=0))
+    world.registry.add(score_entity)
+    
+    # Execute collision system
+    collision_system = CollisionSystem(settings=None, audio_service=None)
     collision_system.update(world)
     
-    # Assert: Snake grew, apple removed, score increased
-    body = world.get_component(snake_id, Body)
-    assert body.growth_queue == 1
-    assert not world.entity_exists(apple_id)
+    # Verify
+    assert snake.body.size == 2  # grew
+    assert world.registry.get(apple_id) is None  # apple removed
     
-    score = world.get_singleton(Score)
-    assert score.current > 0
+    score_entities = world.registry.query_by_component("score")
+    score_entity = next(iter(score_entities.values()))
+    assert score_entity.score.current == 10
 ```
 
-**Test location:** `tests/ecs/` and `tests/game/`
+**Run tests:**
+```bash
+pytest                 # all tests
+pytest tests/ecs/      # only ECS tests
+pytest tests/ecs/test_movement_system.py  # specific test
+```
 
----
 
-## References
 
-### **External Resources**
+## 10. External Resources
 
-- [Entity-Component-System FAQ](https://github.com/SanderMertens/ecs-faq) - Comprehensive ECS guide
-- [Game Programming Patterns: Component](https://gameprogrammingpatterns.com/component.html) - Classic book chapter
-- [Pygame Documentation](https://www.pygame.org/docs/) - Pygame library reference
+**Learn More About ECS:**
+- 🎥 [ECS Architecture Explained (Video)](https://m.youtube.com/watch?v=AirfWcVOEHw&pp=ygUQZWNzIGFyY2hpdGVjdHVyZQ%3D%3D) - Visual introduction to ECS concepts
+- 📖 [Entity-Component-System FAQ](https://github.com/SanderMertens/ecs-faq) - Comprehensive ECS reference
+- 🎮 [Game Programming Patterns: Component](https://gameprogrammingpatterns.com/component.html) - Design pattern explanation
 
-### **Project Documentation**
 
-- `.cursor/rules/ecs_overview.mdc` - ECS architecture overview
-- `.cursor/rules/ecs_entities_components.mdc` - Component catalog
-- `.cursor/rules/ecs_systems.mdc` - System catalog
-- `.cursor/rules/ecs_coding_standards.mdc` - Code style guide
-- `.cursor/rules/ecs_testing.mdc` - Testing strategies
-- `docs/CONTRIBUTING.md` - Contribution workflow
-- `docs/manual.md` - User documentation
-
-### **Architecture Decision Records**
-
-- `docs/adr/0001-choose-ecs.md` - Why we chose ECS architecture
-
----
 
 ## Summary
 
-Naja's ECS architecture provides a **clean separation of concerns** through:
+**Naja uses ECS to:**
+- Separate data (components) from logic (systems)
+- Keep code modular and testable
+- Facilitate open-source contributions
 
-1. **Pure data components** - No logic, just data structures
-2. **Independent systems** - Single responsibility, no direct coupling
-3. **Central world registry** - Entity and component management
-4. **Fixed execution order** - Predictable, deterministic behavior
-5. **Scene-based organization** - Different game modes with different system configurations
+**To contribute:**
+1. Read components in `src/ecs/components/`
+2. Read systems in `src/ecs/systems/`
+3. See execution order in `src/game/scenes/gameplay.py`
+4. Follow examples above to add features
+5. Write tests in `tests/ecs/`
 
-This architecture makes the codebase **maintainable**, **testable**, and **extensible**, providing an excellent foundation for learning game development and open-source collaboration.
+**Additional documentation:**
+- `docs/CONTRIBUTING.md` - contribution guide
+- `docs/manual.md` - user manual
+- `.cursor/rules/` - detailed ECS rules
 
----
-
-**For more details, see:**
-- Component catalog: `.cursor/rules/ecs_entities_components.mdc`
-- System catalog: `.cursor/rules/ecs_systems.mdc`
-- Code standards: `.cursor/rules/ecs_coding_standards.mdc`
-- Project structure: `.cursor/rules/ecs_project_structure.mdc`

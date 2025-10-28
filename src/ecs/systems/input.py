@@ -117,8 +117,8 @@ class InputSystem(BaseSystem):
             self._handle_quit(world)
         elif key == pygame.K_p:
             self._handle_pause(world)
-        elif key == pygame.K_m:
-            self._handle_menu(world)
+        # elif key == pygame.K_m:
+        #     self._handle_menu(world)  # disabled: removed ability to open settings from gameplay
         elif key == pygame.K_n:
             self._handle_music_toggle()
         elif key == pygame.K_c:
@@ -205,29 +205,36 @@ class InputSystem(BaseSystem):
         if game_state:
             game_state.paused = not game_state.paused
 
-    def _handle_menu(self, world: World) -> None:
-        """Handle menu key press by pausing and setting next_scene.
-
-        Args:
-            world: ECS world
-        """
-        game_state = self._get_game_state(world)
-        if game_state:
-            game_state.paused = True
-            game_state.next_scene = "settings"
+    # disabled: removed ability to open settings from gameplay
+    # def _handle_menu(self, world: World) -> None:
+    #     """Handle menu key press by pausing and setting next_scene.
+    #
+    #     Args:
+    #         world: ECS world
+    #     """
+    #     game_state = self._get_game_state(world)
+    #     if game_state:
+    #         game_state.paused = True
+    #         game_state.next_scene = "settings"
 
     def _handle_music_toggle(self) -> None:
-        """Handle music toggle key press.
+        """Handle audio toggle key press.
 
-        Note: This temporarily uses settings until audio components are added.
+        Toggles all audio (both music and sound effects).
         """
         if self._settings:
-            # toggle background music setting
-            current = self._settings.get("background_music")
-            self._settings.set("background_music", not current)
+            # toggle both background music and sound effects
+            current_music = self._settings.get("background_music")
+            current_sfx = self._settings.get("sound_effects")
 
-            # apply immediately
-            if self._settings.get("background_music"):
+            # If either is on, turn both off. If both are off, turn both on.
+            new_state = not (current_music or current_sfx)
+
+            self._settings.set("background_music", new_state)
+            self._settings.set("sound_effects", new_state)
+
+            # apply music change immediately
+            if new_state:
                 pygame.mixer.music.unpause()
             else:
                 pygame.mixer.music.pause()

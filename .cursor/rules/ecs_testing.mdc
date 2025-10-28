@@ -1,5 +1,5 @@
 ---
-description: "Estratégias de teste para arquitetura ECS"
+description: "Testing strategies for ECS architecture"
 globs: ["tests/**/*", "src/**/*"]
 ---
 

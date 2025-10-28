@@ -386,18 +386,16 @@ Before submitting PR:
 2. Use `@dataclass` decorator
 3. Pure data only, no methods
 4. Add docstring explaining purpose
-5. Update `ecs_entities_components.mdc`
-6. Add component to relevant prefabs
-7. Write tests in `tests/ecs/test_components.py`
+5. Add component to relevant prefabs
+6. Write tests in `tests/ecs/test_components.py`
 
 ### Adding a New System
 1. Create file in `src/ecs/systems/`
 2. Inherit from `GameSystem`
 3. Override `update(dt_ms)` method
 4. Document reads/writes/queries in docstring
-5. Update `ecs_systems.mdc` with system details
-6. Add to system execution order in scene
-7. Write unit tests in `tests/ecs/test_<system_name>.py`
+5. Add to system execution order in scene
+6. Write unit tests in `tests/ecs/test_<system_name>.py`
 
 ### Adding a New Prefab
 1. Create file in `src/ecs/prefabs/`

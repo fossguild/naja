@@ -22,6 +22,9 @@
 This system handles SFX queue processing and music control.
 It manages pygame mixer channels for simultaneous sound effects
 and respects music enabled flag from settings.
+
+The system now uses SfxQueueService for managing the sound effects
+queue instead of relying on ECS components (anti-pattern).
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ import pygame
 
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
+from src.game.services.sfx_queue_service import SfxQueueService
 
 
 class AudioSystem(BaseSystem):
@@ -38,10 +42,12 @@ class AudioSystem(BaseSystem):
 
     def __init__(
         self,
+        sfx_queue_service: SfxQueueService,
         sound_assets: Optional[Dict[str, pygame.mixer.Sound]] = None,
         music_tracks: Optional[Dict[str, str]] = None,
         default_volume: float = 0.2,
     ):
+        self._sfx_queue_service = sfx_queue_service
         self._sound_assets = sound_assets or {}
         self._music_tracks = music_tracks or {}
         self._default_volume = default_volume
@@ -60,13 +66,9 @@ class AudioSystem(BaseSystem):
 
     def _process_sfx_queue(self, world: World) -> None:
         """Process and play all queued sound effects."""
-        audio_queue_entities = world.registry.query_by_component("sfx_queue")
-        for entity_id in audio_queue_entities:
-            entity = world.registry.get(entity_id)
-            if hasattr(entity, "sfx_queue"):
-                for sfx_name in entity.sfx_queue:
-                    self.play_sfx(sfx_name)
-                entity.sfx_queue.clear()
+        queued_sounds = self._sfx_queue_service.get_all_queued_sounds()
+        for sfx_name in queued_sounds:
+            self.play_sfx(sfx_name)
 
     def play_sfx(self, sfx_name: str) -> bool:
         """Play a sound effect."""
@@ -78,14 +80,13 @@ class AudioSystem(BaseSystem):
         except pygame.error:
             return False
 
-    def queue_sfx(self, world: World, sfx_name: str) -> None:
-        """Add sound effect to queue."""
-        audio_queue_entities = world.registry.query_by_component("sfx_queue")
-        if audio_queue_entities:
-            entity_id = list(audio_queue_entities.keys())[0]
-            entity = world.registry.get(entity_id)
-            if hasattr(entity, "sfx_queue"):
-                entity.sfx_queue.append(sfx_name)
+    def queue_sfx(self, sfx_name: str) -> None:
+        """Add sound effect to queue.
+
+        Args:
+            sfx_name: Name of the sound effect to queue.
+        """
+        self._sfx_queue_service.queue_sound(sfx_name)
 
     def play_music(
         self, world: World, track_name: str = "background", loop: bool = True

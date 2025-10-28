@@ -27,7 +27,6 @@ from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
 from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
-from src.ecs.components.palette import Palette
 from src.core.types.color import Color
 
 
@@ -76,11 +75,8 @@ def create_snake(
         renderable=Renderable(
             shape="square",
             color=Color(head_color[0], head_color[1], head_color[2]),
+            secondary_color=Color(tail_color[0], tail_color[1], tail_color[2]),
             size=grid_size,
-        ),
-        palette=Palette(
-            primary_color=head_color,  # head color
-            secondary_color=tail_color,  # tail color
         ),
     )
 

@@ -139,3 +139,8 @@ class MenuScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering menu."""
         self._selected_index = 0
+
+        # Ensure background music is playing when entering menu
+        # (it might have stopped if coming from game over)
+        if self._settings.get("background_music"):
+            GameAssets.play_background_music(loop=True)

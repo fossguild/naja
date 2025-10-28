@@ -31,7 +31,6 @@ from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
 from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
-from src.ecs.components.palette import Palette
 from src.core.types.color import Color
 
 
@@ -122,7 +121,6 @@ class TestSpawnApple:
             body=SnakeBody(),
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-            palette=Palette(),
         )
         world_small.registry.add(snake)
 
@@ -146,7 +144,6 @@ class TestSpawnApple:
                     renderable=Renderable(
                         shape="square", color=Color(0, 255, 0), size=30
                     ),
-                    palette=Palette(),
                 )
                 world_small.registry.add(snake)
 
@@ -209,7 +206,6 @@ class TestFreeCellsCount:
             body=SnakeBody(),
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-            palette=Palette(),
         )
         world_small.registry.add(snake)
 
@@ -233,7 +229,6 @@ class TestFreeCellsCount:
             ),
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-            palette=Palette(),
         )
         world_small.registry.add(snake)
 
@@ -255,7 +250,6 @@ class TestFreeCellsCount:
                     renderable=Renderable(
                         shape="square", color=Color(0, 255, 0), size=30
                     ),
-                    palette=Palette(),
                 )
                 world_small.registry.add(snake)
 
@@ -284,7 +278,6 @@ class TestOccupiedCells:
                 body=SnakeBody(),
                 interpolation=Interpolation(),
                 renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-                palette=Palette(),
             )
             world_small.registry.add(snake)
 

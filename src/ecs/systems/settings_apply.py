@@ -24,13 +24,10 @@ and entities in real-time during gameplay.
 """
 
 from typing import Any, Optional
-
 import pygame
-
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
-from src.core.types.color_utils import hex_to_rgb
 
 
 class SettingsApplySystem(BaseSystem):
@@ -87,7 +84,8 @@ class SettingsApplySystem(BaseSystem):
         if not self._initialized:
             self._initialize_tracking()
             self._initialized = True
-            return
+            # Don't return! Apply initial settings immediately
+            # This ensures settings changed in menu are applied when gameplay starts
 
         # check and apply each setting type
         self._check_and_apply_grid_size(world)
@@ -124,12 +122,18 @@ class SettingsApplySystem(BaseSystem):
             world: ECS world instance
         """
         current_cells = self._settings.get("cells_per_side")
-        if current_cells == self._previous_cells_per_side:
-            return
 
-        # grid size changed, apply it
-        self._apply_grid_size_change(world, current_cells)
-        self._previous_cells_per_side = current_cells
+        # Check if board actually matches desired cells
+        # This handles both: settings changes AND initial board creation mismatch
+        actual_cells = world.board.width  # board is always square
+
+        if current_cells != actual_cells:
+            # board doesn't match desired cells, apply change
+            self._apply_grid_size_change(world, current_cells)
+            self._previous_cells_per_side = current_cells
+        elif current_cells != self._previous_cells_per_side:
+            # settings changed but board happens to match, still update tracking
+            self._previous_cells_per_side = current_cells
 
     def _apply_grid_size_change(self, world: World, desired_cells: int) -> None:
         """Apply grid size change to board and window.
@@ -206,17 +210,19 @@ class SettingsApplySystem(BaseSystem):
         head_color_hex = snake_colors.get("head")
         tail_color_hex = snake_colors.get("tail")
 
-        # convert hex colors to RGB tuples
-        head_color = hex_to_rgb(head_color_hex)
-        tail_color = hex_to_rgb(tail_color_hex)
+        # convert hex colors to Color objects
+        from src.core.types.color import Color
 
-        # find the snake entity and update its palette
+        head_color = Color.from_hex(head_color_hex)
+        tail_color = Color.from_hex(tail_color_hex)
+
+        # find the snake entity and update its renderable colors
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
-            if hasattr(snake, "palette"):
-                # update the palette colors
-                snake.palette.primary_color = head_color
-                snake.palette.secondary_color = tail_color
+            if hasattr(snake, "renderable"):
+                # update both head and tail colors in renderable
+                snake.renderable.color = head_color
+                snake.renderable.secondary_color = tail_color
                 print(f"Applied palette: head={head_color_hex}, tail={tail_color_hex}")
                 break
 

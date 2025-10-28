@@ -28,6 +28,7 @@ from src.ecs.components.position import Position
 from src.ecs.components.obstacle import ObstacleTag
 from src.ecs.components.renderable import Renderable
 from src.core.types.color import Color
+from src.game import constants
 
 
 DifficultyLevel = Literal["None", "Easy", "Medium", "Hard", "Impossible"]
@@ -131,15 +132,7 @@ def _calculate_obstacles_from_difficulty(
     Returns:
         int: Number of obstacles to create
     """
-    difficulty_percentages = {
-        "None": 0.0,
-        "Easy": 0.04,
-        "Medium": 0.06,
-        "Hard": 0.10,
-        "Impossible": 0.15,
-    }
-
-    percentage = difficulty_percentages.get(difficulty, 0.0)
+    percentage = constants.DIFFICULTY_PERCENTAGES.get(difficulty, 0.0)
     return int(total_cells * percentage)
 
 

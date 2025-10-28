@@ -20,8 +20,11 @@
 """Command protocol for typed user actions.
 
 Commands are immutable data structures that represent user intentions.
-They are created by UISystem from pygame events and applied by the main loop
-in deterministic order.
+They are created by input systems from pygame events and processed by
+command handlers in the game loop.
+
+Commands represent instantaneous actions/events, not persistent state,
+which is why they are NOT ECS components despite using similar patterns.
 """
 
 from dataclasses import dataclass

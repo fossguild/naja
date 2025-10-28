@@ -20,20 +20,13 @@
 """Audio system tests."""
 
 import pytest
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 from unittest.mock import Mock, patch
 
 from src.ecs.world import World
 from src.ecs.board import Board
 from src.ecs.systems.audio import AudioSystem
-
-
-@dataclass
-class AudioQueueEntity:
-    """Simple audio queue entity for testing."""
-
-    sfx_queue: List[str] = field(default_factory=list)
+from src.game.services.sfx_queue_service import SfxQueueService
 
 
 @dataclass
@@ -69,7 +62,13 @@ def mock_sound():
 
 
 @pytest.fixture
-def audio_system(mock_sound):
+def sfx_queue_service():
+    """Create a SfxQueueService instance."""
+    return SfxQueueService()
+
+
+@pytest.fixture
+def audio_system(mock_sound, sfx_queue_service):
     """Create an AudioSystem with mock sounds."""
     sound_assets = {
         "eat": mock_sound,
@@ -83,6 +82,7 @@ def audio_system(mock_sound):
     }
 
     return AudioSystem(
+        sfx_queue_service=sfx_queue_service,
         sound_assets=sound_assets,
         music_tracks=music_tracks,
         default_volume=0.2,
@@ -141,42 +141,42 @@ class TestSFXPlayback:
 class TestSFXQueue:
     """Test SFX queue processing."""
 
-    def test_queue_sfx_adds_to_queue(self, world, audio_system):
+    def test_queue_sfx_adds_to_queue(self, sfx_queue_service, audio_system):
         """Test queuing sound effect."""
-        audio_queue = AudioQueueEntity()
-        world.registry.add(audio_queue)
+        audio_system.queue_sfx("eat")
 
-        audio_system.queue_sfx(world, "eat")
+        assert sfx_queue_service.has_sounds()
+        assert sfx_queue_service.get_queue_size() == 1
 
-        assert "eat" in audio_queue.sfx_queue
-
-    def test_queue_multiple_sfx(self, world, audio_system):
+    def test_queue_multiple_sfx(self, sfx_queue_service, audio_system):
         """Test queuing multiple sound effects."""
-        audio_queue = AudioQueueEntity()
-        world.registry.add(audio_queue)
+        audio_system.queue_sfx("eat")
+        audio_system.queue_sfx("death")
 
-        audio_system.queue_sfx(world, "eat")
-        audio_system.queue_sfx(world, "death")
+        assert sfx_queue_service.get_queue_size() == 2
 
-        assert len(audio_queue.sfx_queue) == 2
-
-    def test_process_sfx_queue_plays_all_sounds(self, world, audio_system, mock_sound):
+    def test_process_sfx_queue_plays_all_sounds(
+        self, world, sfx_queue_service, audio_system, mock_sound
+    ):
         """Test processing SFX queue plays all sounds."""
-        audio_queue = AudioQueueEntity(sfx_queue=["eat", "death"])
-        world.registry.add(audio_queue)
+        sfx_queue_service.queue_sound("eat")
+        sfx_queue_service.queue_sound("death")
 
         audio_system._process_sfx_queue(world)
 
         assert mock_sound.play.call_count == 2
 
-    def test_process_sfx_queue_clears_queue(self, world, audio_system):
+    def test_process_sfx_queue_clears_queue(
+        self, world, sfx_queue_service, audio_system
+    ):
         """Test processing SFX queue clears it."""
-        audio_queue = AudioQueueEntity(sfx_queue=["eat", "death"])
-        world.registry.add(audio_queue)
+        sfx_queue_service.queue_sound("eat")
+        sfx_queue_service.queue_sound("death")
 
         audio_system._process_sfx_queue(world)
 
-        assert len(audio_queue.sfx_queue) == 0
+        assert not sfx_queue_service.has_sounds()
+        assert sfx_queue_service.get_queue_size() == 0
 
 
 @patch("pygame.mixer.music")
@@ -393,12 +393,12 @@ class TestAvailableAssets:
 class TestIntegration:
     """Integration tests for AudioSystem."""
 
-    def test_full_audio_workflow(self, mock_music, world, audio_system, mock_sound):
+    def test_full_audio_workflow(
+        self, mock_music, world, sfx_queue_service, audio_system, mock_sound
+    ):
         """Test complete audio workflow."""
         # create entities
-        audio_queue = AudioQueueEntity()
         music_state = MusicStateEntity()
-        world.registry.add(audio_queue)
         world.registry.add(music_state)
 
         # start music
@@ -406,9 +406,9 @@ class TestIntegration:
         assert music_state.is_playing is True
 
         # queue and play SFX
-        audio_system.queue_sfx(world, "eat")
+        audio_system.queue_sfx("eat")
         audio_system._process_sfx_queue(world)
-        assert len(audio_queue.sfx_queue) == 0
+        assert sfx_queue_service.get_queue_size() == 0
         mock_sound.play.assert_called()
 
         # pause music
@@ -440,20 +440,20 @@ class TestIntegration:
         result = audio_system.play_music(world, "background")
         assert result is True
 
-    def test_multiple_sfx_with_music(self, mock_music, world, audio_system, mock_sound):
+    def test_multiple_sfx_with_music(
+        self, mock_music, world, sfx_queue_service, audio_system, mock_sound
+    ):
         """Test playing multiple SFX while music plays."""
         music_state = MusicStateEntity()
-        audio_queue = AudioQueueEntity()
         world.registry.add(music_state)
-        world.registry.add(audio_queue)
 
         # start music
         audio_system.play_music(world, "background")
 
         # play multiple SFX simultaneously
-        audio_system.queue_sfx(world, "eat")
-        audio_system.queue_sfx(world, "death")
-        audio_system.queue_sfx(world, "gameover")
+        audio_system.queue_sfx("eat")
+        audio_system.queue_sfx("death")
+        audio_system.queue_sfx("gameover")
 
         audio_system._process_sfx_queue(world)
 

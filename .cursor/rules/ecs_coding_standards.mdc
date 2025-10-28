@@ -1,5 +1,5 @@
 ---
-description: "Padrões de código para arquitetura ECS"
+description: "Code standards for ECS architecture"
 globs: ["src/**/*"]
 ---
 

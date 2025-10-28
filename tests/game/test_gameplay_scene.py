@@ -31,8 +31,7 @@ from src.ecs.systems.spawn import SpawnSystem
 from src.ecs.systems.scoring import ScoringSystem
 from src.ecs.systems.audio import AudioSystem
 from src.ecs.systems.interpolation import InterpolationSystem
-from src.ecs.systems.board_display import BoardRenderSystem
-from src.ecs.systems.validation import ValidationSystem
+from src.ecs.systems.board_render import BoardRenderSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
 
 
@@ -90,7 +89,7 @@ class TestGameplayScene:
 
         # verify system order matches architecture specification
         # order should be: Input, Movement, Collision, Spawn, Scoring,
-        # ObstacleGeneration, Validation, Interpolation, Audio, BoardRender
+        # ObstacleGeneration, Interpolation, Audio, BoardRender
 
         expected_types = [
             InputSystem,
@@ -99,7 +98,6 @@ class TestGameplayScene:
             SpawnSystem,
             ScoringSystem,
             ObstacleGenerationSystem,
-            ValidationSystem,
             InterpolationSystem,
             AudioSystem,
             BoardRenderSystem,

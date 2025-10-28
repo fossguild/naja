@@ -17,24 +17,18 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""UI subsystems for menu handling, dialogs, and command conversion."""
+"""UI subsystems for menu handling and command conversion."""
 
-from .ui_system import UISystem
 from .menu_handler import MenuHandler, StartDecision
 from .settings_handler import SettingsHandler, SettingsResult
-from .dialog_handler import DialogHandler, ResetDecision, GameOverDecision
 from .command_converter import CommandConverter
 from .settings_applicator import SettingsApplicator
 
 __all__ = [
-    "UISystem",
     "MenuHandler",
     "StartDecision",
     "SettingsHandler",
     "SettingsResult",
-    "DialogHandler",
-    "ResetDecision",
-    "GameOverDecision",
     "CommandConverter",
     "SettingsApplicator",
 ]
