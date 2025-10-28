@@ -28,7 +28,7 @@ from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
 from src.ecs.world import World
 from src.ecs.board import Board
-from src.ecs.systems.board_display import BoardRenderSystem
+from src.ecs.systems.board_render import BoardRenderSystem
 
 
 class MockRenderer:
@@ -65,8 +65,9 @@ def test_snake_render_basic():
         velocity=Velocity(dx=1, dy=0),
         body=SnakeBody(segments=[], size=1, alive=True),
         interpolation=Interpolation(alpha=0.0, wrapped_axis="none"),
-        renderable=Renderable(shape="rect", color="green", size=20),
-         secondary_color=(0, 170, 0)),
+        renderable=Renderable(
+            shape="rect", color="green", size=20, secondary_color=(0, 170, 0)
+        ),
     )
 
     # Register snake in world
@@ -112,8 +113,9 @@ def test_snake_render_with_tail():
             alive=True,
         ),
         interpolation=Interpolation(alpha=0.0, wrapped_axis="none"),
-        renderable=Renderable(shape="rect", color="green", size=20),
-         secondary_color=(0, 170, 0)),
+        renderable=Renderable(
+            shape="rect", color="green", size=20, secondary_color=(0, 170, 0)
+        ),
     )
 
     # Register snake in world
@@ -143,8 +145,9 @@ def test_snake_render_with_interpolation():
         velocity=Velocity(dx=1, dy=0),
         body=SnakeBody(segments=[], size=1, alive=True),
         interpolation=Interpolation(alpha=0.5, wrapped_axis="none"),  # 50% interpolated
-        renderable=Renderable(shape="rect", color="green", size=20),
-         secondary_color=(0, 170, 0)),
+        renderable=Renderable(
+            shape="rect", color="green", size=20, secondary_color=(0, 170, 0)
+        ),
     )
 
     # Register snake in world
@@ -181,8 +184,9 @@ def test_snake_render_with_wrapping():
         velocity=Velocity(dx=-1, dy=0),
         body=SnakeBody(segments=[], size=1, alive=True),
         interpolation=Interpolation(alpha=0.5, wrapped_axis="x"),  # Wrapped on x-axis
-        renderable=Renderable(shape="rect", color="green", size=20),
-         secondary_color=(0, 170, 0)),
+        renderable=Renderable(
+            shape="rect", color="green", size=20, secondary_color=(0, 170, 0)
+        ),
     )
 
     # Register snake in world
@@ -215,8 +219,9 @@ def test_snake_dead_not_rendered():
         velocity=Velocity(dx=1, dy=0),
         body=SnakeBody(segments=[], size=1, alive=False),  # Dead!
         interpolation=Interpolation(alpha=0.0, wrapped_axis="none"),
-        renderable=Renderable(shape="rect", color="green", size=20),
-         secondary_color=(0, 170, 0)),
+        renderable=Renderable(
+            shape="rect", color="green", size=20, secondary_color=(0, 170, 0)
+        ),
     )
 
     # Register snake in world

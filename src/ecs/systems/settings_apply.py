@@ -205,6 +205,7 @@ class SettingsApplySystem(BaseSystem):
 
         # convert hex colors to Color objects
         from src.core.types.color import Color
+
         head_color = Color.from_hex(head_color_hex)
         tail_color = Color.from_hex(tail_color_hex)
 

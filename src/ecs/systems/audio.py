@@ -82,7 +82,7 @@ class AudioSystem(BaseSystem):
 
     def queue_sfx(self, sfx_name: str) -> None:
         """Add sound effect to queue.
-        
+
         Args:
             sfx_name: Name of the sound effect to queue.
         """

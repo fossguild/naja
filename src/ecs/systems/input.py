@@ -226,10 +226,10 @@ class InputSystem(BaseSystem):
             # toggle both background music and sound effects
             current_music = self._settings.get("background_music")
             current_sfx = self._settings.get("sound_effects")
-            
+
             # If either is on, turn both off. If both are off, turn both on.
             new_state = not (current_music or current_sfx)
-            
+
             self._settings.set("background_music", new_state)
             self._settings.set("sound_effects", new_state)
 

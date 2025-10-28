@@ -30,7 +30,7 @@ from typing import List
 
 class SfxQueueService:
     """Service for managing sound effects queue.
-    
+
     This replaces the AudioQueue component, transforming what was
     misused as a global state component into a proper service.
     """

@@ -99,10 +99,10 @@ class SnakeRenderSystem(BaseSystem):
         grid_height = world.board.height * cell_size
 
         # Get colors from renderable or use constants as fallback
-        if renderable and hasattr(renderable, 'color'):
+        if renderable and hasattr(renderable, "color"):
             head_color = renderable.color.to_tuple()
             # Use secondary color for tail if available, otherwise derive from head or use constant
-            if hasattr(renderable, 'secondary_color') and renderable.secondary_color:
+            if hasattr(renderable, "secondary_color") and renderable.secondary_color:
                 tail_color = renderable.secondary_color.to_tuple()
             else:
                 tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()

@@ -33,6 +33,7 @@ from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
 from src.core.types.color import Color
 
+
 @pytest.fixture
 def small_board():
     """Create a small 3x3 board for testing (90x90 pixels with 30px cells)."""
@@ -120,7 +121,6 @@ class TestSpawnApple:
             body=SnakeBody(),
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-            
         )
         world_small.registry.add(snake)
 
@@ -144,7 +144,6 @@ class TestSpawnApple:
                     renderable=Renderable(
                         shape="square", color=Color(0, 255, 0), size=30
                     ),
-                    
                 )
                 world_small.registry.add(snake)
 
@@ -207,7 +206,6 @@ class TestFreeCellsCount:
             body=SnakeBody(),
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-            
         )
         world_small.registry.add(snake)
 
@@ -231,7 +229,6 @@ class TestFreeCellsCount:
             ),
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-            
         )
         world_small.registry.add(snake)
 
@@ -253,7 +250,6 @@ class TestFreeCellsCount:
                     renderable=Renderable(
                         shape="square", color=Color(0, 255, 0), size=30
                     ),
-                    
                 )
                 world_small.registry.add(snake)
 
@@ -282,7 +278,6 @@ class TestOccupiedCells:
                 body=SnakeBody(),
                 interpolation=Interpolation(),
                 renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
-                
             )
             world_small.registry.add(snake)
 

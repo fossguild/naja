@@ -300,7 +300,9 @@ class UIRenderSystem(BaseSystem):
                 hint_font = pygame.font.Font(None, hint_font_size)
 
             hint_text = hint_font.render(
-                "Press P to resume", True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                "Press P to resume",
+                True,
+                Color.from_hex(constants.MESSAGE_COLOR).to_tuple(),
             )
             hint_rect = hint_text.get_rect()
             hint_rect.midtop = (surface_width // 2, pause_rect.bottom + 20)

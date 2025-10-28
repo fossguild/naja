@@ -46,7 +46,9 @@ class Renderable:
     sprite_path: Optional[str] = None  # Optional sprite image path
     layer: int = 0  # Rendering layer (higher = drawn on top)
     visible: bool = True  # Whether entity should be rendered
-    secondary_color: Optional[Color] = None  # Optional secondary color (e.g., snake tail)
+    secondary_color: Optional[Color] = (
+        None  # Optional secondary color (e.g., snake tail)
+    )
 
     def get_color_tuple(self) -> tuple[int, int, int]:
         """Get color as RGB tuple for rendering.
