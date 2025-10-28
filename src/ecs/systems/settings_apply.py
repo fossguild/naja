@@ -84,7 +84,8 @@ class SettingsApplySystem(BaseSystem):
         if not self._initialized:
             self._initialize_tracking()
             self._initialized = True
-            return
+            # Don't return! Apply initial settings immediately
+            # This ensures settings changed in menu are applied when gameplay starts
 
         # check and apply each setting type
         self._check_and_apply_grid_size(world)
@@ -121,12 +122,18 @@ class SettingsApplySystem(BaseSystem):
             world: ECS world instance
         """
         current_cells = self._settings.get("cells_per_side")
-        if current_cells == self._previous_cells_per_side:
-            return
 
-        # grid size changed, apply it
-        self._apply_grid_size_change(world, current_cells)
-        self._previous_cells_per_side = current_cells
+        # Check if board actually matches desired cells
+        # This handles both: settings changes AND initial board creation mismatch
+        actual_cells = world.board.width  # board is always square
+
+        if current_cells != actual_cells:
+            # board doesn't match desired cells, apply change
+            self._apply_grid_size_change(world, current_cells)
+            self._previous_cells_per_side = current_cells
+        elif current_cells != self._previous_cells_per_side:
+            # settings changed but board happens to match, still update tracking
+            self._previous_cells_per_side = current_cells
 
     def _apply_grid_size_change(self, world: World, desired_cells: int) -> None:
         """Apply grid size change to board and window.
