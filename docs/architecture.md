@@ -1,8 +1,8 @@
 # Naja ECS Architecture
 
-> **Version:** 2.0 (Simplified)
+> **Version:** 1.0 
 > **Last Updated:** October 2025
-> **Status:** ✅ Fully Implemented
+> **Status:** Fully Implemented
 
 Essential guide to Naja's ECS architecture for contributors.
 
@@ -17,9 +17,7 @@ Essential guide to Naja's ECS architecture for contributors.
 7. [How to Add Features](#7-how-to-add-features)
 8. [Code Examples](#8-code-examples)
 9. [Tests](#9-tests)
-
-
-
+10. [External Resources](#10-external-resources)
 
 
 ## 1. What is ECS?
@@ -724,14 +722,23 @@ pytest tests/ecs/      # only ECS tests
 pytest tests/ecs/test_movement_system.py  # specific test
 ```
 
----
+
+
+## 10. External Resources
+
+**Learn More About ECS:**
+- 🎥 [ECS Architecture Explained (Video)](https://m.youtube.com/watch?v=AirfWcVOEHw&pp=ygUQZWNzIGFyY2hpdGVjdHVyZQ%3D%3D) - Visual introduction to ECS concepts
+- 📖 [Entity-Component-System FAQ](https://github.com/SanderMertens/ecs-faq) - Comprehensive ECS reference
+- 🎮 [Game Programming Patterns: Component](https://gameprogrammingpatterns.com/component.html) - Design pattern explanation
+
+
 
 ## Summary
 
 **Naja uses ECS to:**
-- ✅ Separate data (components) from logic (systems)
-- ✅ Keep code modular and testable
-- ✅ Facilitate open-source contributions
+- Separate data (components) from logic (systems)
+- Keep code modular and testable
+- Facilitate open-source contributions
 
 **To contribute:**
 1. Read components in `src/ecs/components/`
