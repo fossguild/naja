@@ -42,7 +42,6 @@ from src.ecs.systems.board_render import BoardRenderSystem
 from src.ecs.systems.snake_render import SnakeRenderSystem
 from src.ecs.systems.entity_render import EntityRenderSystem
 from src.ecs.systems.ui_render import UIRenderSystem
-from src.ecs.systems.validation import ValidationSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from src.ecs.systems.settings_apply import SettingsApplySystem
 
@@ -51,8 +50,8 @@ class GameplayScene(BaseScene):
     """Gameplay scene that coordinates all ECS systems.
 
     Registers and updates systems in proper execution order.
-    Systems 0-8 are game logic (paused during pause).
-    Systems 9+ are rendering/audio (always run).
+    Systems 0-7 are game logic (paused during pause).
+    Systems 8+ are rendering/audio (always run).
     """
 
     def __init__(
@@ -96,15 +95,15 @@ class GameplayScene(BaseScene):
     def on_attach(self) -> None:
         """Initialize and register all game systems in execution order.
 
-        Systems 0-8 are game logic (paused when game is paused).
-        Systems 9+ are rendering/audio (always run).
+        Systems 0-7 are game logic (paused when game is paused).
+        Systems 8+ are rendering/audio (always run).
         """
         if self._attached:
             return
 
         self._systems.clear()
 
-        # game logic systems (indices 0-8, paused during pause)
+        # game logic systems (indices 0-7, paused during pause)
         from src.ecs.systems.apple_spawn import AppleSpawnSystem
 
         self._systems.extend(
@@ -129,25 +128,22 @@ class GameplayScene(BaseScene):
                 SettingsApplySystem(
                     self._settings, self._config, self._assets
                 ),  # 7: apply runtime settings changes (colors, difficulty, etc)
-                ValidationSystem(
-                    True, 1, 20
-                ),  # 8: debug validation of game state integrity
             ]
         )
 
-        # rendering and audio systems (indices 9+, always run even when paused)
+        # rendering and audio systems (indices 8+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 9: calculate smooth positions for rendering
+                ),  # 8: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 10: play sounds and music
+                ),  # 9: play sounds and music
             ]
         )
 
-        # render systems (11-14: draw board, entities, snake, UI)
+        # render systems (10-13: draw board, entities, snake, UI)
         if self._renderer:
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
@@ -188,9 +184,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-8) but keep input (0) and rendering (9+) running
+        # pause game logic systems (1-7) but keep input (0) and rendering (8+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 8
+        GAME_LOGIC_END = 7
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)
