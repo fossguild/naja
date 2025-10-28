@@ -27,10 +27,6 @@ from src.ecs.components.obstacle import ObstacleTag, Obstacle
 from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
 from src.ecs.components.grid import Grid
-from src.ecs.components.validated import Validated
-from src.ecs.components.ui_state import UIState
-from src.ecs.components.menu_item import MenuItem
-from src.ecs.components.input_state import InputState
 
 __all__ = [
     "Position",
@@ -42,8 +38,4 @@ __all__ = [
     "Interpolation",
     "Renderable",
     "Grid",
-    "Validated",
-    "UIState",
-    "MenuItem",
-    "InputState",
 ]

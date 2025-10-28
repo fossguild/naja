@@ -28,7 +28,6 @@ import pygame
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
-from src.core.types.color_utils import hex_to_rgb
 
 
 class SettingsApplySystem(BaseSystem):
