@@ -1,6 +1,6 @@
 # Naja ECS Architecture
 
-> **Version:** 1.0 
+> **Version:** 1.0
 > **Last Updated:** October 2025
 > **Status:** Fully Implemented
 
@@ -76,11 +76,11 @@ class Position:
 ```python
 class MovementSystem(BaseSystem):
     """Moves entities based on velocity."""
-    
+
     def update(self, world):
         # Query entities with position + velocity
         entities = world.registry.query_by_component("position", "velocity")
-        
+
         for entity in entities.values():
             # Update position based on velocity
             entity.position.prev_x = entity.position.x
@@ -181,10 +181,10 @@ Systems in `src/ecs/systems/` process entities:
 ```python
 class InputSystem(BaseSystem):
     """Converts input into component changes."""
-    
+
     # Reads: pygame events
     # Writes: Velocity, GameState
-    
+
     # Example: right arrow
     if key == K_RIGHT and velocity.dx != -1:
         velocity.dx = 1
@@ -395,7 +395,7 @@ class AppleConfig:
 
 ```python
 # src/ecs/prefabs/apple.py
-def create_apple(world: World, x: int, y: int, grid_size: int, 
+def create_apple(world: World, x: int, y: int, grid_size: int,
                  color=None, points=10, growth=1) -> int:
     """Creates apple at position (x, y) with configured components."""
     apple = Apple(
@@ -424,17 +424,17 @@ class AppleSpawnSystem(BaseSystem):
     def update(self, world: World) -> None:
         # 1. How many do we want?
         desired_count = self._get_desired_apple_count(world)
-        
+
         # 2. How many do we have?
         current_apples = world.registry.query_by_type(EntityType.APPLE)
         current_count = len(current_apples)
-        
+
         # 3. Spawn difference
         for _ in range(desired_count - current_count):
             position = self._find_valid_position(world)
             if position:
                 create_apple(world, x=position[0], y=position[1], ...)
-    
+
     def _find_valid_position(self, world):
         """Finds position that doesn't collide with anything."""
         occupied = self._get_occupied_positions(world)
@@ -488,10 +488,10 @@ def test_spawn_maintains_apple_count():
     # Setup: want 3 apples
     config = Entity(apple_config=AppleConfig(desired_count=3))
     world.registry.add(config)
-    
+
     # Execute system
     system.update(world)
-    
+
     # Verify: has 3 apples?
     assert len(world.registry.query_by_type(EntityType.APPLE)) == 3
 
@@ -618,16 +618,16 @@ snake.velocity.dx = 1
 ```python
 class CollisionSystem(BaseSystem):
     """Detects snake vs apple/obstacle/wall collisions."""
-    
+
     def update(self, world):
         # Get snake
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         if not snakes:
             return
-        
+
         snake_id, snake = next(iter(snakes.items()))
         head_pos = (snake.position.x, snake.position.y)
-        
+
         # Check collision with apples
         apples = world.registry.query_by_type(EntityType.APPLE)
         for apple_id, apple in apples.items():
@@ -636,7 +636,7 @@ class CollisionSystem(BaseSystem):
                 # Collision! Grow snake and remove apple
                 snake.body.size += 1
                 world.registry.remove(apple_id)
-                
+
                 # Update score
                 score_entities = world.registry.query_by_component("score")
                 if score_entities:
@@ -655,23 +655,23 @@ def test_movement_system_moves_entity():
     # Setup
     board = Board(width=20, height=20, cell_size=20)
     world = World(board)
-    
+
     # Create test entity
     entity = Entity(
         position=Position(x=10, y=10),
         velocity=Velocity(dx=1, dy=0, speed=10.0)
     )
     entity_id = world.registry.add(entity)
-    
+
     # Create system
     system = MovementSystem()
-    
+
     # Simulate enough time to move
     world.dt_ms = 100  # 100ms
-    
+
     # Execute
     system.update(world)
-    
+
     # Verify
     entity = world.registry.get(entity_id)
     assert entity.position.x == 11
@@ -686,30 +686,30 @@ def test_snake_eats_apple():
     # Setup
     board = Board(width=20, height=20, cell_size=20)
     world = World(board)
-    
+
     # Create snake and apple at same position
     snake_id = create_snake(world, grid_size=20)
     snake = world.registry.get(snake_id)
     snake.position.x = 10
     snake.position.y = 10
-    
+
     apple_id = create_apple(world, grid_size=20)
     apple = world.registry.get(apple_id)
     apple.position.x = 10
     apple.position.y = 10
-    
+
     # Create score
     score_entity = Entity(score=Score(current=0))
     world.registry.add(score_entity)
-    
+
     # Execute collision system
     collision_system = CollisionSystem(settings=None, audio_service=None)
     collision_system.update(world)
-    
+
     # Verify
     assert snake.body.size == 2  # grew
     assert world.registry.get(apple_id) is None  # apple removed
-    
+
     score_entities = world.registry.query_by_component("score")
     score_entity = next(iter(score_entities.values()))
     assert score_entity.score.current == 10
@@ -751,4 +751,3 @@ pytest tests/ecs/test_movement_system.py  # specific test
 - `docs/CONTRIBUTING.md` - contribution guide
 - `docs/manual.md` - user manual
 - `.cursor/rules/` - detailed ECS rules
-
