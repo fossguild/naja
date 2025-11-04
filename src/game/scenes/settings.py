@@ -128,6 +128,9 @@ class SettingsScene(BaseScene):
                         self._settings.start_key_hold(current_field, +1)
                         # Apply audio settings immediately
                         self._apply_audio_setting_if_changed(current_field["key"])
+                elif event.key == pygame.K_c:
+                    # Randomize snake colors
+                    self._settings.randomize_snake_colors()
 
             elif event.type == pygame.KEYUP:
                 # Stop holding when any left/right key is released
