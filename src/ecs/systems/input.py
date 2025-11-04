@@ -294,9 +294,19 @@ class InputSystem(BaseSystem):
             field_key: The key of the field that was changed
         """
         if field_key == "background_music":
-            # only control background music
+            # control background music
             if self._settings.get("background_music"):
+                # try to unpause first
                 pygame.mixer.music.unpause()
+                # if music isn't playing, reload and start it
+                if not pygame.mixer.music.get_busy():
+                    try:
+                        pygame.mixer.music.load(
+                            "assets/sound/BoxCat_Games_CPU_Talk.ogg"
+                        )
+                        pygame.mixer.music.play(-1)
+                    except Exception:
+                        pass
             else:
                 pygame.mixer.music.pause()
         elif field_key == "sound_effects":
