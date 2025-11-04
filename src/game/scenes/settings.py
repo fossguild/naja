@@ -100,6 +100,9 @@ class SettingsScene(BaseScene):
                     )
                     # Apply audio settings immediately
                     self._apply_audio_setting_if_changed(field_key)
+                elif event.key == pygame.K_c:
+                    # Randomize snake colors
+                    self._settings.randomize_snake_colors()
 
         return None
 
