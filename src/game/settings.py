@@ -47,6 +47,7 @@ class GameSettings:
             "min": 10,
             "max": 60,
             "step": 1,
+            "requires_reset": True,
         },
         {
             "key": "initial_speed",
@@ -55,6 +56,7 @@ class GameSettings:
             "min": 1.0,
             "max": 40.0,
             "step": 0.5,
+            "requires_reset": True,
         },
         {
             "key": "max_speed",
@@ -63,12 +65,14 @@ class GameSettings:
             "min": 4.0,
             "max": 60.0,
             "step": 1.0,
+            "requires_reset": True,
         },
         {
             "key": "obstacle_difficulty",
             "label": "Obstacles",
             "type": "select",
             "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
+            "requires_reset": True,
         },
         {
             "key": "number_of_apples",
@@ -77,19 +81,32 @@ class GameSettings:
             "min": 1,
             "max": 30,
             "step": 1,
+            "requires_reset": True,
         },
-        {"key": "background_music", "label": "Background Music", "type": "bool"},
-        {"key": "sound_effects", "label": "Sound Effects", "type": "bool"},
+        {
+            "key": "background_music",
+            "label": "Background Music",
+            "type": "bool",
+            "requires_reset": False,
+        },
+        {
+            "key": "sound_effects",
+            "label": "Sound Effects",
+            "type": "bool",
+            "requires_reset": False,
+        },
         {
             "key": "electric_walls",
             "label": "Electric walls",
             "type": "bool",
+            "requires_reset": True,
         },
         {
             "key": "snake_color_palette",
             "label": "Snake Color",
             "type": "select",
             "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
+            "requires_reset": False,
         },
     ]
 
@@ -298,3 +315,17 @@ class GameSettings:
 
         random_palette = get_random_snake_colors()
         self.settings["snake_color_palette"] = random_palette["name"]
+
+    def get_in_game_menu_fields(self) -> list:
+        """Get menu fields that can be changed during gameplay.
+
+        Returns only settings that don't require a game reset.
+
+        Returns:
+            List of field definitions that can be adjusted mid-game
+        """
+        return [
+            field
+            for field in self.MENU_FIELDS
+            if not field.get("requires_reset", False)
+        ]

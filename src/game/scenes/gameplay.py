@@ -42,6 +42,7 @@ from src.ecs.systems.board_render import BoardRenderSystem
 from src.ecs.systems.snake_render import SnakeRenderSystem
 from src.ecs.systems.entity_render import EntityRenderSystem
 from src.ecs.systems.ui_render import UIRenderSystem
+from src.ecs.systems.overlay_render import OverlayRenderSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from src.ecs.systems.settings_apply import SettingsApplySystem
 
@@ -88,6 +89,7 @@ class GameplayScene(BaseScene):
         self._snake_render_system: Optional[SnakeRenderSystem] = None
         self._entity_render_system: Optional[EntityRenderSystem] = None
         self._ui_render_system: Optional[UIRenderSystem] = None
+        self._overlay_render_system: Optional[OverlayRenderSystem] = None
         self._game_initializer = GameInitializer(settings=settings)
         self._audio_service = AudioService(settings=settings)
         self._sfx_queue_service = SfxQueueService()
@@ -149,6 +151,9 @@ class GameplayScene(BaseScene):
             self._entity_render_system = EntityRenderSystem(self._renderer)
             self._snake_render_system = SnakeRenderSystem(self._renderer)
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
+            self._overlay_render_system = OverlayRenderSystem(
+                self._renderer, self._settings, self._config
+            )
             self._systems.extend(
                 [
                     self._board_render_system,
@@ -194,9 +199,16 @@ class GameplayScene(BaseScene):
                 continue
             system.update(self._world)
 
-        # draw pause overlay on top of frozen game
-        if is_paused and self._ui_render_system:
-            self._ui_render_system.draw_pause_overlay(
+        # draw settings overlay if settings menu is open
+        if game_state and game_state.settings_menu_open and self._overlay_render_system:
+            self._overlay_render_system.draw_settings_overlay(
+                self._renderer.width,
+                self._renderer.height,
+                game_state.settings_selected_index,
+            )
+        # draw pause overlay on top of frozen game (if not showing settings)
+        elif is_paused and self._overlay_render_system:
+            self._overlay_render_system.draw_pause_overlay(
                 self._renderer.width, self._renderer.height
             )
 

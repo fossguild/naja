@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#   Copyright (c) 2024, Leticia Neves
 #
 #   This file is part of Naja.
 #
@@ -100,6 +99,12 @@ class InputSystem(BaseSystem):
             world: ECS world
             key: Pygame key constant
         """
+        # check if settings menu is open first
+        game_state = self._get_game_state(world)
+        if game_state and game_state.settings_menu_open:
+            self._handle_settings_menu_input(world, key)
+            return
+
         # get current direction for 180° turn prevention
         current_dx, current_dy = self._get_current_direction(world)
 
@@ -117,8 +122,8 @@ class InputSystem(BaseSystem):
             self._handle_quit(world)
         elif key == pygame.K_p:
             self._handle_pause(world)
-        # elif key == pygame.K_m:
-        #     self._handle_menu(world)  # disabled: removed ability to open settings from gameplay
+        elif key in (pygame.K_ESCAPE, pygame.K_m):
+            self._handle_open_settings(world)
         elif key == pygame.K_n:
             self._handle_music_toggle()
         elif key == pygame.K_c:
@@ -205,17 +210,111 @@ class InputSystem(BaseSystem):
         if game_state:
             game_state.paused = not game_state.paused
 
-    # disabled: removed ability to open settings from gameplay
-    # def _handle_menu(self, world: World) -> None:
-    #     """Handle menu key press by pausing and setting next_scene.
-    #
-    #     Args:
-    #         world: ECS world
-    #     """
-    #     game_state = self._get_game_state(world)
-    #     if game_state:
-    #         game_state.paused = True
-    #         game_state.next_scene = "settings"
+    def _handle_open_settings(self, world: World) -> None:
+        """Handle settings menu open key press (ESC or M).
+
+        Opens in-game settings overlay and pauses the game.
+
+        Args:
+            world: ECS world
+        """
+        game_state = self._get_game_state(world)
+        if game_state:
+            # calculate total menu items (settings + "Return to Menu" option)
+            in_game_fields = (
+                self._settings.get_in_game_menu_fields() if self._settings else []
+            )
+            game_state.settings_menu_item_count = (
+                len(in_game_fields) + 1
+            )  # +1 for "Return to Menu"
+            game_state.settings_menu_open = True
+            game_state.paused = True
+            game_state.settings_selected_index = 0
+
+    def _handle_settings_menu_input(self, world: World, key: int) -> None:
+        """Handle input when settings menu is open.
+
+        Args:
+            world: ECS world
+            key: Pygame key constant
+        """
+        game_state = self._get_game_state(world)
+        if not game_state or not self._settings:
+            return
+
+        # use only in-game adjustable fields (no reset required)
+        menu_fields = self._settings.get_in_game_menu_fields()
+        total_items = len(menu_fields) + 1  # +1 for "Return to Menu" option
+        return_to_menu_index = len(menu_fields)  # last item
+
+        # handle ESC to close settings
+        if key == pygame.K_ESCAPE:
+            game_state.settings_menu_open = False
+            game_state.paused = False
+        # handle RETURN to activate selected item
+        elif key == pygame.K_RETURN:
+            if game_state.settings_selected_index == return_to_menu_index:
+                # "Return to Menu" selected
+                game_state.settings_menu_open = False
+                game_state.paused = False
+                game_state.next_scene = "menu"
+            else:
+                # close settings and resume game
+                game_state.settings_menu_open = False
+                game_state.paused = False
+        # navigate down
+        elif key in (pygame.K_DOWN, pygame.K_s):
+            game_state.settings_selected_index = (
+                game_state.settings_selected_index + 1
+            ) % total_items
+        # navigate up
+        elif key in (pygame.K_UP, pygame.K_w):
+            game_state.settings_selected_index = (
+                game_state.settings_selected_index - 1
+            ) % total_items
+        # adjust setting left/right (only for actual settings, not "Return to Menu")
+        elif key in (pygame.K_LEFT, pygame.K_a):
+            if game_state.settings_selected_index < len(menu_fields):
+                field = menu_fields[game_state.settings_selected_index]
+                self._settings.step_setting(field, -1)
+                self._apply_audio_setting_if_changed(field["key"])
+        elif key in (pygame.K_RIGHT, pygame.K_d):
+            if game_state.settings_selected_index < len(menu_fields):
+                field = menu_fields[game_state.settings_selected_index]
+                self._settings.step_setting(field, +1)
+                self._apply_audio_setting_if_changed(field["key"])
+        # randomize colors
+        elif key == pygame.K_c:
+            self._handle_palette_randomize()
+
+    def _apply_audio_setting_if_changed(self, field_key: str) -> None:
+        """Apply audio settings immediately when changed.
+
+        Args:
+            field_key: The key of the field that was changed
+        """
+        if field_key == "background_music":
+            # control background music
+            if self._settings.get("background_music"):
+                # try to unpause first
+                pygame.mixer.music.unpause()
+                # if music isn't playing, reload and start it
+                if not pygame.mixer.music.get_busy():
+                    try:
+                        pygame.mixer.music.load(
+                            "assets/sound/BoxCat_Games_CPU_Talk.ogg"
+                        )
+                        pygame.mixer.music.play(-1)
+                    except Exception:
+                        pass
+            else:
+                pygame.mixer.music.pause()
+        elif field_key == "sound_effects":
+            # control all sound effect channels
+            if self._settings.get("sound_effects"):
+                pygame.mixer.unpause()
+            else:
+                pygame.mixer.pause()
 
     def _handle_music_toggle(self) -> None:
         """Handle audio toggle key press.

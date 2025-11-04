@@ -51,12 +51,26 @@ But there’s a catch: the snake lengthens each time it eats an apple.
 Controls
 ------------------------------
 
+### Gameplay Controls
   * `arrow keys or WASD`: move the snake up, down, left, right
-  * `Q`: quit the game at any time
-  * `P`: pause the game at any time
-  * `ESC / M`: open menu
-  * `N`: mute the music
+  * `Q`: quit to main menu
+  * `P`: pause the game
+  * `ESC or M`: open in-game settings (adjust audio and colors without exiting)
+  * `N`: toggle audio (music and sound effects)
+  * `C`: randomize snake colors
 
+### In-Game Settings Menu
+When you press `ESC` or `M` during gameplay, you can adjust:
+  * Background Music (on/off)
+  * Sound Effects (on/off)
+  * Snake Color (choose from available palettes)
+  * Return to Main Menu (quit current game)
+
+Use `W/S` or arrow keys to navigate, `A/D` or arrow keys to adjust values, `Enter` to select, and `ESC` to return to the game.
+
+Note: Settings that require a game reset (like grid size, speed, obstacles) are only available in the main menu before starting a game.
+
+### Game Over
 When the game ends, press any key to restart or 'q' to quit.
 
 Getting Started
