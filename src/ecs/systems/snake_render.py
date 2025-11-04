@@ -24,6 +24,7 @@ snake rendering with smooth interpolation effects.
 """
 
 import pygame
+import random
 from src.ecs.systems.base_system import BaseSystem
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
@@ -135,17 +136,7 @@ class SnakeRenderSystem(BaseSystem):
         grid_height: int,
         color: tuple,
     ) -> None:
-        """Draw the snake head with smooth interpolation.
 
-        Args:
-            position: Head position component
-            interpolation: Interpolation component
-            cell_size: Size of grid cells
-            grid_width: Total grid width in pixels
-            grid_height: Total grid height in pixels
-            color: Head color as (r, g, b) tuple
-        """
-        # Calculate smooth interpolated position
         draw_x, draw_y = self._calculate_interpolated_position(
             position.x * cell_size,
             position.y * cell_size,
@@ -158,21 +149,43 @@ class SnakeRenderSystem(BaseSystem):
             grid_height,
         )
 
-        # Draw head rectangle at interpolated position
-        rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
-        self._renderer.draw_rect(color, rect, 0)
+        temp = pygame.Surface((cell_size, cell_size), pygame.SRCALPHA)
 
-        # Draw wraparound duplicate for smooth portal effect
-        if interpolation.wrapped_axis != "none":
-            self._draw_wraparound_duplicate(
-                draw_x,
-                draw_y,
-                cell_size,
-                grid_width,
-                grid_height,
-                interpolation.wrapped_axis,
-                color,
-            )
+        head_radius = cell_size // 2
+        head_center = (cell_size // 2, cell_size // 2)
+
+        pygame.draw.circle(temp, color, head_center, head_radius)
+
+        eye_offset = head_radius // 2
+        eye_radius = max(2, head_radius // 3)
+
+        left_eye = (head_center[0] - eye_offset, head_center[1] - eye_offset)
+        right_eye = (head_center[0] + eye_offset, head_center[1] - eye_offset)
+
+        pygame.draw.circle(temp, (255, 255, 255), left_eye, eye_radius)
+        pygame.draw.circle(temp, (255, 255, 255), right_eye, eye_radius)
+        pygame.draw.circle(temp, (0, 0, 0), left_eye, eye_radius // 2)
+        pygame.draw.circle(temp, (0, 0, 0), right_eye, eye_radius // 2)
+
+        # Tongue moves according to moviment
+        dx = position.x - position.prev_x
+        dy = position.y - position.prev_y
+
+        tongue_length = head_radius
+        tongue_width = max(2, head_radius // 3)
+
+        if dx > 0:  # right
+            tongue_rect = pygame.Rect(head_center[0] + head_radius - 1, head_center[1] - tongue_width // 2, tongue_length, tongue_width)
+        elif dx < 0:  # left
+            tongue_rect = pygame.Rect(head_center[0] - head_radius - tongue_length + 1, head_center[1] - tongue_width // 2, tongue_length, tongue_width)
+        elif dy > 0:  # down
+            tongue_rect = pygame.Rect(head_center[0] - tongue_width // 2, head_center[1] + head_radius - 1, tongue_width, tongue_length)
+        else:  # up
+            tongue_rect = pygame.Rect(head_center[0] - tongue_width // 2, head_center[1] - head_radius - tongue_length + 1, tongue_width, tongue_length)
+
+        pygame.draw.rect(temp, (255, 0, 0), tongue_rect)
+
+        self._renderer.blit(temp, (int(draw_x), int(draw_y)))
 
     def _draw_snake_tail(
         self,
