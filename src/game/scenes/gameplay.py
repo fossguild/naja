@@ -194,8 +194,16 @@ class GameplayScene(BaseScene):
                 continue
             system.update(self._world)
 
-        # draw pause overlay on top of frozen game
-        if is_paused and self._ui_render_system:
+        # draw settings overlay if settings menu is open
+        if game_state and game_state.settings_menu_open and self._ui_render_system:
+            self._ui_render_system.draw_settings_overlay(
+                self._renderer.width,
+                self._renderer.height,
+                game_state.settings_selected_index,
+                self._config,
+            )
+        # draw pause overlay on top of frozen game (if not showing settings)
+        elif is_paused and self._ui_render_system:
             self._ui_render_system.draw_pause_overlay(
                 self._renderer.width, self._renderer.height
             )

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#   Copyright (c) 2024, Leticia Neves
 #
 #   This file is part of Naja.
 #
@@ -40,3 +39,6 @@ class GameState:
     game_over: bool = False
     death_reason: str = ""
     next_scene: Optional[str] = None
+    settings_menu_open: bool = False
+    settings_selected_index: int = 0
+    settings_menu_item_count: int = 0  # total items including "Return to Menu"

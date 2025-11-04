@@ -300,7 +300,7 @@ class UIRenderSystem(BaseSystem):
                 hint_font = pygame.font.Font(None, hint_font_size)
 
             hint_text = hint_font.render(
-                "Press P to resume",
+                "Press P to resume or ESC/M for settings",
                 True,
                 Color.from_hex(constants.MESSAGE_COLOR).to_tuple(),
             )
@@ -309,6 +309,134 @@ class UIRenderSystem(BaseSystem):
 
             # Blit hint
             self._renderer.blit(hint_text, hint_rect)
+
+        except Exception:
+            # Silently fail if rendering fails
+            pass
+
+    def draw_settings_overlay(
+        self,
+        surface_width: int,
+        surface_height: int,
+        selected_index: int,
+        config=None,
+    ) -> None:
+        """Draw settings overlay with semi-transparent background and settings menu.
+
+        Args:
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+            selected_index: Currently selected setting index
+            config: Game config for calculating grid size
+        """
+        if not self._settings:
+            return
+
+        try:
+            # Create semi-transparent overlay
+            overlay = pygame.Surface((surface_width, surface_height))
+            overlay.set_alpha(200)  # More opaque than pause
+            overlay.fill(Color.from_hex(constants.ARENA_COLOR).to_tuple())
+            self._renderer.blit(overlay, (0, 0))
+
+            # Draw title
+            font_path = "assets/font/GetVoIP-Grotesque.ttf"
+            title_font_size = int(surface_width / 12)
+            try:
+                title_font = pygame.font.Font(font_path, title_font_size)
+            except Exception:
+                title_font = pygame.font.Font(None, title_font_size)
+
+            title_text = title_font.render(
+                "Settings", True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+            )
+            title_rect = title_text.get_rect(
+                center=(surface_width / 2, surface_height / 10)
+            )
+            self._renderer.blit(title_text, title_rect)
+
+            # Spacing and scroll parameters
+            row_h = int(surface_height * 0.06)
+            visible_rows = int(surface_height * 0.70 // row_h)
+            top_index = max(0, selected_index - visible_rows + 3)
+            padding_y = int(surface_height * 0.22)
+
+            # Draw visible rows - only show in-game adjustable settings
+            menu_fields = self._settings.get_in_game_menu_fields()
+            total_items = len(menu_fields) + 1  # +1 for "Return to Menu"
+            return_to_menu_index = len(menu_fields)
+
+            item_font_size = int(surface_width / 30)
+            try:
+                item_font = pygame.font.Font(font_path, item_font_size)
+            except Exception:
+                item_font = pygame.font.Font(None, item_font_size)
+
+            # Draw settings items
+            for draw_i, field_i in enumerate(range(top_index, len(menu_fields))):
+                if draw_i >= visible_rows:
+                    break
+                f = menu_fields[field_i]
+                val = self._settings.get(f["key"])
+
+                # Calculate current grid size for display
+                current_grid_size = 20  # default fallback
+                if config:
+                    desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                    current_grid_size = config.get_optimal_grid_size(desired_cells)
+
+                formatted_val = self._settings.format_setting_value(
+                    f,
+                    val,
+                    surface_width,
+                    current_grid_size,
+                )
+
+                # Render text with highlighting for selected item
+                text_color = (
+                    Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                    if field_i == selected_index
+                    else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                )
+                text = item_font.render(
+                    f"{f['label']}: {formatted_val}", True, text_color
+                )
+                rect = text.get_rect()
+                rect.left = int(surface_width * 0.10)
+                rect.top = padding_y + draw_i * row_h
+                self._renderer.blit(text, rect)
+
+            # Draw "Return to Menu" option
+            return_draw_i = len(menu_fields) - top_index
+            if return_draw_i >= 0 and return_draw_i < visible_rows:
+                text_color = (
+                    Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                    if selected_index == return_to_menu_index
+                    else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                )
+                separator_top = padding_y + return_draw_i * row_h
+                # add some spacing before the option
+                return_text = item_font.render("Return to Main Menu", True, text_color)
+                rect = return_text.get_rect()
+                rect.left = int(surface_width * 0.10)
+                rect.top = separator_top + int(row_h * 0.5)  # add spacing
+                self._renderer.blit(return_text, rect)
+
+            # Hint footer
+            hint_text = "[A/D] change   [W/S] navigate   [Enter] select   [Esc] back   [C] random colors"
+            hint_font_size = int(surface_width / 50)
+            try:
+                hint_font = pygame.font.Font(font_path, hint_font_size)
+            except Exception:
+                hint_font = pygame.font.Font(None, hint_font_size)
+
+            hint_surf = hint_font.render(
+                hint_text, True, Color.from_hex(constants.GRID_COLOR).to_tuple()
+            )
+            hint_rect = hint_surf.get_rect(
+                center=(surface_width / 2, surface_height * 0.95)
+            )
+            self._renderer.blit(hint_surf, hint_rect)
 
         except Exception:
             # Silently fail if rendering fails
