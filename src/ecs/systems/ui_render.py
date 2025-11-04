@@ -363,7 +363,6 @@ class UIRenderSystem(BaseSystem):
 
             # Draw visible rows - only show in-game adjustable settings
             menu_fields = self._settings.get_in_game_menu_fields()
-            total_items = len(menu_fields) + 1  # +1 for "Return to Menu"
             return_to_menu_index = len(menu_fields)
 
             item_font_size = int(surface_width / 30)
