@@ -48,11 +48,12 @@ class AudioService:
         """
         self._settings = settings
 
-    def play_sound(self, sound_path: str) -> bool:
+    def play_sound(self, sound_path: str, volume: float = 1.0) -> bool:
         """Play a sound effect if sound effects are enabled.
 
         Args:
             sound_path: Path to sound file (relative to project root)
+            volume: Volume level (0.0 to 1.0), defaults to 1.0 (full volume)
 
         Returns:
             True if sound was played, False otherwise
@@ -63,6 +64,9 @@ class AudioService:
 
         try:
             sound = pygame.mixer.Sound(sound_path)
+            # Clamp volume to valid range (0.0 to 1.0)
+            volume = max(0.0, min(1.0, volume))
+            sound.set_volume(volume)
             sound.play()
             return True
         except Exception:

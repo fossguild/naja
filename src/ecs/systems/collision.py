@@ -289,7 +289,7 @@ class CollisionSystem(BaseSystem):
 
                     # play apple eating sound
                     if self._audio_service:
-                        self._audio_service.play_sound("assets/sound/eat.flac")
+                        self._audio_service.play_sound("assets/sound/eat.flac", volume=0.2)
 
                     # grow snake
                     if hasattr(snake, "body"):
