@@ -212,3 +212,5 @@ __marimo__/
 *~
 .DS_Store
 **/.DS_Store
+
+.claude/settings*
