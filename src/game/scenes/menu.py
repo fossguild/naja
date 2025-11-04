@@ -120,11 +120,15 @@ class MenuScene(BaseScene):
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
 
+        # Get actual window dimensions
+        window_width = self._renderer.width
+        window_height = self._renderer.height
+
         # Draw title
         title = self._assets.render_custom(
-            WINDOW_TITLE, MESSAGE_COLOR, int(self._width / 12)
+            WINDOW_TITLE, MESSAGE_COLOR, int(window_width / 12)
         )
-        title_rect = title.get_rect(center=(self._width / 2, self._height / 4))
+        title_rect = title.get_rect(center=(window_width / 2, window_height / 4))
         self._renderer.blit(title, title_rect)
 
         # Draw menu items
@@ -132,7 +136,10 @@ class MenuScene(BaseScene):
             color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
             text = self._assets.render_small(item, color)
             rect = text.get_rect(
-                center=(self._width / 2, self._height / 2 + i * (self._height * 0.12))
+                center=(
+                    window_width / 2,
+                    window_height / 2 + i * (window_height * 0.12),
+                )
             )
             self._renderer.blit(text, rect)
 

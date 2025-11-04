@@ -127,18 +127,22 @@ class SettingsScene(BaseScene):
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
 
+        # Get actual window dimensions
+        window_width = self._renderer.width
+        window_height = self._renderer.height
+
         # Draw title
         title = self._assets.render_custom(
-            "Settings", MESSAGE_COLOR, int(self._width / 12)
+            "Settings", MESSAGE_COLOR, int(window_width / 12)
         )
-        title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
+        title_rect = title.get_rect(center=(window_width / 2, window_height / 10))
         self._renderer.blit(title, title_rect)
 
         # Spacing and scroll parameters
-        row_h = int(self._height * 0.06)
-        visible_rows = int(self._height * 0.70 // row_h)
+        row_h = int(window_height * 0.06)
+        visible_rows = int(window_height * 0.70 // row_h)
         top_index = max(0, self._selected_index - visible_rows + 3)
-        padding_y = int(self._height * 0.22)
+        padding_y = int(window_height * 0.22)
 
         # Draw visible rows
         for draw_i, field_i in enumerate(
@@ -158,24 +162,24 @@ class SettingsScene(BaseScene):
             formatted_val = self._settings.format_setting_value(
                 f,
                 val,
-                self._width,
+                window_width,
                 current_grid_size,
             )
             text = self._assets.render_custom(
                 f"{f['label']}: {formatted_val}",
                 SCORE_COLOR if field_i == self._selected_index else MESSAGE_COLOR,
-                int(self._width / 30),
+                int(window_width / 30),
             )
             rect = text.get_rect()
-            rect.left = int(self._width * 0.10)
+            rect.left = int(window_width * 0.10)
             rect.top = padding_y + draw_i * row_h
             self._renderer.blit(text, rect)
 
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
-        hint = self._assets.render_custom(hint_text, GRID_COLOR, int(self._width / 50))
+        hint = self._assets.render_custom(hint_text, GRID_COLOR, int(window_width / 50))
         self._renderer.blit(
-            hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
+            hint, hint.get_rect(center=(window_width / 2, window_height * 0.95))
         )
 
     def on_enter(self) -> None:

@@ -103,20 +103,39 @@ class BoardRenderSystem(BaseSystem):
         cell_size = board.cell_size
         width = board.width * cell_size
         height = board.height * cell_size
+        offset_x = world.grid_offset_x
+        offset_y = world.grid_offset_y
 
         color_scheme = self._get_color_scheme(world)
         grid_color = color_scheme.grid.to_tuple()
 
         # Draw vertical lines
         for x in range(0, width, cell_size):
-            self._renderer.draw_line(grid_color, (x, 0), (x, height), 1)
+            self._renderer.draw_line(
+                grid_color,
+                (x + offset_x, offset_y),
+                (x + offset_x, height + offset_y),
+                1,
+            )
 
         # Draw horizontal lines
         for y in range(0, height, cell_size):
-            self._renderer.draw_line(grid_color, (0, y), (width, y), 1)
+            self._renderer.draw_line(
+                grid_color,
+                (offset_x, y + offset_y),
+                (width + offset_x, y + offset_y),
+                1,
+            )
 
     def draw_tile(
-        self, x: int, y: int, tile: Tile, cell_size: int, color_scheme: ColorScheme
+        self,
+        x: int,
+        y: int,
+        tile: Tile,
+        cell_size: int,
+        color_scheme: ColorScheme,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
         """Draw a single tile at the specified grid position.
 
@@ -126,10 +145,12 @@ class BoardRenderSystem(BaseSystem):
             tile: Type of tile to draw
             cell_size: Size of grid cell in pixels
             color_scheme: Color scheme to use
+            offset_x: X offset for centering grid
+            offset_y: Y offset for centering grid
         """
-        # Calculate pixel position
-        pixel_x = x * cell_size
-        pixel_y = y * cell_size
+        # Calculate pixel position with offset
+        pixel_x = x * cell_size + offset_x
+        pixel_y = y * cell_size + offset_y
 
         # Map tile type to color
         # Note: SNAKE, APPLE tiles are NOT rendered here - handled by entity systems
@@ -156,11 +177,13 @@ class BoardRenderSystem(BaseSystem):
         board = world.board
         cell_size = board.cell_size
         color_scheme = self._get_color_scheme(world)
+        offset_x = world.grid_offset_x
+        offset_y = world.grid_offset_y
 
         for y in range(board.height):
             for x in range(board.width):
                 tile = board.get_tile(x, y)
-                self.draw_tile(x, y, tile, cell_size, color_scheme)
+                self.draw_tile(x, y, tile, cell_size, color_scheme, offset_x, offset_y)
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.

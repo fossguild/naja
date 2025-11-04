@@ -131,6 +131,22 @@ class Board:
         """
         return self._cell_size
 
+    def set_cell_size(self, new_cell_size: int) -> None:
+        """Update the cell size in pixels.
+
+        This is used for window resizing to scale the entire game while keeping
+        the grid dimensions (width/height in tiles) constant.
+
+        Args:
+            new_cell_size: New cell size in pixels (must be > 0)
+
+        Raises:
+            ValueError: If new_cell_size is less than 1
+        """
+        if new_cell_size < 1:
+            raise ValueError(f"Cell size must be at least 1, got {new_cell_size}")
+        self._cell_size = new_cell_size
+
     @property
     def is_square(self) -> bool:
         """Check if board is square.

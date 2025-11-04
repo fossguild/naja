@@ -25,23 +25,25 @@ depending on old_code.
 
 import sys
 
-from src.ecs.world import World
+from pygame import RESIZABLE as RESIZABLE_FLAG
+
+from src.core.clock import GameClock
+from src.core.io.pygame_adapter import PygameIOAdapter
+from src.core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
 from src.ecs.board import Board
-from src.ecs.prefabs.snake import create_snake
 from src.ecs.prefabs.apple import create_apple
 from src.ecs.prefabs.obstacle_field import create_obstacles
-from src.game.scenes.scene_manager import SceneManager
-from src.game.scenes.menu import MenuScene
-from src.game.scenes.gameplay import GameplayScene
-from src.game.scenes.game_over import GameOverScene
-from src.game.scenes.settings import SettingsScene
-from src.core.io.pygame_adapter import PygameIOAdapter
-from src.core.clock import GameClock
+from src.ecs.prefabs.snake import create_snake
+from src.ecs.world import World
 from src.game.config import GameConfig
-from src.game.settings import GameSettings
-from src.game.services.assets import GameAssets
 from src.game.constants import WINDOW_TITLE
-from src.core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
+from src.game.scenes.game_over import GameOverScene
+from src.game.scenes.gameplay import GameplayScene
+from src.game.scenes.menu import MenuScene
+from src.game.scenes.scene_manager import SceneManager
+from src.game.scenes.settings import SettingsScene
+from src.game.services.assets import GameAssets
+from src.game.settings import GameSettings
 
 
 class ECSGameApp:
@@ -62,6 +64,8 @@ class ECSGameApp:
         self.renderer = None
         self.running = False
         self.surface = None
+        self.min_width = None
+        self.min_height = None
 
     def initialize(self) -> None:
         """Initialize all game systems and resources."""
@@ -73,14 +77,19 @@ class ECSGameApp:
         # initialize configuration
         self.config = GameConfig()
 
+        # set minimum window dimensions
+        self.min_width = self.config.initial_width
+        self.min_height = self.config.initial_height
+
         # initialize settings
         self.settings = GameSettings(
             self.config.initial_width, self.config.initial_grid_size
         )
 
-        # create game window
+        # create game window with resizable flag
         self.surface = self.pygame_adapter.set_mode(
-            (self.config.initial_width, self.config.initial_height)
+            (self.config.initial_width, self.config.initial_height),
+            RESIZABLE_FLAG,
         )
         self.pygame_adapter.set_caption(WINDOW_TITLE)
 
@@ -101,6 +110,13 @@ class ECSGameApp:
             cell_size=self.config.initial_grid_size,
         )
         self.world = World(board)
+
+        # calculate initial grid offset (centered in window)
+        grid_pixel_width = grid_width_tiles * self.config.initial_grid_size
+        grid_pixel_height = grid_height_tiles * self.config.initial_grid_size
+        offset_x = (self.config.initial_width - grid_pixel_width) // 2
+        offset_y = (self.config.initial_height - grid_pixel_height) // 2
+        self.world.set_grid_offset(offset_x, offset_y)
 
         # create renderer
         self.renderer = PygameSurfaceRenderer(self.surface)
@@ -221,6 +237,45 @@ class ECSGameApp:
         total_cells = self.world.board.width * self.world.board.height
         return int(total_cells * percentage)
 
+    def _handle_window_resize(self, new_width: int, new_height: int) -> None:
+        """Handle window resize event.
+
+        Scales the game to fit new window dimensions while maintaining aspect ratio.
+        Calculates new cell_size to fit grid within window, preserving grid dimensions.
+        Enforces minimum window size and centers grid in window.
+
+        Args:
+            new_width: New window width in pixels
+            new_height: New window height in pixels
+        """
+        # enforce minimum window size
+        new_width = max(new_width, self.min_width)
+        new_height = max(new_height, self.min_height)
+
+        # reset display mode to enforce minimum size constraint
+        # (pygame auto-resizes surface, so we need to explicitly set it back if too small)
+        current_size = self.surface.get_size()
+        if current_size != (new_width, new_height):
+            self.pygame_adapter.set_mode((new_width, new_height), RESIZABLE_FLAG)
+
+        # calculate new cell size that fits grid in window while maintaining aspect ratio
+        grid_width = self.world.board.width
+        grid_height = self.world.board.height
+        new_cell_size = min(new_width // grid_width, new_height // grid_height)
+
+        # ensure minimum cell size of 1 pixel
+        new_cell_size = max(1, new_cell_size)
+
+        # update board cell size
+        self.world.board.set_cell_size(new_cell_size)
+
+        # calculate grid offset to center it in the window
+        grid_pixel_width = grid_width * new_cell_size
+        grid_pixel_height = grid_height * new_cell_size
+        offset_x = (new_width - grid_pixel_width) // 2
+        offset_y = (new_height - grid_pixel_height) // 2
+        self.world.set_grid_offset(offset_x, offset_y)
+
     def run(self) -> None:
         """Run the main game loop."""
         if not self.scene_manager:
@@ -230,6 +285,11 @@ class ECSGameApp:
 
         # main game loop
         while self.running:
+            # check for window resize event
+            resize_event = self.pygame_adapter.get_resize_event()
+            if resize_event:
+                self._handle_window_resize(resize_event[0], resize_event[1])
+
             # get delta time
             dt_ms = self.clock.tick()
 

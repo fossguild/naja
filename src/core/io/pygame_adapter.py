@@ -53,6 +53,25 @@ class PygameIOAdapter:
         """
         return pygame.event.get()
 
+    def get_resize_event(self) -> Tuple[int, int] | None:
+        """Check for VIDEORESIZE event and return new window size.
+
+        Only checks for resize events without consuming other events.
+        Uses pygame.event.get(pygame.VIDEORESIZE) to isolate resize events.
+
+        Returns:
+            Tuple of (width, height) if window was resized, None otherwise
+        """
+        # Get only VIDEORESIZE events, leaving other events in queue
+        resize_events = pygame.event.get(pygame.VIDEORESIZE)
+        if resize_events:
+            # Return size from first resize event, put others back
+            size = resize_events[0].size
+            for event in resize_events[1:]:
+                pygame.event.post(event)
+            return size
+        return None
+
     def wait_for_event(self) -> pygame.event.Event:
         """Wait for a single pygame event.
 

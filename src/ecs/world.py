@@ -60,6 +60,8 @@ class World:
     _board: Board
     _clock: pygame.time.Clock
     _dt_ms: float  # delta time in milliseconds since last frame
+    _grid_offset_x: int  # x offset to center grid in window
+    _grid_offset_y: int  # y offset to center grid in window
 
     def __init__(self, board: Board) -> None:
         """Initialize world with required components.
@@ -71,6 +73,8 @@ class World:
         self._board = board
         self._clock = pygame.time.Clock()
         self._dt_ms = 16.67  # default to ~60fps
+        self._grid_offset_x = 0
+        self._grid_offset_y = 0
 
     @property
     def registry(self) -> EntityRegistry:
@@ -112,3 +116,31 @@ class World:
     def set_dt_ms(self, dt_ms: float) -> None:
         # set delta time for this frame.
         self._dt_ms = dt_ms
+
+    @property
+    def grid_offset_x(self) -> int:
+        """Get grid X offset for centering in window.
+
+        Returns:
+            int: X offset in pixels
+        """
+        return self._grid_offset_x
+
+    @property
+    def grid_offset_y(self) -> int:
+        """Get grid Y offset for centering in window.
+
+        Returns:
+            int: Y offset in pixels
+        """
+        return self._grid_offset_y
+
+    def set_grid_offset(self, offset_x: int, offset_y: int) -> None:
+        """Set grid offset for centering in window.
+
+        Args:
+            offset_x: X offset in pixels
+            offset_y: Y offset in pixels
+        """
+        self._grid_offset_x = offset_x
+        self._grid_offset_y = offset_y

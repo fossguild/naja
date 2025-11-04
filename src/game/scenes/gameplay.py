@@ -202,14 +202,14 @@ class GameplayScene(BaseScene):
         # draw settings overlay if settings menu is open
         if game_state and game_state.settings_menu_open and self._overlay_render_system:
             self._overlay_render_system.draw_settings_overlay(
-                self._renderer.width,
-                self._renderer.height,
+                self._width,
+                self._height,
                 game_state.settings_selected_index,
             )
         # draw pause overlay on top of frozen game (if not showing settings)
         elif is_paused and self._overlay_render_system:
             self._overlay_render_system.draw_pause_overlay(
-                self._renderer.width, self._renderer.height
+                self._width, self._height
             )
 
         # handle scene transitions from GameState.next_scene

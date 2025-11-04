@@ -110,6 +110,10 @@ class SnakeRenderSystem(BaseSystem):
             head_color = Color.from_hex(constants.HEAD_COLOR).to_tuple()
             tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()
 
+        # Get grid offset for centering
+        offset_x = world.grid_offset_x
+        offset_y = world.grid_offset_y
+
         # Draw tail segments with interpolation
         self._draw_snake_tail(
             body,
@@ -119,11 +123,20 @@ class SnakeRenderSystem(BaseSystem):
             grid_width,
             grid_height,
             tail_color,
+            offset_x,
+            offset_y,
         )
 
         # Draw head with interpolation
         self._draw_snake_head(
-            position, interpolation, cell_size, grid_width, grid_height, head_color
+            position,
+            interpolation,
+            cell_size,
+            grid_width,
+            grid_height,
+            head_color,
+            offset_x,
+            offset_y,
         )
 
     def _draw_snake_head(
@@ -134,6 +147,8 @@ class SnakeRenderSystem(BaseSystem):
         grid_width: int,
         grid_height: int,
         color: tuple,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
         """Draw the snake head with smooth interpolation.
 
@@ -144,6 +159,8 @@ class SnakeRenderSystem(BaseSystem):
             grid_width: Total grid width in pixels
             grid_height: Total grid height in pixels
             color: Head color as (r, g, b) tuple
+            offset_x: X offset for centering grid
+            offset_y: Y offset for centering grid
         """
         # Calculate smooth interpolated position
         draw_x, draw_y = self._calculate_interpolated_position(
@@ -158,8 +175,10 @@ class SnakeRenderSystem(BaseSystem):
             grid_height,
         )
 
-        # Draw head rectangle at interpolated position
-        rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
+        # Draw head rectangle at interpolated position with offset
+        rect = pygame.Rect(
+            int(draw_x + offset_x), int(draw_y + offset_y), cell_size, cell_size
+        )
         self._renderer.draw_rect(color, rect, 0)
 
         # Draw wraparound duplicate for smooth portal effect
@@ -172,6 +191,8 @@ class SnakeRenderSystem(BaseSystem):
                 grid_height,
                 interpolation.wrapped_axis,
                 color,
+                offset_x,
+                offset_y,
             )
 
     def _draw_snake_tail(
@@ -183,6 +204,8 @@ class SnakeRenderSystem(BaseSystem):
         grid_width: int,
         grid_height: int,
         color: tuple,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
         """Draw the snake tail with smooth interpolation for each segment.
 
@@ -194,6 +217,8 @@ class SnakeRenderSystem(BaseSystem):
             grid_width: Total grid width in pixels
             grid_height: Total grid height in pixels
             color: Tail color as (r, g, b) tuple
+            offset_x: X offset for centering grid
+            offset_y: Y offset for centering grid
         """
         if not body.segments:
             return
@@ -213,8 +238,8 @@ class SnakeRenderSystem(BaseSystem):
             )
 
             segment_rect = pygame.Rect(
-                int(draw_x),
-                int(draw_y),
+                int(draw_x + offset_x),
+                int(draw_y + offset_y),
                 cell_size,
                 cell_size,
             )
@@ -230,6 +255,8 @@ class SnakeRenderSystem(BaseSystem):
                     grid_height,
                     interpolation.wrapped_axis,
                     color,
+                    offset_x,
+                    offset_y,
                 )
 
     def _calculate_interpolated_position(
@@ -294,6 +321,8 @@ class SnakeRenderSystem(BaseSystem):
         grid_height: int,
         wrapped_axis: str,
         color: tuple,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
         """Draw duplicate of segment on opposite edge for smooth wraparound.
 
@@ -305,6 +334,8 @@ class SnakeRenderSystem(BaseSystem):
             grid_height: Total grid height in pixels
             wrapped_axis: Which axis wrapped
             color: Segment color
+            offset_x: X offset for centering grid
+            offset_y: Y offset for centering grid
         """
         dup_x = draw_x
         dup_y = draw_y
@@ -323,7 +354,9 @@ class SnakeRenderSystem(BaseSystem):
 
         # Only draw duplicate if position actually changed
         if dup_x != draw_x or dup_y != draw_y:
-            dup_rect = pygame.Rect(int(dup_x), int(dup_y), cell_size, cell_size)
+            dup_rect = pygame.Rect(
+                int(dup_x + offset_x), int(dup_y + offset_y), cell_size, cell_size
+            )
             self._renderer.draw_rect(color, dup_rect, 0)
 
     def update(self, world: World) -> None:

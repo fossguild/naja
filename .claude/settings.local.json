@@ -1,9 +1,16 @@
 {
-    "permissions": {
-      "allow": [
-        "Bash(mkdir:*)"
-      ],
-      "deny": [],
-      "ask": []
-    }
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(gh issue view 269)",
+      "Bash(uv run pytest tests/ -v --tb=short)",
+      "Bash(uv run pytest tests/ -v --ignore=tests/ecs/systems/test_ui_system.py --ignore=tests/ecs/test_resize_system.py -x)",
+      "Bash(uv run pytest tests/ecs/test_board.py -v)",
+      "Bash(uv run python -c \"from src.core.app import ECSGameApp; from src.ecs.board import Board; from src.core.io.pygame_adapter import PygameIOAdapter; from src.core.rendering.pygame_surface_renderer import PygameSurfaceRenderer; print(''All imports successful!'')\")",
+      "Bash(uv run python -c \"from src.core.app import ECSGameApp; print(''''All imports successful!'''')\")",
+      "Bash(uv run python -c \"from src.core.app import ECSGameApp; print(''All imports successful!'')\")"
+    ],
+    "deny": [],
+    "ask": []
   }
+}

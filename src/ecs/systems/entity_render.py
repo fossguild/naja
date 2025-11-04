@@ -58,7 +58,12 @@ class EntityRenderSystem(BaseSystem):
         self._renderer = renderer
 
     def draw_entity(
-        self, position: Position, renderable: Renderable, cell_size: int
+        self,
+        position: Position,
+        renderable: Renderable,
+        cell_size: int,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
         """Draw a single entity based on its components.
 
@@ -66,14 +71,16 @@ class EntityRenderSystem(BaseSystem):
             position: Position component
             renderable: Renderable component
             cell_size: Size of grid cells in pixels
+            offset_x: X offset for centering grid
+            offset_y: Y offset for centering grid
         """
         # Skip if not visible
         if not renderable.visible:
             return
 
-        # Calculate pixel position
-        pixel_x = position.x * cell_size
-        pixel_y = position.y * cell_size
+        # Calculate pixel position with offset
+        pixel_x = position.x * cell_size + offset_x
+        pixel_y = position.y * cell_size + offset_y
 
         # Get color tuple
         color = renderable.get_color_tuple()
@@ -101,8 +108,10 @@ class EntityRenderSystem(BaseSystem):
         # This is the ECS way - data-driven, not type-driven
         entities = world.registry.query_by_component("position", "renderable")
 
-        # Get cell size from board
+        # Get cell size and grid offset from board
         cell_size = world.board.cell_size
+        offset_x = world.grid_offset_x
+        offset_y = world.grid_offset_y
 
         # Sort entities by rendering layer (optional, for proper layering)
         sorted_entities = sorted(
@@ -118,4 +127,4 @@ class EntityRenderSystem(BaseSystem):
             position = entity.position
             renderable = entity.renderable
 
-            self.draw_entity(position, renderable, cell_size)
+            self.draw_entity(position, renderable, cell_size, offset_x, offset_y)
