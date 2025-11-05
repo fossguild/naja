@@ -115,3 +115,15 @@ class SceneManager:
             if scene is self._current_scene:
                 return name
         return None
+
+    def update_scene_dimensions(self, width: int, height: int) -> None:
+        """Update dimensions for all registered scenes.
+
+        Called when window is resized to ensure all scenes use current dimensions.
+
+        Args:
+            width: New width in pixels
+            height: New height in pixels
+        """
+        for scene in self._scenes.values():
+            scene.update_dimensions(width, height)

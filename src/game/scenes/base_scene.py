@@ -96,3 +96,13 @@ class BaseScene(ABC):
             scene_name: Name of next scene, or None for no transition
         """
         self._next_scene = scene_name
+
+    def update_dimensions(self, width: int, height: int) -> None:
+        """Update scene dimensions when window is resized.
+
+        Args:
+            width: New width in pixels
+            height: New height in pixels
+        """
+        self._width = width
+        self._height = height

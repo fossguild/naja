@@ -276,6 +276,10 @@ class ECSGameApp:
         offset_y = (new_height - grid_pixel_height) // 2
         self.world.set_grid_offset(offset_x, offset_y)
 
+        # notify scene manager to update scene dimensions
+        if self.scene_manager:
+            self.scene_manager.update_scene_dimensions(new_width, new_height)
+
     def run(self) -> None:
         """Run the main game loop."""
         if not self.scene_manager:

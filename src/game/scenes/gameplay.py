@@ -208,9 +208,7 @@ class GameplayScene(BaseScene):
             )
         # draw pause overlay on top of frozen game (if not showing settings)
         elif is_paused and self._overlay_render_system:
-            self._overlay_render_system.draw_pause_overlay(
-                self._width, self._height
-            )
+            self._overlay_render_system.draw_pause_overlay(self._width, self._height)
 
         # handle scene transitions from GameState.next_scene
         if game_state and game_state.next_scene:
