@@ -27,6 +27,7 @@ from ecs.components.velocity import Velocity
 from ecs.components.snake_body import SnakeBody
 from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
+from ecs.components.input_buffer import InputBuffer
 from core.types.color import Color
 
 
@@ -78,6 +79,7 @@ def create_snake(
             secondary_color=Color(tail_color[0], tail_color[1], tail_color[2]),
             size=grid_size,
         ),
+        input_buffer=InputBuffer(),
     )
 
     # register entity with world and return ID
