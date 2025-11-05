@@ -31,7 +31,7 @@ This pattern separates data from behavior, making each piece small, focused, and
 
 **Negative:**
 - ❌ More files/abstractions than traditional OOP
-- ❌ Learning curve for contributors 
+- ❌ Learning curve for contributors
 
 **Mitigations:**
 - Comprehensive documentation in `docs/architecture.md`
