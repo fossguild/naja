@@ -94,7 +94,17 @@ class InputSystem(BaseSystem):
             game_state.next_scene = "menu"
 
     def _buffer_direction(self, world: World, dx: int, dy: int) -> None:
-        """Append a new direction to the snake's input buffer if valid."""
+        """Append a new direction to the snake's input buffer if valid.
+
+        This method ensures that rapid direction changes are stored in order
+        and prevents immediate 180° reversals. It also respects the buffer's
+        maximum length.
+
+        Args:
+            world: ECS world containing the snake entity
+            dx: Horizontal component of the direction (-1, 0, 1)
+            dy: Vertical component of the direction (-1, 0, 1)
+        """
         snake = self._get_snake_entity(world)
         if not snake:
             return
