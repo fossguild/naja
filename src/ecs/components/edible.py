@@ -26,9 +26,12 @@ from dataclasses import dataclass
 class Edible:
     """Marks an entity as edible by the snake.
 
-    Contains properties for scoring and growth when consumed.
-    Used by: Apple
+    Contains properties for scoring, growth, and speed effects when consumed.
+    Used by: Apple, Grape, Orange
     """
 
-    points: int = 10  # Hoy many points earned by fruit
+    points: int = 10  # how many points earned by fruit
     growth: int = 1  # how many segments to add to snake by fruit
+    speed_modifier: float = (
+        1.1  # speed multiplier when eaten (e.g., 1.1 = +10%, 0.8 = -20%)
+    )

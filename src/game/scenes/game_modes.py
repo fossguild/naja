@@ -68,9 +68,9 @@ class GameModesScene(BaseScene):
             },
             {
                 "name": "More Fruits Mode",
-                "description": "Multiple fruit varieties (Coming Soon)",
+                "description": "Multiple fruit varieties with different effects",
                 "type": GameModeType.MORE_FRUITS,
-                "available": False,
+                "available": True,
             },
             {
                 "name": "Poisoned Apple Mode",
@@ -109,8 +109,10 @@ class GameModesScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     selected_mode = self._game_modes[self._selected_index]
                     if selected_mode["available"]:
-                        # start game with selected mode
+                        # save selected mode
                         self._selected_mode = selected_mode["type"]
+                        # store selection for gameplay scene to read
+                        self._store_game_mode_selection()
                         return "gameplay"
                 elif event.key == pygame.K_ESCAPE:
                     # return to main menu
@@ -174,3 +176,26 @@ class GameModesScene(BaseScene):
             Selected game mode type
         """
         return self._selected_mode
+
+    def _store_game_mode_selection(self) -> None:
+        """Store the selected game mode in a global settings variable.
+
+        This is a temporary solution until we have proper scene communication.
+        """
+        # store in global variable for gameplay scene to read
+        import src.game.scenes.game_modes as gm_module
+
+        gm_module._SELECTED_GAME_MODE = self._selected_mode
+
+
+# module-level variable for scene communication
+_SELECTED_GAME_MODE = GameModeType.CLASSIC
+
+
+def get_selected_game_mode() -> GameModeType:
+    """Get the currently selected game mode.
+
+    Returns:
+        Selected game mode type
+    """
+    return _SELECTED_GAME_MODE

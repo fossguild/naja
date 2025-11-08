@@ -107,6 +107,18 @@ class GameplayScene(BaseScene):
 
         # game logic systems (indices 0-7, paused during pause)
         from src.ecs.systems.apple_spawn import AppleSpawnSystem
+        from src.ecs.systems.fruit_spawn import FruitSpawnSystem
+
+        # determine which spawn system to use based on game mode
+        game_mode = self._get_game_mode()
+        from src.ecs.components.game_mode import GameModeType
+
+        if game_mode == GameModeType.MORE_FRUITS:
+            spawn_system = FruitSpawnSystem(
+                1000
+            )  # multi-fruit spawn with probabilities
+        else:
+            spawn_system = AppleSpawnSystem(1000)  # classic apple-only spawn
 
         self._systems.extend(
             [
@@ -119,7 +131,7 @@ class GameplayScene(BaseScene):
                 CollisionSystem(
                     self._settings, self._audio_service
                 ),  # 2: detect collisions (wall, self-bite, obstacles, apples)
-                AppleSpawnSystem(1000),  # 3: maintain correct number of apples on board
+                spawn_system,  # 3: maintain correct number of fruits/apples on board
                 SpawnSystem(
                     1000, (255, 0, 0), None
                 ),  # 4: create new entities at valid positions
@@ -275,3 +287,28 @@ class GameplayScene(BaseScene):
     def _get_electric_walls(self) -> bool:
         """Get electric walls setting for MovementSystem."""
         return self._settings.get("electric_walls") if self._settings else True
+
+    def _get_game_mode(self):
+        """Get selected game mode from game state or default to classic.
+
+        Returns:
+            GameModeType enum value
+        """
+        from src.ecs.components.game_mode import GameModeType
+        from src.game.scenes.game_modes import get_selected_game_mode
+
+        # query for game mode component
+        game_mode_entities = self._world.registry.query_by_component("game_mode")
+        if game_mode_entities:
+            entity = next(iter(game_mode_entities.values()))
+            if hasattr(entity, "game_mode"):
+                return entity.game_mode.mode
+
+        # fallback to module-level selection
+        try:
+            return get_selected_game_mode()
+        except Exception:
+            pass
+
+        # default to classic mode
+        return GameModeType.CLASSIC

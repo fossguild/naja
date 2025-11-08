@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
-#
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
+#
 #   This file is part of Naja.
 #
 #   Naja is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Apple entity prefab factory."""
+"""Grape entity prefab factory."""
 
 from typing import Optional
 
@@ -29,45 +29,46 @@ from src.ecs.components.renderable import Renderable
 from src.core.types.color import Color
 
 
-def create_apple(
+def create_grape(
     world: World,
     x: int,
     y: int,
     grid_size: int,
     color: Optional[tuple[int, int, int]] = None,
-    points: int = 10,
-    growth: int = 1,
 ) -> int:
-    """Create an apple entity at the specified position.
+    """Create a grape entity at the specified position.
+
+    Grapes grow snake by 1 segment and decrease speed by 20% for strategic control.
 
     Args:
         world: ECS world to create entity in
         x: X position in pixels (grid-aligned)
         y: Y position in pixels (grid-aligned)
         grid_size: Size of each grid cell in pixels
-        color: RGB color for apple (default: red)
-        points: Points awarded when eaten
-        growth: Number of segments to add to snake when eaten
+        color: RGB color for grape (default: purple)
 
     Returns:
-        int: Entity ID of created apple
+        int: Entity ID of created grape
 
     Example:
-        >>> apple_id = create_apple(world, x=100, y=100, grid_size=20)
-        >>> apple = world.registry.get(apple_id)
-        >>> apple.position.x, apple.position.y
-        (100, 100)
+        >>> grape_id = create_grape(world, x=100, y=100, grid_size=20)
+        >>> grape = world.registry.get(grape_id)
+        >>> grape.edible.speed_modifier
+        0.8
     """
     # default color if not specified
     if color is None:
-        color = (170, 0, 0)  # red
+        color = (128, 0, 128)  # purple
 
-    # create apple entity with required components
-    apple = Apple(
+    # create grape entity with required components
+    # using Apple class as base (all fruits share same structure)
+    grape = Apple(
         position=Position(x=x, y=y, prev_x=x, prev_y=y),
         edible=Edible(
-            points=points, growth=growth, speed_modifier=1.1
-        ),  # apples speed up by 10%
+            points=10,
+            growth=1,
+            speed_modifier=0.8,  # slows down by 20%
+        ),
         renderable=Renderable(
             shape="circle",
             color=Color(color[0], color[1], color[2]),
@@ -76,5 +77,5 @@ def create_apple(
     )
 
     # register entity with world and return ID
-    entity_id = world.registry.add(apple)
+    entity_id = world.registry.add(grape)
     return entity_id

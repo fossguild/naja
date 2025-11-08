@@ -185,6 +185,19 @@ class ECSGameApp:
         """Create initial game entities using prefabs."""
         grid_size = self.world.board.cell_size
 
+        # create game mode singleton entity
+        from src.ecs.components.game_mode import GameMode, GameModeType
+
+        class GameModeEntity:
+            def __init__(self):
+                self.game_mode = GameMode(mode=GameModeType.CLASSIC)
+
+            def get_type(self):
+                return None  # singleton entity has no specific type
+
+        game_mode_entity = GameModeEntity()
+        self.world.registry.add(game_mode_entity)
+
         # create snake at center of board
         _ = create_snake(
             world=self.world,

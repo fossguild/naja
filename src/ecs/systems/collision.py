@@ -291,9 +291,16 @@ class CollisionSystem(BaseSystem):
                     if self._audio_service:
                         self._audio_service.play_sound("assets/sound/eat.flac")
 
-                    # grow snake
+                    # get edible properties
+                    growth = 1
+                    speed_modifier = 1.1
+                    if hasattr(apple, "edible"):
+                        growth = apple.edible.growth
+                        speed_modifier = apple.edible.speed_modifier
+
+                    # grow snake by the fruit's growth amount
                     if hasattr(snake, "body"):
-                        snake.body.size += 1
+                        snake.body.size += growth
 
                     # increment score
                     score_entities = world.registry.query_by_component("score")
@@ -302,7 +309,7 @@ class CollisionSystem(BaseSystem):
                         if hasattr(score_entity, "score"):
                             score_entity.score.current += 1
 
-                    # increase speed by 10%, respect max_speed
+                    # apply speed modifier from fruit, respect max_speed
                     if hasattr(snake, "velocity"):
                         current_speed = snake.velocity.speed
                         max_speed = (
@@ -310,7 +317,14 @@ class CollisionSystem(BaseSystem):
                             if self._settings
                             else 20.0
                         )
-                        new_speed = min(current_speed * 1.1, max_speed)
+                        new_speed = min(current_speed * speed_modifier, max_speed)
+                        # ensure speed doesn't go below initial speed
+                        initial_speed = (
+                            float(self._settings.get("initial_speed"))
+                            if self._settings
+                            else 4.0
+                        )
+                        new_speed = max(new_speed, initial_speed)
                         snake.velocity.speed = new_speed
 
                     # remove eaten apple
