@@ -46,7 +46,17 @@ its own tail.
 The score is the number of apples eaten before the snake dies and the game ends.
 The goal is to collect as many apples as possible.
 
-But there’s a catch: the snake lengthens each time it eats an apple.
+But there's a catch: the snake lengthens each time it eats an apple.
+
+### Game Modes
+
+Naja offers different game modes to enhance your experience:
+
+- **Classic Mode** (Available): Traditional snake game with regular apples only
+- **More Fruits Mode** (Coming Soon): Features multiple fruit varieties with different point values
+- **Poisoned Apple Mode** (Coming Soon): Adds deadly poisoned apples that end the game on contact
+
+Access game modes from the main menu by selecting "Game Modes".
 
 Controls
 ------------------------------

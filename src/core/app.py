@@ -32,6 +32,7 @@ from src.ecs.prefabs.apple import create_apple
 from src.ecs.prefabs.obstacle_field import create_obstacles
 from src.game.scenes.scene_manager import SceneManager
 from src.game.scenes.menu import MenuScene
+from src.game.scenes.game_modes import GameModesScene
 from src.game.scenes.gameplay import GameplayScene
 from src.game.scenes.game_over import GameOverScene
 from src.game.scenes.settings import SettingsScene
@@ -144,6 +145,17 @@ class ECSGameApp:
             config=self.config,
         )
         self.scene_manager.register_scene("settings", settings_scene)
+
+        # Game modes scene
+        game_modes_scene = GameModesScene(
+            pygame_adapter=self.pygame_adapter,
+            renderer=self.renderer.view(),
+            width=self.config.initial_width,
+            height=self.config.initial_height,
+            assets=self.assets,
+            settings=self.settings,
+        )
+        self.scene_manager.register_scene("game_modes", game_modes_scene)
 
         # Gameplay scene
         gameplay_scene = GameplayScene(
