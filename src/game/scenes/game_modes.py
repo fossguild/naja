@@ -56,7 +56,8 @@ class GameModesScene(BaseScene):
         super().__init__(pygame_adapter, renderer, width, height)
         self._assets = assets
         self._settings = settings
-        self._selected_index = 0
+        self._selected_index = 0  # for navigation
+        self._confirmed_mode_index = 0  # which mode is actually selected
 
         # define available game modes
         self._game_modes = [
@@ -80,6 +81,16 @@ class GameModesScene(BaseScene):
             },
         ]
 
+        # add "Start Game" menu item
+        self._menu_items = self._game_modes + [
+            {
+                "name": "Start Game",
+                "description": "Begin playing with selected mode",
+                "type": None,
+                "available": True,
+            }
+        ]
+
         self._selected_mode = GameModeType.CLASSIC
 
     def update(self, dt_ms: float) -> Optional[str]:
@@ -100,20 +111,24 @@ class GameModesScene(BaseScene):
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_UP, pygame.K_w):
                     self._selected_index = (self._selected_index - 1) % len(
-                        self._game_modes
+                        self._menu_items
                     )
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     self._selected_index = (self._selected_index + 1) % len(
-                        self._game_modes
+                        self._menu_items
                     )
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    selected_mode = self._game_modes[self._selected_index]
-                    if selected_mode["available"]:
-                        # save selected mode
-                        self._selected_mode = selected_mode["type"]
-                        # store selection for gameplay scene to read
+                    selected_item = self._menu_items[self._selected_index]
+
+                    if selected_item["name"] == "Start Game":
+                        # start game with confirmed mode
+                        confirmed_mode = self._game_modes[self._confirmed_mode_index]
+                        self._selected_mode = confirmed_mode["type"]
                         self._store_game_mode_selection()
                         return "gameplay"
+                    elif selected_item["available"]:
+                        # select this mode (but don't start yet)
+                        self._confirmed_mode_index = self._selected_index
                 elif event.key == pygame.K_ESCAPE:
                     # return to main menu
                     return "menu"
@@ -132,35 +147,51 @@ class GameModesScene(BaseScene):
         title_rect = title.get_rect(center=(self._width / 2, self._height / 8))
         self._renderer.blit(title, title_rect)
 
-        # draw game modes
-        start_y = self._height / 3
-        spacing = self._height * 0.15
+        # draw game modes and start button
+        start_y = self._height / 3.5
+        spacing = self._height * 0.13
 
-        for i, mode in enumerate(self._game_modes):
-            # determine color based on availability and selection
+        for i, item in enumerate(self._menu_items):
+            is_start_button = item["name"] == "Start Game"
+            is_game_mode = not is_start_button
+
+            # calculate position (add extra spacing before Start Game button)
+            y_pos = start_y + i * spacing
+            if is_start_button:
+                y_pos += spacing * 0.4  # extra gap before start button
+
+            # determine color based on state
             if i == self._selected_index:
-                color = SCORE_COLOR if mode["available"] else GRID_COLOR
+                # currently navigating here
+                color = SCORE_COLOR if item["available"] else GRID_COLOR
+            elif is_game_mode and i == self._confirmed_mode_index:
+                # this mode is confirmed/selected (green)
+                color = (100, 255, 100)
             else:
-                color = MESSAGE_COLOR if mode["available"] else GRID_COLOR
+                # normal state
+                color = MESSAGE_COLOR if item["available"] else GRID_COLOR
 
-            # render mode name
-            mode_text = self._assets.render_small(mode["name"], color)
-            mode_rect = mode_text.get_rect(
-                center=(self._width / 2, start_y + i * spacing)
-            )
-            self._renderer.blit(mode_text, mode_rect)
+            # add visual indicator for confirmed mode
+            prefix = "► " if (is_game_mode and i == self._confirmed_mode_index) else ""
+            display_name = prefix + item["name"]
 
-            # render mode description (smaller text)
-            desc_text = self._assets.render_custom(
-                mode["description"], color, int(self._width / 50)
-            )
-            desc_rect = desc_text.get_rect(
-                center=(self._width / 2, start_y + i * spacing + self._height * 0.04)
-            )
-            self._renderer.blit(desc_text, desc_rect)
+            # render item name
+            item_text = self._assets.render_small(display_name, color)
+            item_rect = item_text.get_rect(center=(self._width / 2, y_pos))
+            self._renderer.blit(item_text, item_rect)
+
+            # render item description (smaller text, only for non-start-button items)
+            if item["description"]:
+                desc_text = self._assets.render_custom(
+                    item["description"], color, int(self._width / 55)
+                )
+                desc_rect = desc_text.get_rect(
+                    center=(self._width / 2, y_pos + self._height * 0.035)
+                )
+                self._renderer.blit(desc_text, desc_rect)
 
         # draw hint footer
-        hint_text = "[W/S] navigate   [Enter] select   [Esc] back to menu"
+        hint_text = "[W/S] navigate   [Enter] select/start   [Esc] back"
         hint = self._assets.render_custom(hint_text, GRID_COLOR, int(self._width / 50))
         hint_rect = hint.get_rect(center=(self._width / 2, self._height * 0.92))
         self._renderer.blit(hint, hint_rect)
@@ -168,6 +199,7 @@ class GameModesScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering game modes scene."""
         self._selected_index = 0
+        self._confirmed_mode_index = 0  # default to first mode (Classic)
 
     def get_selected_mode(self) -> GameModeType:
         """Get the currently selected game mode.
