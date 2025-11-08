@@ -178,7 +178,15 @@ class GameModesScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering game modes scene."""
         self._selected_index = 0
-        self._confirmed_mode_index = 0  # default to first mode (Classic)
+
+        # restore previously confirmed mode based on stored selection
+        current_mode = get_selected_game_mode()
+        for i, mode in enumerate(self._game_modes):
+            if mode["type"] == current_mode:
+                self._confirmed_mode_index = i
+                break
+        else:
+            self._confirmed_mode_index = 0  # default to first mode (Classic)
 
     def get_selected_mode(self) -> GameModeType:
         """Get the currently selected game mode.
