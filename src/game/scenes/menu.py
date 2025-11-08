@@ -47,6 +47,7 @@ from src.game.scenes.base_scene import BaseScene
 from src.game.services.assets import GameAssets
 from src.game.settings import GameSettings
 from src.game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR, WINDOW_TITLE
+from src.ecs.components.game_mode import GameModeType
 
 
 class MenuScene(BaseScene):
@@ -129,6 +130,18 @@ class MenuScene(BaseScene):
         title_rect = title.get_rect(center=(self._width / 2, self._height / 4))
         self._renderer.blit(title, title_rect)
 
+        # Draw selected game mode under title (if not Classic)
+        selected_mode = self._get_selected_game_mode()
+        if selected_mode != GameModeType.CLASSIC:
+            mode_name = self._get_mode_display_name(selected_mode)
+            mode_text = self._assets.render_custom(
+                mode_name, (150, 150, 150), int(self._width / 35)
+            )
+            mode_rect = mode_text.get_rect(
+                center=(self._width / 2, self._height / 4 + self._height * 0.08)
+            )
+            self._renderer.blit(mode_text, mode_rect)
+
         # Draw menu items
         for i, item in enumerate(self._menu_items):
             color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
@@ -146,3 +159,32 @@ class MenuScene(BaseScene):
         # (it might have stopped if coming from game over)
         if self._settings.get("background_music"):
             GameAssets.play_background_music(loop=True)
+
+    def _get_selected_game_mode(self) -> GameModeType:
+        """Get the currently selected game mode.
+
+        Returns:
+            Currently selected GameModeType
+        """
+        try:
+            from src.game.scenes.game_modes import get_selected_game_mode
+
+            return get_selected_game_mode()
+        except Exception:
+            return GameModeType.CLASSIC
+
+    def _get_mode_display_name(self, mode: GameModeType) -> str:
+        """Get display name for game mode.
+
+        Args:
+            mode: GameModeType enum value
+
+        Returns:
+            Human-readable mode name
+        """
+        mode_names = {
+            GameModeType.CLASSIC: "Classic Mode",
+            GameModeType.MORE_FRUITS: "More Fruits Mode",
+            GameModeType.POISONED_APPLE: "Poisoned Apple Mode",
+        }
+        return mode_names.get(mode, "Classic Mode")
