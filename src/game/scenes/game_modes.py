@@ -74,9 +74,9 @@ class GameModesScene(BaseScene):
             },
             {
                 "name": "Poisoned Apple Mode",
-                "description": "Deadly poisoned apples appear (Coming Soon)",
+                "description": "Deadly dark purple apples that end the game instantly",
                 "type": GameModeType.POISONED_APPLE,
-                "available": False,
+                "available": True,
             },
         ]
 

@@ -108,6 +108,7 @@ class GameplayScene(BaseScene):
         # game logic systems (indices 0-7, paused during pause)
         from src.ecs.systems.apple_spawn import AppleSpawnSystem
         from src.ecs.systems.fruit_spawn import FruitSpawnSystem
+        from src.ecs.systems.poisoned_apple_spawn import PoisonedAppleSpawnSystem
 
         # determine which spawn system to use based on game mode
         game_mode = self._get_game_mode()
@@ -117,6 +118,10 @@ class GameplayScene(BaseScene):
             spawn_system = FruitSpawnSystem(
                 1000
             )  # multi-fruit spawn with probabilities
+        elif game_mode == GameModeType.POISONED_APPLE:
+            spawn_system = PoisonedAppleSpawnSystem(
+                1000, poison_spawn_chance=0.01
+            )  # 1% chance per frame to spawn poisoned apple
         else:
             spawn_system = AppleSpawnSystem(1000)  # classic apple-only spawn
 

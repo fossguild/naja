@@ -52,9 +52,14 @@ But there's a catch: the snake lengthens each time it eats an apple.
 
 Naja offers different game modes to enhance your experience:
 
-- **Classic Mode** (Available): Traditional snake game with regular apples only
-- **More Fruits Mode** (Coming Soon): Features multiple fruit varieties with different point values
-- **Poisoned Apple Mode** (Coming Soon): Adds deadly poisoned apples that end the game on contact
+- **Classic Mode**: Traditional snake game with regular apples only
+- **More Fruits Mode**: Features multiple fruit varieties with different growth rates and speed effects
+  - 🍎 Apple (Red): +1 segment, speed up, 65% spawn rate
+  - 🍇 Grape (Purple): +1 segment, slow down, 25% spawn rate
+  - 🍊 Orange: +2 segments, speed up, 10% spawn rate (rare!)
+- **Poisoned Apple Mode**: Watch out for deadly poisoned apples!
+  - Regular Apple (Red): Always present, safe to eat
+  - Poisoned Apple (Dark Purple): Occasionally appears, instant game over on contact!
 
 Access game modes from the main menu by selecting "Game Modes".
 

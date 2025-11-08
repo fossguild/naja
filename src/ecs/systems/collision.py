@@ -287,6 +287,13 @@ class CollisionSystem(BaseSystem):
                 if head_x == apple.position.x and head_y == apple.position.y:
                     print(f"APPLE EATEN: head=({head_x},{head_y})")
 
+                    # check if apple is poisoned - instant death!
+                    if hasattr(apple, "poisoned") and apple.poisoned.deadly:
+                        print("POISONED APPLE! Game Over!")
+                        world.registry.remove(entity_id)
+                        self._handle_death(world, "poisoned apple")
+                        return
+
                     # play apple eating sound
                     if self._audio_service:
                         self._audio_service.play_sound("assets/sound/eat.flac")
