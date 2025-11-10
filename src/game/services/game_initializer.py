@@ -181,6 +181,7 @@ class GameInitializer:
             initial_speed=float(self._settings.get("initial_speed")),
             head_color=head_color,
             tail_color=tail_color,
+            enable_hunger=bool(self._settings.get("enable_hunger")),
         )
 
     def _create_apple_config(self, world: World) -> None:

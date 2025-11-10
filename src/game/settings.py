@@ -36,6 +36,7 @@ class GameSettings:
         "sound_effects": True,  # Controls all sound effects (eat, death, etc.)
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
+        "enable_hunger": False,
     }
 
     # Declarative menu field definitions
@@ -94,6 +95,12 @@ class GameSettings:
             "label": "Sound Effects",
             "type": "bool",
             "requires_reset": False,
+        },
+        {
+            "key": "enable_hunger",
+            "label": "Hunger",
+            "type": "bool",
+            "requires_reset": True,
         },
         {
             "key": "electric_walls",

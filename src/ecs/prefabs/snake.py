@@ -27,7 +27,9 @@ from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
 from src.ecs.components.interpolation import Interpolation
 from src.ecs.components.renderable import Renderable
+from src.ecs.components.hunger import Hunger
 from src.core.types.color import Color
+from src.game import constants
 
 
 def create_snake(
@@ -36,6 +38,7 @@ def create_snake(
     initial_speed: float = 4.0,
     head_color: Optional[tuple[int, int, int]] = None,
     tail_color: Optional[tuple[int, int, int]] = None,
+    enable_hunger: bool = False,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -71,6 +74,14 @@ def create_snake(
         position=Position(x=start_x, y=start_y, prev_x=start_x, prev_y=start_y),
         velocity=Velocity(dx=1, dy=0, speed=initial_speed),
         body=SnakeBody(segments=[], size=1, alive=True),
+        hunger=(
+            Hunger(
+                current_time=constants.HUNGER_MAX_TIME,
+                max_time=constants.HUNGER_MAX_TIME,
+            )
+            if enable_hunger
+            else Hunger(current_time=0.0, max_time=0.0)
+        ),
         interpolation=Interpolation(alpha=0.0, wrapped_axis="none"),
         renderable=Renderable(
             shape="square",

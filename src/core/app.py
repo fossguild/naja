@@ -180,6 +180,7 @@ class ECSGameApp:
             initial_speed=float(self.settings.get("initial_speed")),
             head_color=None,  # will use default from palette
             tail_color=None,  # will use default from palette
+            enable_hunger=bool(self.settings.get("enable_hunger")),
         )
 
         # create apple at random valid position

@@ -45,6 +45,7 @@ from src.ecs.systems.ui_render import UIRenderSystem
 from src.ecs.systems.overlay_render import OverlayRenderSystem
 from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from src.ecs.systems.settings_apply import SettingsApplySystem
+from src.ecs.systems.hunger import HungerSystem
 
 
 class GameplayScene(BaseScene):
@@ -124,9 +125,15 @@ class GameplayScene(BaseScene):
                     1000, (255, 0, 0), None
                 ),  # 4: create new entities at valid positions
                 ScoringSystem(),  # 5: track score and high score
+                # conditionally enable HungerSystem based on game settings
+                *(
+                    [HungerSystem(self._audio_service)]
+                    if self._settings and bool(self._settings.get("enable_hunger"))
+                    else []
+                ),
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 6: generate obstacles with connectivity guarantees
+                ),  # conditional: generate obstacles with connectivity guarantees
                 SettingsApplySystem(
                     self._settings, self._config, self._assets
                 ),  # 7: apply runtime settings changes (colors, difficulty, etc)
