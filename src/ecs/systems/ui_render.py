@@ -195,6 +195,86 @@ class UIRenderSystem(BaseSystem):
         # blit label
         self._renderer.blit(label_surf, label_rect)
 
+    def draw_hunger_bar(
+        self, world: World, surface_width: int, surface_height: int
+    ) -> None:
+        """Draw a horizontal bar showing the snake's current hunger/time left.
+
+        Args:
+            world: World containing entities
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        # geometry similar to speed bar
+        padding_x = int(surface_width * 0.02)
+        padding_y = int(surface_height * 0.02)
+        bar_width = int(surface_width * 0.25)
+        bar_height = int(surface_height * 0.02)
+        gap = 6
+
+        # query hunger component
+        hunger_entities = world.registry.query_by_component("hunger")
+        if not hunger_entities:
+            return
+
+        hunger_entity = list(hunger_entities.values())[0]
+        if not hasattr(hunger_entity, "hunger"):
+            return
+
+        hunger = hunger_entity.hunger
+        ratio = 0.0
+        try:
+            if hunger.max_time > 0:
+                ratio = max(0.0, min(hunger.current_time / hunger.max_time, 1.0))
+        except Exception:
+            ratio = 0.0
+
+        # colors
+        bar_color = Color.from_hex(constants.HUNGER_COLOR).to_tuple()
+        border_color = Color.from_hex(constants.GRID_COLOR).to_tuple()
+        text_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+
+        # position: draw below speed bar (a bit lower)
+        bar_x = padding_x
+        # push down by speed bar height + gap + label area
+        bar_y = (
+            padding_y
+            + int(surface_height * 0.02)
+            + gap
+            + int(surface_height * 0.02)
+            + gap
+        )
+
+        # create temporary surface for the hunger bar
+        bar_surface = pygame.Surface((bar_width, bar_height))
+        bar_surface.fill(border_color)
+
+        # draw filled portion
+        filled_width = int(bar_width * ratio)
+        if filled_width > 0:
+            filled_rect = pygame.Rect(0, 0, filled_width, bar_height)
+            pygame.draw.rect(bar_surface, bar_color, filled_rect)
+
+        # blit bar to screen
+        self._renderer.blit(bar_surface, (bar_x, bar_y))
+
+        # draw text label below
+        label_text = f"Hunger: {hunger.current_time:.1f}s"
+        font_size = int(surface_width / 50)
+        font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+        try:
+            font = pygame.font.Font(font_path, font_size)
+        except Exception:
+            font = pygame.font.Font(None, font_size)
+
+        label_surf = font.render(label_text, True, text_color)
+        label_rect = label_surf.get_rect()
+        label_rect.midtop = (bar_x + bar_width // 2, bar_y + bar_height + gap)
+
+        # blit label
+        self._renderer.blit(label_surf, label_rect)
+
     def draw_music_indicator(
         self, surface_width: int, surface_height: int, music_on: bool
     ) -> None:
@@ -279,6 +359,9 @@ class UIRenderSystem(BaseSystem):
         # draw UI elements
         self.draw_score(world, surface_width, surface_height)
         self.draw_speed_bar(world, surface_width, surface_height)
+        # draw hunger bar only if enabled in settings
+        if self._settings and bool(self._settings.get("enable_hunger")):
+            self.draw_hunger_bar(world, surface_width, surface_height)
 
         # draw music indicator
         if self._settings:
