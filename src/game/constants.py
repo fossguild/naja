@@ -29,6 +29,15 @@ DIFFICULTY_PERCENTAGES = {
     "Impossible": 0.15,
 }
 
+# Clustering "jumping" probability for obstacle generation
+DIFFICULTY_CLUSTERING_PERCENTAGES = {
+    "None": 0.0,
+    "Easy": 0.3,
+    "Medium": 0.4,
+    "Hard": 0.5,
+    "Impossible": 0.6,
+}
+
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [
     # Classic Green
