@@ -69,6 +69,12 @@ class SettingsScene(BaseScene):
         Returns:
             Next scene name or None
         """
+        # Update key holding state (this handles continuous changes)
+        if self._settings.update_key_hold():
+            # A value was updated by key holding
+            current_field = self._settings.MENU_FIELDS[self._selected_index]
+            self._apply_audio_setting_if_changed(current_field["key"])
+
         # Handle input
         for event in self._pygame_adapter.get_events():
             if event.type == pygame.QUIT:
@@ -77,29 +83,38 @@ class SettingsScene(BaseScene):
 
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                    # Stop any ongoing key hold when leaving
+                    self._settings.stop_key_hold()
                     return "menu"  # back to menu
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
+                    # Stop key hold when changing selection
+                    self._settings.stop_key_hold()
                     self._selected_index = (self._selected_index + 1) % len(
                         self._settings.MENU_FIELDS
                     )
                 elif event.key in (pygame.K_UP, pygame.K_w):
+                    # Stop key hold when changing selection
+                    self._settings.stop_key_hold()
                     self._selected_index = (self._selected_index - 1) % len(
                         self._settings.MENU_FIELDS
                     )
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
-                    field_key = self._settings.MENU_FIELDS[self._selected_index]["key"]
-                    self._settings.step_setting(
-                        self._settings.MENU_FIELDS[self._selected_index], -1
-                    )
+                    # Start holding left
+                    current_field = self._settings.MENU_FIELDS[self._selected_index]
+                    self._settings.start_key_hold(current_field, -1)
                     # Apply audio settings immediately
-                    self._apply_audio_setting_if_changed(field_key)
+                    self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                    field_key = self._settings.MENU_FIELDS[self._selected_index]["key"]
-                    self._settings.step_setting(
-                        self._settings.MENU_FIELDS[self._selected_index], +1
-                    )
+                    # Start holding right
+                    current_field = self._settings.MENU_FIELDS[self._selected_index]
+                    self._settings.start_key_hold(current_field, +1)
                     # Apply audio settings immediately
-                    self._apply_audio_setting_if_changed(field_key)
+                    self._apply_audio_setting_if_changed(current_field["key"])
+
+            elif event.type == pygame.KEYUP:
+                # Stop holding when any left/right key is released
+                if event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
+                    self._settings.stop_key_hold()
 
         return None
 
@@ -181,3 +196,5 @@ class SettingsScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering settings."""
         self._selected_index = 0
+        # Make sure key hold is stopped when entering the scene
+        self._settings.stop_key_hold()
