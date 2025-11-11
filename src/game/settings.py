@@ -125,14 +125,14 @@ class GameSettings:
         self.settings = self.DEFAULT_SETTINGS.copy()
         self.settings["cells_per_side"] = initial_width // grid_size
         self._validate_speed_relationship()
-        
+
         # Key holding state tracking
         self.key_hold_state = {
-            'active': False,
-            'field': None,
-            'direction': 0,
-            'start_time': 0,
-            'last_step_time': 0
+            "active": False,
+            "field": None,
+            "direction": 0,
+            "start_time": 0,
+            "last_step_time": 0,
         }
 
     def get(self, key: str):
@@ -237,11 +237,11 @@ class GameSettings:
         """
         current_time = time.time()
         self.key_hold_state = {
-            'active': True,
-            'field': field,
-            'direction': direction,
-            'start_time': current_time,
-            'last_step_time': current_time
+            "active": True,
+            "field": field,
+            "direction": direction,
+            "start_time": current_time,
+            "last_step_time": current_time,
         }
         # Apply the first step immediately
         self.step_setting(field, direction)
@@ -249,11 +249,11 @@ class GameSettings:
     def stop_key_hold(self) -> None:
         """Stop holding a key."""
         self.key_hold_state = {
-            'active': False,
-            'field': None,
-            'direction': 0,
-            'start_time': 0,
-            'last_step_time': 0
+            "active": False,
+            "field": None,
+            "direction": 0,
+            "start_time": 0,
+            "last_step_time": 0,
         }
 
     def update_key_hold(self) -> bool:
@@ -264,12 +264,12 @@ class GameSettings:
         Returns:
             True if a step was applied, False otherwise
         """
-        if not self.key_hold_state['active']:
+        if not self.key_hold_state["active"]:
             return False
 
         current_time = time.time()
-        time_since_start = current_time - self.key_hold_state['start_time']
-        time_since_last_step = current_time - self.key_hold_state['last_step_time']
+        time_since_start = current_time - self.key_hold_state["start_time"]
+        time_since_last_step = current_time - self.key_hold_state["last_step_time"]
 
         # Check if we should apply another step
         if time_since_start < self.KEY_REPEAT_INITIAL_DELAY:
@@ -278,10 +278,9 @@ class GameSettings:
         elif time_since_last_step >= self.KEY_REPEAT_INTERVAL:
             # Time to apply another step
             self.step_setting(
-                self.key_hold_state['field'],
-                self.key_hold_state['direction']
+                self.key_hold_state["field"], self.key_hold_state["direction"]
             )
-            self.key_hold_state['last_step_time'] = current_time
+            self.key_hold_state["last_step_time"] = current_time
             return True
 
         return False
