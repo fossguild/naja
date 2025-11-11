@@ -210,6 +210,51 @@ class TestGameplayScene:
         # should still work, just without render system
         scene.update(16.0)
 
+    def test_skip_when_paused_flags_are_correct(self):
+        """Verify that each system correctly defines whether it should pause or continue when the game is paused."""
+        from src.ecs.systems import (
+            input,
+            movement,
+            collision,
+            apple_spawn,
+            spawn,
+            scoring,
+            obstacle_generation,
+            settings_apply,
+            interpolation,
+            audio,
+        )
+
+        # Systems that SHOULD be skipped when the game is paused
+        expected_skipped = [
+            movement.MovementSystem,
+            collision.CollisionSystem,
+            apple_spawn.AppleSpawnSystem,
+            spawn.SpawnSystem,
+            scoring.ScoringSystem,
+            obstacle_generation.ObstacleGenerationSystem,
+            settings_apply.SettingsApplySystem,
+        ]
+
+        # Systems that SHOULD NOT be skipped
+        expected_not_skipped = [
+            input.InputSystem,
+            interpolation.InterpolationSystem,
+            audio.AudioSystem,
+        ]
+
+        # Check that all paused systems are correctly marked
+        for system_cls in expected_skipped:
+            assert getattr(
+                system_cls, "skip_when_paused", False
+            ), "System should have skip_when_paused=True"
+
+        # Check that non-paused systems remain active
+        for system_cls in expected_not_skipped:
+            assert not getattr(
+                system_cls, "skip_when_paused", False
+            ), "System should NOT have skip_when_paused=True"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

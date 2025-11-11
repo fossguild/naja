@@ -28,6 +28,8 @@ class BaseSystem(ABC):
     other systems must inherit from and implement in a concrete way.
     """
 
+    skip_when_paused = False
+
     @abstractmethod
     def update(self, world: World):
         """
