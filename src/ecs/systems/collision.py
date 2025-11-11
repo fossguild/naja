@@ -31,9 +31,11 @@ Follows proper ECS architecture by querying world directly.
 from typing import Optional, Any
 
 from src.ecs.systems.base_system import BaseSystem
+from src.ecs.systems.system_decorators import skip_when_paused
 from src.ecs.world import World
 
 
+@skip_when_paused
 class CollisionSystem(BaseSystem):
     """System for detecting all types of collisions.
 

@@ -32,6 +32,7 @@ import random
 from typing import Optional
 
 from src.ecs.systems.base_system import BaseSystem
+from src.ecs.systems.system_decorators import skip_when_paused
 from src.ecs.world import World
 from src.ecs.entities.obstacle_field import Obstacle as ObstacleEntity
 from src.ecs.components.position import Position
@@ -43,6 +44,7 @@ from src.game import constants
 GRID_DIRECTIONS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
 
+@skip_when_paused
 class ObstacleGenerationSystem(BaseSystem):
     """System for generating obstacles with connectivity and trap guarantees.
 

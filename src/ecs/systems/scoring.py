@@ -27,9 +27,11 @@ across game resets and settings changes.
 from __future__ import annotations
 
 from src.ecs.systems.base_system import BaseSystem
+from src.ecs.systems.system_decorators import skip_when_paused
 from src.ecs.world import World
 
 
+@skip_when_paused
 class ScoringSystem(BaseSystem):
     """System for managing score and high score.
 

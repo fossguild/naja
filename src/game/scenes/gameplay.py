@@ -105,7 +105,6 @@ class GameplayScene(BaseScene):
 
         self._systems.clear()
 
-        # game logic systems (indices 0-7, paused during pause)
         from src.ecs.systems.apple_spawn import AppleSpawnSystem
 
         self._systems.extend(
@@ -133,7 +132,6 @@ class GameplayScene(BaseScene):
             ]
         )
 
-        # rendering and audio systems (indices 8+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(

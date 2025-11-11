@@ -29,11 +29,13 @@ import random
 from typing import Optional
 
 from src.ecs.systems.base_system import BaseSystem
+from src.ecs.systems.system_decorators import skip_when_paused
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
 from src.ecs.prefabs.apple import create_apple
 
 
+@skip_when_paused
 class AppleSpawnSystem(BaseSystem):
     """System for maintaining the correct number of apples in the game.
 

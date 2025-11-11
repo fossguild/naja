@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Optional, Callable
 
 from src.ecs.systems.base_system import BaseSystem
+from src.ecs.systems.system_decorators import skip_when_paused
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
 from src.ecs.components.position import Position
@@ -31,6 +32,7 @@ from src.ecs.components.velocity import Velocity
 from src.ecs.components.snake_body import SnakeBody
 
 
+@skip_when_paused
 class MovementSystem(BaseSystem):
     """Update entity positions based on velocity and grid rules.
 

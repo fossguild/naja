@@ -26,10 +26,12 @@ and entities in real-time during gameplay.
 from typing import Any, Optional
 import pygame
 from src.ecs.systems.base_system import BaseSystem
+from src.ecs.systems.system_decorators import skip_when_paused
 from src.ecs.world import World
 from src.ecs.entities.entity import EntityType
 
 
+@skip_when_paused
 class SettingsApplySystem(BaseSystem):
     """System that applies settings changes to the game world.
 
