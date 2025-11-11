@@ -24,7 +24,6 @@ as configured in the AppleConfig component.
 """
 
 from __future__ import annotations
-
 import random
 from typing import Optional
 
@@ -35,138 +34,84 @@ from src.ecs.prefabs.apple import create_apple
 
 
 class AppleSpawnSystem(BaseSystem):
-    """System for maintaining the correct number of apples in the game.
-
-    Reads: AppleConfig (desired count), Apple entities (current count)
-    Writes: Creates new apple entities as needed
-
-    Responsibilities:
-    - Count current number of apples in the world
-    - Compare with desired count from AppleConfig
-    - Spawn new apples if count is below desired
-    - Find valid spawn positions (avoiding snake, obstacles, other apples)
-
-    This system runs after collision detection to respawn apples that were eaten.
-    """
+    """System for maintaining the correct number of apples in the game."""
 
     def __init__(self, max_spawn_attempts: int = 1000):
-        """Initialize the AppleSpawnSystem.
-
-        Args:
-            max_spawn_attempts: Maximum attempts to find a valid spawn position
-        """
         self._max_spawn_attempts = max_spawn_attempts
 
     def update(self, world: World) -> None:
-        """Check apple count and spawn new apples if needed.
-
-        Args:
-            world: ECS world containing entities and components
-        """
-        # Get desired apple count from config
+        """Check apple count and spawn new apples if needed."""
         desired_count = self._get_desired_apple_count(world)
-
         if desired_count <= 0:
             return
 
-        # Count current apples
         current_apples = world.registry.query_by_type(EntityType.APPLE)
-        current_count = len(current_apples)
+        apples_to_spawn = desired_count - len(current_apples)
+        if apples_to_spawn <= 0:
+            return
 
-        # Spawn new apples if we're below desired count
-        apples_to_spawn = desired_count - current_count
+        grid_width = world.board.width
+        grid_height = world.board.height
+        total_cells = grid_width * grid_height
 
-        if apples_to_spawn > 0:
-            grid_size = world.board.cell_size
+        occupied = self._get_occupied_positions(world)
 
-            for _ in range(apples_to_spawn):
-                position = self._find_valid_position(world)
-                if position:
-                    x, y = position
-                    create_apple(world, x=x, y=y, grid_size=grid_size, color=None)
+        # --- Direct full-board check ---
+        free_cells = total_cells - len(occupied)
+        if free_cells <= 0:
+            # Board is full, nothing to spawn
+            return
+
+        # Limit apples_to_spawn to the number of free cells
+        apples_to_spawn = min(apples_to_spawn, free_cells)
+
+        for _ in range(apples_to_spawn):
+            position = self._find_valid_position(world, grid_width, grid_height, occupied)
+            if position:
+                x, y = position
+                create_apple(world, x=x, y=y, grid_size=world.board.cell_size, color=None)
+                occupied.add(position)  # Update occupied positions
 
     def _get_desired_apple_count(self, world: World) -> int:
-        """Get the desired number of apples from AppleConfig component.
-
-        Args:
-            world: ECS world
-
-        Returns:
-            Desired apple count, or 1 if no config found
-        """
-        # Query for entities with AppleConfig component
+        """Return the desired number of apples from AppleConfig, defaulting to 1."""
         config_entities = world.registry.query_by_component("apple_config")
-
         if config_entities:
             config_entity = list(config_entities.values())[0]
             if hasattr(config_entity, "apple_config"):
                 return config_entity.apple_config.desired_count
+        return 1
 
-        return 1  # Default to 1 apple
-
-    def _find_valid_position(self, world: World) -> Optional[tuple[int, int]]:
-        """Find a valid position to spawn an apple.
-
-        A valid position is one that:
-        - Is within board bounds
-        - Doesn't overlap with snake head
-        - Doesn't overlap with snake body segments
-        - Doesn't overlap with obstacles
-        - Doesn't overlap with existing apples
-
-        Args:
-            world: ECS world
-
-        Returns:
-            (x, y) tuple if valid position found, None otherwise
-        """
-        board = world.board
-
-        # Get occupied positions
-        occupied = self._get_occupied_positions(world)
-
-        # Try to find a valid position
+    def _find_valid_position(
+        self, world: World, width: int, height: int, occupied: set[tuple[int, int]]
+    ) -> Optional[tuple[int, int]]:
+        """Try to find a valid position to spawn an apple."""
         for _ in range(self._max_spawn_attempts):
-            x = random.randint(0, board.width - 1)
-            y = random.randint(0, board.height - 1)
-
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
             if (x, y) not in occupied:
                 return (x, y)
-
-        # If we couldn't find a position after max attempts, return None
-        # This can happen in very cramped situations
         return None
 
     def _get_occupied_positions(self, world: World) -> set[tuple[int, int]]:
-        """Get all positions currently occupied by game entities.
-
-        Args:
-            world: ECS world
-
-        Returns:
-            Set of (x, y) tuples representing occupied positions
-        """
+        """Return all positions currently occupied by game entities."""
         occupied = set()
 
-        # Get snake positions
+        # Snakes
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
             if hasattr(snake, "position"):
-                # Add head position
                 occupied.add((snake.position.x, snake.position.y))
+            if hasattr(snake, "body"):
+                for segment in snake.body.segments:
+                    occupied.add((segment.x, segment.y))
 
-                # Add body segments
-                if hasattr(snake, "body"):
-                    for segment in snake.body.segments:
-                        occupied.add((segment.x, segment.y))
-
-        # Get obstacle positions
+        # Obstacles
         obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
-        for _, obstacle in obstacles.items():
-            if hasattr(obstacle, "position"):
-                occupied.add((obstacle.position.x, obstacle.position.y))
+        for _, obs in obstacles.items():
+            if hasattr(obs, "position"):
+                occupied.add((obs.position.x, obs.position.y))
 
-        # Get existing apple positions
+        # Existing apples
         apples = world.registry.query_by_type(EntityType.APPLE)
         for _, apple in apples.items():
             if hasattr(apple, "position"):
@@ -175,17 +120,9 @@ class AppleSpawnSystem(BaseSystem):
         return occupied
 
     def set_max_spawn_attempts(self, max_attempts: int) -> None:
-        """Set the maximum number of spawn attempts.
-
-        Args:
-            max_attempts: New maximum attempts value
-        """
+        """Set the maximum number of spawn attempts."""
         self._max_spawn_attempts = max(1, max_attempts)
 
     def get_max_spawn_attempts(self) -> int:
-        """Get the current maximum spawn attempts.
-
-        Returns:
-            Current maximum spawn attempts
-        """
+        """Get the current maximum number of spawn attempts."""
         return self._max_spawn_attempts
