@@ -115,6 +115,42 @@ wish.
 By submitting your contribution, you agree it will be available under the same
 license as Naja (GNU GPL v3 or later).
 
+### Development Notes: Decorators
+
+The file `src/ecs/systems/decorators.py` was added to provide a simple way to define class-level decorators for ECS systems.
+At the moment, it includes a single decorator: `@skip_when_paused`.
+
+#### `@skip_when_paused`
+
+This decorator marks a system to be skipped when the game is paused.
+It works by setting a class attribute `skip_when_paused = True`, which is later checked in the main update loop inside `gameplay.py`.
+
+#### How to use
+
+To use it, apply the decorator above the system class definition:
+
+```python
+from src.ecs.systems.decorators import skip_when_paused # noqa
+
+@skip_when_paused
+class ExampleClass(BaseSystem): # noqa
+    # System logic here
+    pass # noqa
+```
+Any new gameplay system that should stop updating while the game is paused can include this decorator.
+It helps keep the pause logic consistent across all systems and reduces manual configuration.
+
+If a new system is added to the main update loop and should also be paused, make sure to apply this decorator.
+Likewise, removing it from an existing system means that the system will continue running even while the game is paused.
+#### Updating Tests
+
+Whenever you add, remove, or modify systems that use the `@skip_when_paused` decorator,
+make sure to also update the test `test_skip_when_paused_flags_are_correct` in
+`tests/test_gameplay_scene.py`.
+
+This test validates that all systems correctly define their `skip_when_paused` attribute,
+so any new or removed system should be reflected in the corresponding test lists.
+
 Branch Naming
 ------------------------------
 
