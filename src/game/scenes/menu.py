@@ -136,11 +136,16 @@ class MenuScene(BaseScene):
             )
             self._renderer.blit(text, rect)
 
-    def on_enter(self) -> None:
-        """Called when entering menu."""
+    def on_enter(self, last_scene_name: Optional[str]) -> None:
+        """Called when entering menu.
+
+        Args:
+            last_scene_name: The name of the last loaded scene
+        """
         self._selected_index = 0
 
         # Ensure background music is playing when entering menu
+        # only if not coming from settings
         # (it might have stopped if coming from game over)
-        if self._settings.get("background_music"):
+        if not last_scene_name == "settings" and self._settings.get("background_music"):
             GameAssets.play_background_music(loop=True)

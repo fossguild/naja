@@ -89,9 +89,14 @@ class SceneManager:
         if self._current_scene:
             self._current_scene.on_exit()
 
+        last_scene_name = self.current_scene_name
+
         # Enter new scene
         self._current_scene = self._scenes[name]
-        self._current_scene.on_enter()
+        if name == "menu":
+            self._current_scene.on_enter(last_scene_name)
+        else:
+            self._current_scene.on_enter()
 
         print(f"Now in scene: {name}")
 
