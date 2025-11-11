@@ -79,25 +79,75 @@ def create_obstacles(
     # calculate number of obstacles based on difficulty
     num_obstacles = _calculate_obstacles_from_difficulty(difficulty, total_cells)
 
+    # calculate probability of starting a new cluster ("jumping")
+    base_jump_prob = _get_difficulty_clustering_percentage(difficulty)
+    jump_probability = min(base_jump_prob, 1.0)
+
     if num_obstacles == 0:
         return []
 
     # get all occupied cells (snake, apples, etc)
-    occupied_cells = _get_occupied_cells(world)
+    occupied_cells = set(_get_occupied_cells(world))
 
     # get all available cells for obstacle placement
-    available_cells = []
+    available_cells = set()
     for tile_x in range(grid_width_tiles):
         for tile_y in range(grid_height_tiles):
             # Use grid coordinates (tiles), not pixel coordinates
             if (tile_x, tile_y) not in occupied_cells:
-                available_cells.append((tile_x, tile_y))
+                available_cells.add((tile_x, tile_y))
 
     # limit obstacles to available cells
     num_obstacles = min(num_obstacles, len(available_cells))
+    if num_obstacles == 0:
+        return []
 
-    # randomly select cells for obstacles
-    obstacle_positions = random.sample(available_cells, num_obstacles)
+    # --- Start Clustering Logic ---
+    obstacle_positions = set()
+    active_frontiers = []  # Células que podem crescer
+
+    if not available_cells:
+        return []
+
+    # first cell
+    start_cell = random.choice(list(available_cells))
+    obstacle_positions.add(start_cell)
+    available_cells.remove(start_cell)
+    active_frontiers.append(start_cell)
+
+    obstacles_to_place = num_obstacles - 1
+
+    while obstacles_to_place > 0 and available_cells:
+        # should jump to another cell or stay in this cluster
+        should_jump = random.random() < jump_probability or not active_frontiers
+
+        if should_jump:
+            # jump to another cluster
+            new_seed = random.choice(list(available_cells))
+            obstacle_positions.add(new_seed)
+            available_cells.remove(new_seed)
+            active_frontiers.append(new_seed)
+            obstacles_to_place -= 1
+
+        else:
+            # expand existing cluster
+            current_cell = random.choice(active_frontiers)
+            x, y = current_cell
+
+            potential_neighbors = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+            valid_neighbors = [p for p in potential_neighbors if p in available_cells]
+
+            if valid_neighbors:
+                # expand to another neighbor (randomly)
+                next_cell = random.choice(valid_neighbors)
+                obstacle_positions.add(next_cell)
+                available_cells.remove(next_cell)
+                active_frontiers.append(next_cell)
+                obstacles_to_place -= 1
+            else:
+                # cell stuck, remove it
+                active_frontiers.remove(current_cell)
+    # --- End Cluster logic ---
 
     # create obstacle entities
     obstacle_ids = []
@@ -134,6 +184,20 @@ def _calculate_obstacles_from_difficulty(
     """
     percentage = constants.DIFFICULTY_PERCENTAGES.get(difficulty, 0.0)
     return int(total_cells * percentage)
+
+
+def _get_difficulty_clustering_percentage(difficulty: DifficultyLevel) -> float:
+    """Calculates the clustering probability of obstacles difficulty and total cells.
+
+    Args:
+        difficulty: Difficulty level
+        total_cells: Total number of cells in the grid
+
+    Returns:
+        int: Number of obstacles to create
+    """
+    percentage = constants.DIFFICULTY_CLUSTERING_PERCENTAGES.get(difficulty, 0.0)
+    return percentage
 
 
 def _get_occupied_cells(world: World) -> set[tuple[int, int]]:
