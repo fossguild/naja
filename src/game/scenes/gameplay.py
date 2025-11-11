@@ -189,13 +189,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-7) but keep input (0) and rendering (8+) running
-        GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 7
-
-        for i, system in enumerate(self._systems):
-            # skip game logic when paused (movement, collision, spawning, etc.)
-            if is_paused and GAME_LOGIC_START <= i <= GAME_LOGIC_END:
+        for system in self._systems:
+            # skip systems marked with skip_when_paused when game is paused
+            if is_paused and getattr(system, "skip_when_paused", False):
                 continue
             system.update(self._world)
 
