@@ -19,6 +19,7 @@
 
 """Dynamic game settings and menu configuration."""
 
+import time
 from .constants import SNAKE_COLOR_PALETTES
 
 
@@ -110,6 +111,10 @@ class GameSettings:
         },
     ]
 
+    # Key repeat settings
+    KEY_REPEAT_INITIAL_DELAY = 0.4  # Initial delay before repeat starts (seconds)
+    KEY_REPEAT_INTERVAL = 0.08  # Time between repeats once started (seconds)
+
     def __init__(self, initial_width: int, grid_size: int):
         """Initialize game settings with default values.
 
@@ -120,6 +125,15 @@ class GameSettings:
         self.settings = self.DEFAULT_SETTINGS.copy()
         self.settings["cells_per_side"] = initial_width // grid_size
         self._validate_speed_relationship()
+
+        # Key holding state tracking
+        self.key_hold_state = {
+            "active": False,
+            "field": None,
+            "direction": 0,
+            "start_time": 0,
+            "last_step_time": 0,
+        }
 
     def get(self, key: str):
         """Get a setting value by key.
@@ -213,6 +227,63 @@ class GameSettings:
         elif isinstance(value, float):
             return f"{value:.1f}"
         return str(value)
+
+    def start_key_hold(self, field: dict, direction: int) -> None:
+        """Start holding a key to change a setting continuously.
+
+        Args:
+            field: Menu field definition
+            direction: Direction to step (-1 for decrease, +1 for increase)
+        """
+        current_time = time.time()
+        self.key_hold_state = {
+            "active": True,
+            "field": field,
+            "direction": direction,
+            "start_time": current_time,
+            "last_step_time": current_time,
+        }
+        # Apply the first step immediately
+        self.step_setting(field, direction)
+
+    def stop_key_hold(self) -> None:
+        """Stop holding a key."""
+        self.key_hold_state = {
+            "active": False,
+            "field": None,
+            "direction": 0,
+            "start_time": 0,
+            "last_step_time": 0,
+        }
+
+    def update_key_hold(self) -> bool:
+        """Update the key holding state and apply steps if needed.
+
+        This should be called in the main game loop to handle continuous key holding.
+
+        Returns:
+            True if a step was applied, False otherwise
+        """
+        if not self.key_hold_state["active"]:
+            return False
+
+        current_time = time.time()
+        time_since_start = current_time - self.key_hold_state["start_time"]
+        time_since_last_step = current_time - self.key_hold_state["last_step_time"]
+
+        # Check if we should apply another step
+        if time_since_start < self.KEY_REPEAT_INITIAL_DELAY:
+            # Still in initial delay period
+            return False
+        elif time_since_last_step >= self.KEY_REPEAT_INTERVAL:
+            # Time to apply another step
+            self.step_setting(
+                self.key_hold_state["field"], self.key_hold_state["direction"]
+            )
+            self.key_hold_state["last_step_time"] = current_time
+            return True
+
+        return False
 
     def step_setting(self, field: dict, direction: int) -> None:
         """Change a setting value by one step in the given direction.
