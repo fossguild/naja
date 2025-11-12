@@ -21,8 +21,8 @@
 """Settings menu handler for game configuration."""
 
 import pygame
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
-from src.ecs.systems.assets import AssetsSystem
+from core.rendering.pygame_surface_renderer import RenderEnqueue
+from ecs.systems.assets import AssetsSystem
 
 
 class SettingsResult:

@@ -21,17 +21,17 @@
 
 import pytest
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.systems.spawn import SpawnSystem
-from src.ecs.entities.snake import Snake
-from src.ecs.entities.entity import EntityType
-from src.ecs.components.position import Position
-from src.ecs.components.velocity import Velocity
-from src.ecs.components.snake_body import SnakeBody
-from src.ecs.components.interpolation import Interpolation
-from src.ecs.components.renderable import Renderable
-from src.core.types.color import Color
+from ecs.world import World
+from ecs.board import Board
+from ecs.systems.spawn import SpawnSystem
+from ecs.entities.snake import Snake
+from ecs.entities.entity import EntityType
+from ecs.components.position import Position
+from ecs.components.velocity import Velocity
+from ecs.components.snake_body import SnakeBody
+from ecs.components.interpolation import Interpolation
+from ecs.components.renderable import Renderable
+from core.types.color import Color
 
 
 @pytest.fixture

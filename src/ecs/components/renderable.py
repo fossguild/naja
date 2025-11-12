@@ -22,7 +22,7 @@
 from dataclasses import dataclass
 from typing import Literal, Optional
 
-from src.core.types.color import Color
+from core.types.color import Color
 
 
 @dataclass

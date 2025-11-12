@@ -25,26 +25,26 @@ work together harmoniously.
 
 from typing import Optional, Any, List
 
-from src.game.scenes.base_scene import BaseScene
-from src.game.services.game_initializer import GameInitializer
-from src.game.services.audio_service import AudioService
-from src.game.services.sfx_queue_service import SfxQueueService
-from src.ecs.world import World
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.systems.input import InputSystem
-from src.ecs.systems.movement import MovementSystem
-from src.ecs.systems.collision import CollisionSystem
-from src.ecs.systems.spawn import SpawnSystem
-from src.ecs.systems.scoring import ScoringSystem
-from src.ecs.systems.audio import AudioSystem
-from src.ecs.systems.interpolation import InterpolationSystem
-from src.ecs.systems.board_render import BoardRenderSystem
-from src.ecs.systems.snake_render import SnakeRenderSystem
-from src.ecs.systems.entity_render import EntityRenderSystem
-from src.ecs.systems.ui_render import UIRenderSystem
-from src.ecs.systems.overlay_render import OverlayRenderSystem
-from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
-from src.ecs.systems.settings_apply import SettingsApplySystem
+from game.scenes.base_scene import BaseScene
+from game.services.game_initializer import GameInitializer
+from game.services.audio_service import AudioService
+from game.services.sfx_queue_service import SfxQueueService
+from ecs.world import World
+from ecs.systems.base_system import BaseSystem
+from ecs.systems.input import InputSystem
+from ecs.systems.movement import MovementSystem
+from ecs.systems.collision import CollisionSystem
+from ecs.systems.spawn import SpawnSystem
+from ecs.systems.scoring import ScoringSystem
+from ecs.systems.audio import AudioSystem
+from ecs.systems.interpolation import InterpolationSystem
+from ecs.systems.board_render import BoardRenderSystem
+from ecs.systems.snake_render import SnakeRenderSystem
+from ecs.systems.entity_render import EntityRenderSystem
+from ecs.systems.ui_render import UIRenderSystem
+from ecs.systems.overlay_render import OverlayRenderSystem
+from ecs.systems.obstacle_generation import ObstacleGenerationSystem
+from ecs.systems.settings_apply import SettingsApplySystem
 
 
 class GameplayScene(BaseScene):
@@ -106,7 +106,7 @@ class GameplayScene(BaseScene):
         self._systems.clear()
 
         # game logic systems (indices 0-7, paused during pause)
-        from src.ecs.systems.apple_spawn import AppleSpawnSystem
+        from ecs.systems.apple_spawn import AppleSpawnSystem
 
         self._systems.extend(
             [

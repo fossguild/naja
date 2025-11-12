@@ -21,10 +21,10 @@
 
 import pytest
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
-from src.ecs.entities.entity import EntityType
+from ecs.world import World
+from ecs.board import Board
+from ecs.systems.obstacle_generation import ObstacleGenerationSystem
+from ecs.entities.entity import EntityType
 
 
 @pytest.fixture

@@ -26,8 +26,8 @@ the Interpolation component used by the RenderSystem.
 
 from __future__ import annotations
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
 
 
 class InterpolationSystem(BaseSystem):
@@ -66,7 +66,7 @@ class InterpolationSystem(BaseSystem):
         Args:
             world: ECS world containing entities and components
         """
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         # get delta time from world (set by GameplayScene each frame)
         dt_ms = world.dt_ms

@@ -30,11 +30,11 @@ Snake rendering is handled by SnakeRenderSystem.
 """
 
 import pygame
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.board import Tile
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
-from src.ecs.components.color_scheme import ColorScheme
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.board import Tile
+from core.rendering.pygame_surface_renderer import RenderEnqueue
+from ecs.components.color_scheme import ColorScheme
 
 
 class BoardRenderSystem(BaseSystem):
@@ -172,7 +172,7 @@ class BoardRenderSystem(BaseSystem):
             world: Game world to render
         """
         # Check if game is over - render only background if dead
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         game_over = False

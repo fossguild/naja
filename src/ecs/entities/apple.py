@@ -21,10 +21,10 @@
 
 from dataclasses import dataclass
 
-from src.ecs.entities.entity import Entity, EntityType
-from src.ecs.components.position import Position
-from src.ecs.components.edible import Edible
-from src.ecs.components.renderable import Renderable
+from ecs.entities.entity import Entity, EntityType
+from ecs.components.position import Position
+from ecs.components.edible import Edible
+from ecs.components.renderable import Renderable
 
 
 @dataclass

@@ -21,18 +21,18 @@
 
 import pytest
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.game.scenes.gameplay import GameplayScene
-from src.ecs.systems.input import InputSystem
-from src.ecs.systems.movement import MovementSystem
-from src.ecs.systems.collision import CollisionSystem
-from src.ecs.systems.spawn import SpawnSystem
-from src.ecs.systems.scoring import ScoringSystem
-from src.ecs.systems.audio import AudioSystem
-from src.ecs.systems.interpolation import InterpolationSystem
-from src.ecs.systems.board_render import BoardRenderSystem
-from src.ecs.systems.obstacle_generation import ObstacleGenerationSystem
+from ecs.world import World
+from ecs.board import Board
+from game.scenes.gameplay import GameplayScene
+from ecs.systems.input import InputSystem
+from ecs.systems.movement import MovementSystem
+from ecs.systems.collision import CollisionSystem
+from ecs.systems.spawn import SpawnSystem
+from ecs.systems.scoring import ScoringSystem
+from ecs.systems.audio import AudioSystem
+from ecs.systems.interpolation import InterpolationSystem
+from ecs.systems.board_render import BoardRenderSystem
+from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 
 
 class TestGameplayScene:

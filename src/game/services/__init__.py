@@ -19,7 +19,7 @@
 
 """Services module."""
 
-from src.game.services.game_initializer import GameInitializer
-from src.game.services.sfx_queue_service import SfxQueueService
+from game.services.game_initializer import GameInitializer
+from game.services.sfx_queue_service import SfxQueueService
 
 __all__ = ["GameInitializer", "SfxQueueService"]

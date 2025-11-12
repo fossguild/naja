@@ -21,7 +21,7 @@
 
 from dataclasses import dataclass, field
 
-from src.ecs.components.position import Position
+from ecs.components.position import Position
 
 
 @dataclass

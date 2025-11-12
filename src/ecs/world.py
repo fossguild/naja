@@ -20,8 +20,8 @@
 """World composition class containing game state components."""
 
 import pygame
-from src.ecs.entity_registry import EntityRegistry
-from src.ecs.board import Board
+from ecs.entity_registry import EntityRegistry
+from ecs.board import Board
 
 __all__ = ["World"]
 

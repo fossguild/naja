@@ -22,10 +22,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from src.ecs.entities.entity import Entity, EntityType
-from src.ecs.components.position import Position
-from src.ecs.components.obstacle import ObstacleTag
-from src.ecs.components.renderable import Renderable
+from ecs.entities.entity import Entity, EntityType
+from ecs.components.position import Position
+from ecs.components.obstacle import ObstacleTag
+from ecs.components.renderable import Renderable
 
 
 @dataclass

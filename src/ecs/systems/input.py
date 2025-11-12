@@ -27,8 +27,8 @@ from typing import Optional, Any
 
 import pygame
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
 
 
 class InputSystem(BaseSystem):
@@ -138,7 +138,7 @@ class InputSystem(BaseSystem):
         Returns:
             Snake entity or None if not found
         """
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():

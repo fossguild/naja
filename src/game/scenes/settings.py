@@ -24,10 +24,10 @@ from __future__ import annotations
 import pygame
 from typing import Optional
 
-from src.game.scenes.base_scene import BaseScene
-from src.game.services.assets import GameAssets
-from src.game.settings import GameSettings
-from src.game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COLOR
+from game.scenes.base_scene import BaseScene
+from game.services.assets import GameAssets
+from game.settings import GameSettings
+from game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COLOR
 
 
 class SettingsScene(BaseScene):

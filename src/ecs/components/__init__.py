@@ -19,18 +19,18 @@
 
 """Components module."""
 
-from src.ecs.components.position import Position
-from src.ecs.components.velocity import Velocity
-from src.ecs.components.snake_body import SnakeBody
-from src.ecs.components.edible import Edible
-from src.ecs.components.obstacle import ObstacleTag, Obstacle
-from src.ecs.components.interpolation import Interpolation
-from src.ecs.components.renderable import Renderable
-from src.ecs.components.grid import Grid
-from src.ecs.components.apple_config import AppleConfig
-from src.ecs.components.color_scheme import ColorScheme
-from src.ecs.components.game_state import GameState
-from src.ecs.components.score import Score
+from ecs.components.position import Position
+from ecs.components.velocity import Velocity
+from ecs.components.snake_body import SnakeBody
+from ecs.components.edible import Edible
+from ecs.components.obstacle import ObstacleTag, Obstacle
+from ecs.components.interpolation import Interpolation
+from ecs.components.renderable import Renderable
+from ecs.components.grid import Grid
+from ecs.components.apple_config import AppleConfig
+from ecs.components.color_scheme import ColorScheme
+from ecs.components.game_state import GameState
+from ecs.components.score import Score
 
 __all__ = [
     "Position",

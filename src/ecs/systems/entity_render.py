@@ -24,11 +24,11 @@ components rather than their type, making it fully data-driven.
 """
 
 import pygame
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.components.position import Position
-from src.ecs.components.renderable import Renderable
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.components.position import Position
+from ecs.components.renderable import Renderable
+from core.rendering.pygame_surface_renderer import RenderEnqueue
 
 
 class EntityRenderSystem(BaseSystem):
@@ -95,7 +95,7 @@ class EntityRenderSystem(BaseSystem):
         Args:
             world: Game world to render
         """
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         # Query all entities with Position and Renderable components
         # This is the ECS way - data-driven, not type-driven

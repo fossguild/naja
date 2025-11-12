@@ -19,9 +19,9 @@
 
 """Entities module."""
 
-from src.ecs.entities.entity import Entity, EntityType
-from src.ecs.entities.snake import Snake
-from src.ecs.entities.apple import Apple
-from src.ecs.entities.obstacle_field import Obstacle
+from ecs.entities.entity import Entity, EntityType
+from ecs.entities.snake import Snake
+from ecs.entities.apple import Apple
+from ecs.entities.obstacle_field import Obstacle
 
 __all__ = ["Entity", "EntityType", "Snake", "Apple", "Obstacle"]

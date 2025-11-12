@@ -44,9 +44,9 @@ import pygame
 import sys
 from typing import Optional
 
-from src.game.scenes.base_scene import BaseScene
-from src.game.services.assets import GameAssets
-from src.game.constants import ARENA_COLOR
+from game.scenes.base_scene import BaseScene
+from game.services.assets import GameAssets
+from game.constants import ARENA_COLOR
 
 
 class GameOverScene(BaseScene):

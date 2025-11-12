@@ -21,7 +21,7 @@
 """Unit tests for command protocol."""
 
 import pytest
-from src.game.commands import (
+from game.commands import (
     MoveCommand,
     PauseCommand,
     QuitCommand,

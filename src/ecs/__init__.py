@@ -19,10 +19,10 @@
 
 """ECS framework module."""
 
-from src.ecs.world import World
-from src.ecs.entity_registry import EntityRegistry
-from src.ecs.entities.entity import Entity, EntityType
-from src.ecs.board import Board, Tile, BoardOutOfBoundsError
+from ecs.world import World
+from ecs.entity_registry import EntityRegistry
+from ecs.entities.entity import Entity, EntityType
+from ecs.board import Board, Tile, BoardOutOfBoundsError
 
 
 __all__ = [

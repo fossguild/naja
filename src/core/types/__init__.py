@@ -19,6 +19,6 @@
 
 """Core types module."""
 
-from src.core.types.color import Color
+from core.types.color import Color
 
 __all__ = ["Color"]

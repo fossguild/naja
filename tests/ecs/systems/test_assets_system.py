@@ -22,9 +22,9 @@
 import pytest
 import pygame
 from unittest.mock import patch, MagicMock
-from src.ecs.systems.assets import AssetsSystem
-from src.ecs.world import World
-from src.ecs.board import Board
+from ecs.systems.assets import AssetsSystem
+from ecs.world import World
+from ecs.board import Board
 
 
 @pytest.fixture(scope="module")
@@ -74,7 +74,7 @@ class TestAssetsSystemInitialization:
 
     def test_inherits_from_base_system(self, assets_system):
         """Test that AssetsSystem inherits from BaseSystem."""
-        from src.ecs.systems.base_system import BaseSystem
+        from ecs.systems.base_system import BaseSystem
 
         assert isinstance(assets_system, BaseSystem)
 

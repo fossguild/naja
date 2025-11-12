@@ -21,15 +21,15 @@
 
 import pytest
 from unittest.mock import Mock
-from src.ecs.systems.ui import (
+from ecs.systems.ui import (
     UISystem,
     StartDecision,
     SettingsResult,
     ResetDecision,
     GameOverDecision,
 )
-from src.ecs.systems.assets import AssetsSystem
-from src.ecs.world import World
+from ecs.systems.assets import AssetsSystem
+from ecs.world import World
 
 
 class MockRenderEnqueue:
@@ -126,7 +126,7 @@ class TestUISystemInitialization:
 
     def test_inherits_from_base_system(self, ui_system):
         """Test UISystem inherits from BaseSystem."""
-        from src.ecs.systems.base_system import BaseSystem
+        from ecs.systems.base_system import BaseSystem
 
         assert isinstance(ui_system, BaseSystem)
 

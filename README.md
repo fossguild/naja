@@ -32,7 +32,7 @@ Quick Start
 1. **Run the game** (dependencies are installed automatically):
    ```bash
    make run
-   # Or directly: uv run python kobra.py
+   # Or directly: uv run naja
    ```
 
 ### For Contributors

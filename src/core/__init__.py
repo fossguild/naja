@@ -18,3 +18,12 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Core engine module."""
+
+from core.app import ECSGameApp
+
+
+def main():
+    """Main game entry point."""
+    app = ECSGameApp()
+    app.initialize()
+    app.run()

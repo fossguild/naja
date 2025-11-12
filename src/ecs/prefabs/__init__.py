@@ -18,8 +18,8 @@
 
 """Prefab factory functions for creating game entities."""
 
-from src.ecs.prefabs.snake import create_snake
-from src.ecs.prefabs.apple import create_apple
-from src.ecs.prefabs.obstacle_field import create_obstacles
+from ecs.prefabs.snake import create_snake
+from ecs.prefabs.apple import create_apple
+from ecs.prefabs.obstacle_field import create_obstacles
 
 __all__ = ["create_snake", "create_apple", "create_obstacles"]

@@ -23,10 +23,10 @@ import pytest
 from dataclasses import dataclass
 from unittest.mock import Mock, patch
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.systems.audio import AudioSystem
-from src.game.services.sfx_queue_service import SfxQueueService
+from ecs.world import World
+from ecs.board import Board
+from ecs.systems.audio import AudioSystem
+from game.services.sfx_queue_service import SfxQueueService
 
 
 @dataclass

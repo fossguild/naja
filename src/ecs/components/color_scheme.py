@@ -20,8 +20,8 @@
 """Color scheme component for global game colors."""
 
 from dataclasses import dataclass, field
-from src.core.types.color import Color
-from src.game.constants import (
+from core.types.color import Color
+from game.constants import (
     ARENA_COLOR,
     GRID_COLOR,
     HEAD_COLOR,
@@ -39,7 +39,7 @@ class ColorScheme:
     Rendering systems can query this component to get consistent
     colors across the game without hard-coding values.
 
-    Default colors are imported from src.game.constants to maintain
+    Default colors are imported from game.constants to maintain
     consistency across the codebase and avoid duplication.
 
     Attributes:

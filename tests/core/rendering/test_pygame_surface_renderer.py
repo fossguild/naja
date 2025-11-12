@@ -22,7 +22,7 @@
 import pytest
 import pygame
 from unittest.mock import Mock, MagicMock, patch
-from src.core.rendering.pygame_surface_renderer import (
+from core.rendering.pygame_surface_renderer import (
     PygameSurfaceRenderer,
     _RendererView,
     DrawCommand,

@@ -30,8 +30,8 @@ Follows proper ECS architecture by querying world directly.
 
 from typing import Optional, Any
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
 
 
 class CollisionSystem(BaseSystem):
@@ -115,7 +115,7 @@ class CollisionSystem(BaseSystem):
         Returns:
             Snake entity or None if not found
         """
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
@@ -246,7 +246,7 @@ class CollisionSystem(BaseSystem):
         current_y = snake.position.y
 
         # query all obstacles
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
 
@@ -278,7 +278,7 @@ class CollisionSystem(BaseSystem):
         head_y = snake.position.y
 
         # query apples from world
-        from src.ecs.entities.entity import EntityType
+        from ecs.entities.entity import EntityType
 
         apples = world.registry.query_by_type(EntityType.APPLE)
         for entity_id, apple in apples.items():
