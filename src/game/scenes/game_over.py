@@ -47,6 +47,7 @@ from typing import Optional
 from src.game.scenes.base_scene import BaseScene
 from src.game.services.assets import GameAssets
 from src.game.constants import ARENA_COLOR
+from src.core.types.color import Color
 
 
 class GameOverScene(BaseScene):
@@ -60,7 +61,9 @@ class GameOverScene(BaseScene):
         height: int,
         assets: GameAssets,
         death_reason: str = "",
+        final_score: int = 0,
         settings=None,
+        world=None,
     ):
         """Initialize the game over scene.
 
@@ -76,7 +79,9 @@ class GameOverScene(BaseScene):
         super().__init__(pygame_adapter, renderer, width, height)
         self._assets = assets
         self._death_reason = death_reason
+        self._final_score = final_score
         self._settings = settings
+        self._world = world
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game over logic.
@@ -110,6 +115,7 @@ class GameOverScene(BaseScene):
         try:
             # calculate font sizes (same as old code)
             big_font_size = int(self._width / 8)
+            medium_font_size = int(self._width / 15)
             small_font_size = int(self._width / 25)
 
             # create fonts with same font file and sizing as old code
@@ -118,19 +124,28 @@ class GameOverScene(BaseScene):
             try:
                 # try to load the same font as old code
                 big_font = pygame.font.Font(font_path, big_font_size)
+                medium_font = pygame.font.Font(font_path, medium_font_size)
                 small_font = pygame.font.Font(font_path, small_font_size)
             except Exception:
                 # fallback to default font if GetVoIP font not found
                 big_font = pygame.font.Font(None, big_font_size)
+                medium_font = pygame.font.Font(None, medium_font_size)
                 small_font = pygame.font.Font(None, small_font_size)
 
             # MESSAGE_COLOR from old code: "#808080" (gray)
             message_color = (128, 128, 128)  # #808080
+            score_color = Color(255, 255, 255).to_tuple()
 
             # "Game Over" text centered (exactly like old code)
             game_over_text = big_font.render("Game Over", True, message_color)
             game_over_rect = game_over_text.get_rect(
-                center=(self._width // 2, self._height / 2.6)
+                center=(self._width // 2, self._height / 3.0)
+            )
+
+            score_text_str = f"Final Score: {self._final_score}"
+            score_text = medium_font.render(score_text_str, True, score_color)
+            score_rect = score_text.get_rect(
+                center=(self._width // 2, self._height / 2.0)
             )
 
             # "Press Enter/Space to restart • Q to menu" text below (exactly like old code)
@@ -138,11 +153,12 @@ class GameOverScene(BaseScene):
                 "Press Enter/Space to play again • Q to menu", True, message_color
             )
             restart_rect = restart_text.get_rect(
-                center=(self._width // 2, self._height / 1.8)
+                center=(self._width // 2, self._height / 1.5)
             )
 
             # blit text to main surface
             self._renderer.blit(game_over_text, game_over_rect)
+            self._renderer.blit(score_text, score_rect)
             self._renderer.blit(restart_text, restart_rect)
 
         except Exception:
@@ -152,6 +168,14 @@ class GameOverScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering game over."""
         # Play death song (like old code) - only if audio is not muted
+
+        if self._world:
+            score_entities = self._world.registry.query_by_component("score")
+            if score_entities:
+                score_entity = next(iter(score_entities.values()))
+                if hasattr(score_entity, "score"):
+                    self._final_score = score_entity.score.current
+
         if not self._settings or self._settings.get("background_music"):
             try:
                 pygame.mixer.music.load("assets/sound/death_song.mp3")
