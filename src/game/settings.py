@@ -20,6 +20,9 @@
 """Dynamic game settings and menu configuration."""
 
 import time
+import platformdirs
+import os
+import json
 from .constants import SNAKE_COLOR_PALETTES
 
 
@@ -122,7 +125,7 @@ class GameSettings:
             initial_width: Initial window width
             grid_size: Size of each grid cell
         """
-        self.settings = self.DEFAULT_SETTINGS.copy()
+        self.load_settings()
         self.settings["cells_per_side"] = initial_width // grid_size
         self._validate_speed_relationship()
 
@@ -134,6 +137,44 @@ class GameSettings:
             "start_time": 0,
             "last_step_time": 0,
         }
+
+    def load_settings(self) -> None:
+        """Load settings from the user data directory, or initialize as default."""
+
+        self.data_dir = platformdirs.user_data_dir("naja", "fossguild")
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
+        if not os.access(self.data_dir, os.W_OK):
+            raise PermissionError(f"Cannot write to data directory: {self.data_dir}")
+        if not os.path.exists(os.path.join(self.data_dir, "settings.json")):
+            self.settings = self.DEFAULT_SETTINGS.copy()
+            print("Settings file not found. Using default settings.")
+            self.save_settings()
+            return
+        else:
+            with open(os.path.join(self.data_dir, "settings.json"), "r") as f:
+                self.settings = json.load(f)
+                print("Settings loaded from file.")
+
+    def save_settings(self) -> None:
+        """Save current settings to the user data directory."""
+
+        if not hasattr(self, "data_dir"):
+            self.data_dir = platformdirs.user_data_dir("naja", "fossguild")
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
+        with open(os.path.join(self.data_dir, "settings.json"), "w") as f:
+            json.dump(self.settings, f, indent=4)
+            print("Settings saved to file.")
+
+    def save_on_exit(func) -> None:
+        """Save settings after function returns, this should be used as a decorator."""
+
+        def save_on_exit(self, *args, **kwargs):
+            func(self, *args, **kwargs)
+            self.save_settings()
+
+        return save_on_exit
 
     def get(self, key: str):
         """Get a setting value by key.
@@ -285,6 +326,7 @@ class GameSettings:
 
         return False
 
+    @save_on_exit
     def step_setting(self, field: dict, direction: int) -> None:
         """Change a setting value by one step in the given direction.
 
