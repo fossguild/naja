@@ -21,12 +21,12 @@
 
 from dataclasses import dataclass
 
-from src.ecs.entities.entity import Entity, EntityType
-from src.ecs.components.position import Position
-from src.ecs.components.velocity import Velocity
-from src.ecs.components.snake_body import SnakeBody
-from src.ecs.components.interpolation import Interpolation
-from src.ecs.components.renderable import Renderable
+from ecs.entities.entity import Entity, EntityType
+from ecs.components.position import Position
+from ecs.components.velocity import Velocity
+from ecs.components.snake_body import SnakeBody
+from ecs.components.interpolation import Interpolation
+from ecs.components.renderable import Renderable
 
 
 @dataclass

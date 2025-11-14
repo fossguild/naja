@@ -19,6 +19,6 @@
 
 """Rendering utilities module."""
 
-from src.core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
+from core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
 
 __all__ = ["PygameSurfaceRenderer"]

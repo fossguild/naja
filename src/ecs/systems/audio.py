@@ -32,9 +32,9 @@ from __future__ import annotations
 from typing import Optional, Dict
 import pygame
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.game.services.sfx_queue_service import SfxQueueService
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from game.services.sfx_queue_service import SfxQueueService
 
 
 class AudioSystem(BaseSystem):

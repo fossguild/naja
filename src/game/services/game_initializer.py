@@ -25,8 +25,8 @@ creating initial entities, and managing game state transitions.
 import random
 from typing import Any, Optional
 
-from src.ecs.world import World
-from src.core.types.color_utils import hex_to_rgb
+from ecs.world import World
+from core.types.color_utils import hex_to_rgb
 
 
 class GameInitializer:
@@ -119,7 +119,7 @@ class GameInitializer:
         Args:
             world: ECS world instance
         """
-        from src.ecs.components.game_state import GameState
+        from ecs.components.game_state import GameState
 
         class GameStateEntity:
             def __init__(self):
@@ -145,7 +145,7 @@ class GameInitializer:
         Args:
             world: ECS world instance
         """
-        from src.ecs.components.color_scheme import ColorScheme
+        from ecs.components.color_scheme import ColorScheme
 
         class ColorSchemeEntity:
             def __init__(self):
@@ -164,7 +164,7 @@ class GameInitializer:
             world: ECS world instance
             grid_size: Size of grid cells in pixels
         """
-        from src.ecs.prefabs.snake import create_snake
+        from ecs.prefabs.snake import create_snake
 
         # get snake colors from settings
         snake_colors = self._settings.get_snake_colors()
@@ -189,7 +189,7 @@ class GameInitializer:
         Args:
             world: ECS world instance
         """
-        from src.ecs.components.apple_config import AppleConfig
+        from ecs.components.apple_config import AppleConfig
 
         class AppleConfigEntity:
             def __init__(self, desired_count: int):
@@ -213,8 +213,8 @@ class GameInitializer:
             world: ECS world instance
             grid_size: Size of grid cells in pixels
         """
-        from src.ecs.prefabs.apple import create_apple
-        from src.ecs.entities.entity import EntityType
+        from ecs.prefabs.apple import create_apple
+        from ecs.entities.entity import EntityType
 
         # get desired apple count from config entity
         apple_configs = world.registry.query_by_component("apple_config")
@@ -259,7 +259,7 @@ class GameInitializer:
         """
         difficulty = self._settings.get("obstacle_difficulty")
         if difficulty and difficulty != "None":
-            from src.ecs.prefabs.obstacle_field import create_obstacles
+            from ecs.prefabs.obstacle_field import create_obstacles
 
             _ = create_obstacles(
                 world=world,
@@ -274,7 +274,7 @@ class GameInitializer:
         Args:
             world: ECS world instance
         """
-        from src.ecs.components.score import Score
+        from ecs.components.score import Score
 
         # create a simple object to hold the score component
         # we don't use a specific entity type since this is just for UI tracking

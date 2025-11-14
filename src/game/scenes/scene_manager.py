@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from src.game.scenes.base_scene import BaseScene
+from game.scenes.base_scene import BaseScene
 
 
 class SceneManager:

@@ -22,9 +22,9 @@
 import pytest
 from unittest.mock import Mock
 
-from src.ecs.systems.collision import CollisionSystem
-from src.ecs.world import World
-from src.ecs.board import Board
+from ecs.systems.collision import CollisionSystem
+from ecs.world import World
+from ecs.board import Board
 
 
 @pytest.fixture

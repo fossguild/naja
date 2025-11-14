@@ -26,8 +26,8 @@ across game resets and settings changes.
 
 from __future__ import annotations
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
 
 
 class ScoringSystem(BaseSystem):

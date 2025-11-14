@@ -22,13 +22,13 @@
 import random
 from typing import Optional, Literal
 
-from src.ecs.world import World
-from src.ecs.entities.obstacle_field import Obstacle
-from src.ecs.components.position import Position
-from src.ecs.components.obstacle import ObstacleTag
-from src.ecs.components.renderable import Renderable
-from src.core.types.color import Color
-from src.game import constants
+from ecs.world import World
+from ecs.entities.obstacle_field import Obstacle
+from ecs.components.position import Position
+from ecs.components.obstacle import ObstacleTag
+from ecs.components.renderable import Renderable
+from core.types.color import Color
+from game import constants
 
 
 DifficultyLevel = Literal["None", "Easy", "Medium", "Hard", "Impossible"]
@@ -156,7 +156,7 @@ def _get_occupied_cells(world: World) -> set[tuple[int, int]]:
             occupied.add((pos.x, pos.y))
 
     # also include snake body segments if snake has body component
-    from src.ecs.entities.entity import EntityType
+    from ecs.entities.entity import EntityType
 
     snakes = registry.query_by_type(EntityType.SNAKE)
     for _snake_id, snake in snakes.items():

@@ -25,9 +25,9 @@ and entities in real-time during gameplay.
 
 from typing import Any, Optional
 import pygame
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.entities.entity import EntityType
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.entities.entity import EntityType
 
 
 class SettingsApplySystem(BaseSystem):
@@ -158,7 +158,7 @@ class SettingsApplySystem(BaseSystem):
         new_height_cells = new_height_pixels // new_cell_size
 
         # create a new board with the new dimensions
-        from src.ecs.board import Board
+        from ecs.board import Board
 
         new_board = Board(
             width=new_width_cells, height=new_height_cells, cell_size=new_cell_size
@@ -211,7 +211,7 @@ class SettingsApplySystem(BaseSystem):
         tail_color_hex = snake_colors.get("tail")
 
         # convert hex colors to Color objects
-        from src.core.types.color import Color
+        from core.types.color import Color
 
         head_color = Color.from_hex(head_color_hex)
         tail_color = Color.from_hex(tail_color_hex)
@@ -331,7 +331,7 @@ class SettingsApplySystem(BaseSystem):
 
         # generate new obstacles if difficulty is not "None"
         if new_difficulty and new_difficulty != "None":
-            from src.ecs.prefabs.obstacle_field import create_obstacles
+            from ecs.prefabs.obstacle_field import create_obstacles
 
             grid_size = world.board.cell_size
 

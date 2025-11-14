@@ -13,6 +13,9 @@ dependencies = [
 Homepage = "https://github.com/fossguild/naja"
 Repository = "https://github.com/fossguild/naja"
 
+[project.scripts]
+naja = "core:main"
+
 [dependency-groups]
 dev = [
     "pre-commit>=3.0.0",
@@ -20,3 +23,9 @@ dev = [
     "ruff>=0.6.0",
     "pytest>=8.0.0",
 ]
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

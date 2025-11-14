@@ -22,9 +22,9 @@
 import pytest
 from dataclasses import dataclass
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.systems.interpolation import InterpolationSystem
+from ecs.world import World
+from ecs.board import Board
+from ecs.systems.interpolation import InterpolationSystem
 
 
 @dataclass

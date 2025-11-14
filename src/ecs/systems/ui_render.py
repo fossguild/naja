@@ -24,12 +24,12 @@ basic HUD element rendering (score, speed bar, music indicator).
 """
 
 import pygame
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.entities.entity import EntityType
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
-from src.core.types.color import Color
-from src.game import constants
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.entities.entity import EntityType
+from core.rendering.pygame_surface_renderer import RenderEnqueue
+from core.types.color import Color
+from game import constants
 
 
 class UIRenderSystem(BaseSystem):

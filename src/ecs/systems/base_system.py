@@ -19,7 +19,7 @@
 
 
 from abc import ABC, abstractmethod
-from src.ecs.world import World
+from ecs.world import World
 
 
 class BaseSystem(ABC):

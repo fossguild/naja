@@ -22,9 +22,9 @@
 import pytest
 from dataclasses import dataclass
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.systems.scoring import ScoringSystem
+from ecs.world import World
+from ecs.board import Board
+from ecs.systems.scoring import ScoringSystem
 
 
 @dataclass

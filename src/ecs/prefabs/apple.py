@@ -21,12 +21,12 @@
 
 from typing import Optional
 
-from src.ecs.world import World
-from src.ecs.entities.apple import Apple
-from src.ecs.components.position import Position
-from src.ecs.components.edible import Edible
-from src.ecs.components.renderable import Renderable
-from src.core.types.color import Color
+from ecs.world import World
+from ecs.entities.apple import Apple
+from ecs.components.position import Position
+from ecs.components.edible import Edible
+from ecs.components.renderable import Renderable
+from core.types.color import Color
 
 
 def create_apple(

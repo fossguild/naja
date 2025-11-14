@@ -22,14 +22,7 @@
 Thin bootstrap layer that initializes and runs the ECS-based game application.
 """
 
-from src.core.app import ECSGameApp
-
-
-def main():
-    """Main game entry point."""
-    app = ECSGameApp()
-    app.initialize()
-    app.run()
+from core import main
 
 
 if __name__ == "__main__":

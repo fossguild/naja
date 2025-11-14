@@ -19,7 +19,7 @@
 
 """Entity registry for managing game entities and querying them"""
 
-from src.ecs.entities.entity import Entity, EntityType
+from ecs.entities.entity import Entity, EntityType
 
 __all__ = ["EntityRegistry"]
 

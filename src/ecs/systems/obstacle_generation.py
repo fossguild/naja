@@ -31,12 +31,12 @@ from __future__ import annotations
 import random
 from typing import Optional
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.entities.obstacle_field import Obstacle as ObstacleEntity
-from src.ecs.components.position import Position
-from src.ecs.components.obstacle import ObstacleTag
-from src.game import constants
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.entities.obstacle_field import Obstacle as ObstacleEntity
+from ecs.components.position import Position
+from ecs.components.obstacle import ObstacleTag
+from game import constants
 
 
 # grid directions (up, down, left, right)

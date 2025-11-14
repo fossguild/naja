@@ -20,9 +20,9 @@
 """EntityRegistry class tests."""
 
 import pytest
-from src.ecs.entity_registry import EntityRegistry
-from src.ecs.entities import Snake, Apple, Obstacle, EntityType
-from src.ecs.components import (
+from ecs.entity_registry import EntityRegistry
+from ecs.entities import Snake, Apple, Obstacle, EntityType
+from ecs.components import (
     Position,
     Velocity,
     SnakeBody,

@@ -25,23 +25,23 @@ depending on old_code.
 
 import sys
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.prefabs.snake import create_snake
-from src.ecs.prefabs.apple import create_apple
-from src.ecs.prefabs.obstacle_field import create_obstacles
-from src.game.scenes.scene_manager import SceneManager
-from src.game.scenes.menu import MenuScene
-from src.game.scenes.gameplay import GameplayScene
-from src.game.scenes.game_over import GameOverScene
-from src.game.scenes.settings import SettingsScene
-from src.core.io.pygame_adapter import PygameIOAdapter
-from src.core.clock import GameClock
-from src.game.config import GameConfig
-from src.game.settings import GameSettings
-from src.game.services.assets import GameAssets
-from src.game.constants import WINDOW_TITLE
-from src.core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
+from ecs.world import World
+from ecs.board import Board
+from ecs.prefabs.snake import create_snake
+from ecs.prefabs.apple import create_apple
+from ecs.prefabs.obstacle_field import create_obstacles
+from game.scenes.scene_manager import SceneManager
+from game.scenes.menu import MenuScene
+from game.scenes.gameplay import GameplayScene
+from game.scenes.game_over import GameOverScene
+from game.scenes.settings import SettingsScene
+from core.io.pygame_adapter import PygameIOAdapter
+from core.clock import GameClock
+from game.config import GameConfig
+from game.settings import GameSettings
+from game.services.assets import GameAssets
+from game.constants import WINDOW_TITLE
+from core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
 
 
 class ECSGameApp:

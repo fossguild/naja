@@ -19,12 +19,12 @@
 
 """Tests for entity prefab factories."""
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.entities.entity import EntityType
-from src.ecs.prefabs.snake import create_snake
-from src.ecs.prefabs.apple import create_apple
-from src.ecs.prefabs.obstacle_field import create_obstacles
+from ecs.world import World
+from ecs.board import Board
+from ecs.entities.entity import EntityType
+from ecs.prefabs.snake import create_snake
+from ecs.prefabs.apple import create_apple
+from ecs.prefabs.obstacle_field import create_obstacles
 
 
 class TestSnakePrefab:

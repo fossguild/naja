@@ -24,11 +24,11 @@ overlay rendering (pause screen, settings menu) on top of the game.
 """
 
 import pygame
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
-from src.core.types.color import Color
-from src.game import constants
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from core.rendering.pygame_surface_renderer import RenderEnqueue
+from core.types.color import Color
+from game import constants
 
 
 class OverlayRenderSystem(BaseSystem):

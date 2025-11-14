@@ -28,10 +28,10 @@ from __future__ import annotations
 import random
 from typing import Optional
 
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.entities.entity import EntityType
-from src.ecs.prefabs.apple import create_apple
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.entities.entity import EntityType
+from ecs.prefabs.apple import create_apple
 
 
 class SpawnSystem(BaseSystem):

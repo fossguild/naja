@@ -24,8 +24,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from src.core.io.pygame_adapter import PygameIOAdapter
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
+from core.io.pygame_adapter import PygameIOAdapter
+from core.rendering.pygame_surface_renderer import RenderEnqueue
 
 
 class BaseScene(ABC):

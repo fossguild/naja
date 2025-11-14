@@ -24,16 +24,16 @@ snake rendering with smooth interpolation effects.
 """
 
 import pygame
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
-from src.ecs.entities.entity import EntityType
-from src.ecs.components.position import Position
-from src.ecs.components.snake_body import SnakeBody
-from src.ecs.components.interpolation import Interpolation
-from src.ecs.components.color_scheme import ColorScheme
-from src.core.rendering.pygame_surface_renderer import RenderEnqueue
-from src.core.types.color import Color
-from src.game import constants
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.entities.entity import EntityType
+from ecs.components.position import Position
+from ecs.components.snake_body import SnakeBody
+from ecs.components.interpolation import Interpolation
+from ecs.components.color_scheme import ColorScheme
+from core.rendering.pygame_surface_renderer import RenderEnqueue
+from core.types.color import Color
+from game import constants
 
 
 class SnakeRenderSystem(BaseSystem):

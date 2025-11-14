@@ -20,7 +20,7 @@
 """Board class tests."""
 
 import pytest
-from src.ecs.board import Board, Tile, BoardOutOfBoundsError
+from ecs.board import Board, Tile, BoardOutOfBoundsError
 
 
 class TestBoardInitialization:

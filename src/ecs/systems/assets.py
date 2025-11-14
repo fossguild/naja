@@ -21,8 +21,8 @@
 
 import pygame
 from typing import Optional
-from src.ecs.systems.base_system import BaseSystem
-from src.ecs.world import World
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
 
 
 class AssetsSystem(BaseSystem):

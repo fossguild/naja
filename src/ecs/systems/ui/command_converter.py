@@ -21,7 +21,7 @@
 
 import pygame
 from typing import Optional, Tuple, Callable
-from src.game.commands import (
+from game.commands import (
     Command,
     MoveCommand,
     PauseCommand,

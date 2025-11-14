@@ -22,9 +22,9 @@
 import pytest
 from unittest.mock import Mock
 
-from src.ecs.world import World
-from src.ecs.board import Board
-from src.ecs.systems.resize import ResizeSystem
+from ecs.world import World
+from ecs.board import Board
+from ecs.systems.resize import ResizeSystem
 
 
 @pytest.fixture

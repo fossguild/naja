@@ -23,9 +23,9 @@ import pytest
 from unittest.mock import Mock
 import pygame
 
-from src.ecs.systems.input import InputSystem
-from src.ecs.world import World
-from src.ecs.board import Board
+from ecs.systems.input import InputSystem
+from ecs.world import World
+from ecs.board import Board
 
 
 @pytest.fixture

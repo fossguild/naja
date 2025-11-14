@@ -19,8 +19,8 @@
 
 """Component data tests."""
 
-from src.ecs.components import Position, Renderable, Interpolation, Grid
-from src.core.types.color import Color
+from ecs.components import Position, Renderable, Interpolation, Grid
+from core.types.color import Color
 
 
 class TestVisualComponents:
