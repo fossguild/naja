@@ -188,8 +188,6 @@ class CollisionSystem(BaseSystem):
     def _check_self_bite(self, world: World) -> bool:
         """Check if snake head collides with its own tail.
 
-        Maintains exact logic from old code.
-
         Args:
             world: ECS world
 
@@ -201,27 +199,26 @@ class CollisionSystem(BaseSystem):
             not snake
             or not hasattr(snake, "position")
             or not hasattr(snake, "velocity")
+            or not hasattr(snake, "body")
         ):
             return False
-        if not hasattr(snake, "body"):
-            return False
 
-        # calculate next position
-        next_x = snake.position.x + snake.velocity.dx
-        next_y = snake.position.y + snake.velocity.dy
+        # calculate head position
+        head_x = snake.position.x
+        head_y = snake.position.y
 
         # wrap if electric walls are disabled
         electric_walls = (
             self._settings.get("electric_walls") if self._settings else True
         )
         if not electric_walls:
-            next_x = next_x % world.board.width
-            next_y = next_y % world.board.height
+            head_x = head_x % world.board.width
+            head_y = head_y % world.board.height
 
         # check collision with tail segments
         tail_positions = [(seg.x, seg.y) for seg in snake.body.segments]
         for square in tail_positions:
-            if next_x == square[0] and next_y == square[1]:
+            if head_x == square[0] and head_y == square[1]:
                 return True
 
         return False

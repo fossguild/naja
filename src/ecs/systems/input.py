@@ -92,6 +92,47 @@ class InputSystem(BaseSystem):
         if game_state:
             game_state.next_scene = "menu"
 
+    def _buffer_direction(self, world: World, dx: int, dy: int) -> None:
+        """Append a new direction to the snake's input buffer if valid.
+
+        This method ensures that rapid direction changes are stored in order
+        and prevents immediate 180° reversals. It also respects the buffer's
+        maximum length.
+
+        Args:
+            world: ECS world containing the snake entity
+            dx: Horizontal component of the direction (-1, 0, 1)
+            dy: Vertical component of the direction (-1, 0, 1)
+        """
+        snake = self._get_snake_entity(world)
+        if not snake:
+            return
+
+        # get or create input buffer on the snake entity
+        if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
+            # fallback: create attribute if prefabs didn't add it
+            from src.ecs.components.input_buffer import InputBuffer
+
+            snake.input_buffer = InputBuffer()
+
+        buf = snake.input_buffer
+
+        # get last buffered direction or current velocity if buffer is empty
+        last_dx, last_dy = (snake.velocity.dx, snake.velocity.dy)
+        if buf.moves:
+            last_dx, last_dy = buf.moves[-1]
+
+        if (dx != 0 and last_dx == -dx) or (dy != 0 and last_dy == -dy):
+            # don't queue a reversal against the last buffered direction
+            return
+
+        # Limit buffer length
+        if len(buf.moves) >= buf.max_len:
+            return
+
+        # Enqueue the new direction
+        buf.moves.append((dx, dy))
+
     def _handle_keydown(self, world: World, key: int) -> None:
         """Handle key down events.
 
@@ -110,13 +151,13 @@ class InputSystem(BaseSystem):
 
         # movement keys - modify velocity directly with 180° turn prevention
         if key in (pygame.K_DOWN, pygame.K_s):
-            self._set_direction(world, 0, 1, current_dx, current_dy)
+            self._buffer_direction(world, 0, 1)
         elif key in (pygame.K_UP, pygame.K_w):
-            self._set_direction(world, 0, -1, current_dx, current_dy)
+            self._buffer_direction(world, 0, -1)
         elif key in (pygame.K_RIGHT, pygame.K_d):
-            self._set_direction(world, 1, 0, current_dx, current_dy)
+            self._buffer_direction(world, 1, 0)
         elif key in (pygame.K_LEFT, pygame.K_a):
-            self._set_direction(world, -1, 0, current_dx, current_dy)
+            self._buffer_direction(world, -1, 0)
         # control keys
         elif key == pygame.K_q:
             self._handle_quit(world)
