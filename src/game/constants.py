@@ -32,10 +32,12 @@ DIFFICULTY_PERCENTAGES = {
     "Dynamic Spawn Hard": 0.06,  # Dynamic difficulties require fewer obstacles at start
     "Dynamic Spawn Impossible": 0.10,  # Dynamic difficulties require fewer obstacles at start
 }
-
-# Percentage of blocks that can be occupied by obstacles in dynamic difficulty modes
-# When staturation is reached, no new obstacles will spawn
-DYNAMIC_OBSTACLES_SATURATION_PERCENTAGE = 0.25
+"""
+Coefficient applied to the difficulty obstacle percentages to calculate
+the maximum number of obstacles in dynamic spawn modes, defining a saturation point.
+The value is chosen so that, at maximum difficulty, the board can reach up to 33.0%.
+"""
+DYNAMIC_SPAWN_OBSTACLES_SATURATION_COEFFICIENT = 3.3
 
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [
