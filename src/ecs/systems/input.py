@@ -52,6 +52,7 @@ class InputSystem(BaseSystem):
         self,
         pygame_adapter: Optional[Any] = None,
         settings: Optional[Any] = None,
+        renderer: Optional[Any] = None,
     ):
         """Initialize the InputSystem.
 
@@ -61,6 +62,7 @@ class InputSystem(BaseSystem):
         """
         self._pygame_adapter = pygame_adapter
         self._settings = settings
+        self._renderer = renderer
 
     def update(self, world: World) -> None:
         """Process input events and modify ECS components.
@@ -80,6 +82,10 @@ class InputSystem(BaseSystem):
                 self._handle_quit(world)
             elif event.type == pygame.KEYDOWN:
                 self._handle_keydown(world, event.key)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self._handle_mousedown(world, event.button)
+            elif event.type == pygame.MOUSEMOTION:
+                self._handle_mousemotion(world, event.pos)
 
     def _handle_quit(self, world: World) -> None:
         """Handle quit event (window close button).
@@ -128,6 +134,65 @@ class InputSystem(BaseSystem):
             self._handle_music_toggle()
         elif key == pygame.K_c:
             self._handle_palette_randomize()
+
+    def _handle_mousedown(self, world: World, button: int) -> None:
+        # check if settings menu is open first
+        game_state = self._get_game_state(world)
+        if game_state and game_state.settings_menu_open:
+            self._handle_settings_menu_input(world, button)
+        else:
+            self._handle_pause(world)
+        
+    def _handle_mousemotion(self, world: World, pos: tuple[int, int]) -> None:
+        game_state = self._get_game_state(world)
+        if not game_state or not self._settings:
+            return        
+
+        surface_width = self._renderer.width
+        surface_height = self._renderer.height
+        selected_index = game_state.settings_selected_index
+
+        font_path = "assets/font/GetVoIP-Grotesque.ttf"
+        
+        row_h = int(surface_height * 0.06)
+        visible_rows = int(surface_height * 0.70 // row_h)
+        top_index = max(0, selected_index - visible_rows + 3)
+        padding_y = int(surface_height * 0.22)
+
+        menu_fields = self._settings.get_in_game_menu_fields()
+
+        item_font_size = int(surface_width / 30)
+        try:
+            item_font = pygame.font.Font(font_path, item_font_size)
+        except Exception:
+            item_font = pygame.font.Font(None, item_font_size)
+
+        for draw_i, field_i in enumerate(range(top_index, len(menu_fields))):
+            if draw_i >= visible_rows:
+                break
+            f = menu_fields[field_i]
+           
+            text = item_font.render(f"{f['label']}: xxxxxxxxxxxx", True, "#ffffff")
+            rect = text.get_rect()
+            rect.left = int(surface_width * 0.10)
+            rect.top = padding_y + draw_i * row_h
+            
+            if rect.collidepoint(pos):
+                game_state.settings_selected_index = field_i
+                return
+            
+        return_to_menu_index = len(menu_fields)  # last item
+        return_draw_i = len(menu_fields) - top_index
+        if 0 <= return_draw_i < visible_rows:
+            separator_top = padding_y + return_draw_i * row_h
+            # add some spacing before the option
+            return_text = item_font.render("Return to Main Menu", True, "#ffffff")
+            rect = return_text.get_rect()
+            rect.left = int(surface_width * 0.10)
+            rect.top = separator_top + int(row_h * 0.5)  # add spacing
+            if rect.collidepoint(pos):
+                game_state.settings_selected_index = return_to_menu_index
+                return
 
     def _get_snake_entity(self, world: World):
         """Get the snake entity from the world.
@@ -286,6 +351,29 @@ class InputSystem(BaseSystem):
         # randomize colors
         elif key == pygame.K_c:
             self._handle_palette_randomize()
+        # Left Mouse Button
+        elif key == 1:
+            if game_state.settings_selected_index == return_to_menu_index:
+                # "Return to Menu" selected
+                game_state.settings_menu_open = False
+                game_state.paused = False
+                game_state.next_scene = "menu"
+            else:
+                field = menu_fields[game_state.settings_selected_index]
+                self._settings.step_setting(field, +1)
+                self._apply_audio_setting_if_changed(field["key"])
+        # Right Mouse Button
+        elif key == 3:
+            if game_state.settings_selected_index == return_to_menu_index:
+                # "Return to Menu" selected
+                game_state.settings_menu_open = False
+                game_state.paused = False
+                game_state.next_scene = "menu"
+            else:
+                field = menu_fields[game_state.settings_selected_index]
+                self._settings.step_setting(field, -1)
+                self._apply_audio_setting_if_changed(field["key"])
+
 
     def _apply_audio_setting_if_changed(self, field_key: str) -> None:
         """Apply audio settings immediately when changed.

@@ -102,18 +102,31 @@ class MenuScene(BaseScene):
                         self._menu_items
                     )
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    if self._menu_items[self._selected_index] == "Start Game":
-                        return "gameplay"
-                    elif self._menu_items[self._selected_index] == "Settings":
-                        return "settings"
-                    elif self._menu_items[self._selected_index] == "Quit":
-                        pygame.quit()
-                        exit()
-                elif event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    exit()
+                   return self.handle_menu_item(self._menu_items[self._selected_index])
 
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                return self.handle_menu_item(self._menu_items[self._selected_index])
+
+            elif event.type == pygame.MOUSEMOTION:
+                for i, item in enumerate(self._menu_items):
+                    text = self._assets.render_small(item, "#ffffff")
+                    rect = text.get_rect(
+                        center=(self._width / 2, self._height / 2 + i * (self._height * 0.12))
+                    )
+                    
+                    if rect.collidepoint(event.pos):
+                        self._selected_index = i
         return None
+    
+    def handle_menu_item(self, item: str) -> Optional[str]:
+        if item == "Start Game":
+            return "gameplay"
+        elif item == "Settings":
+            return "settings"
+        elif item == "Quit":
+            pygame.quit()
+            exit()
 
     def render(self) -> None:
         """Render the menu."""

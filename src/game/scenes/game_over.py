@@ -98,6 +98,8 @@ class GameOverScene(BaseScene):
                     return "gameplay"  # restart game directly
                 elif event.key == pygame.K_q:
                     return "menu"  # return to main menu
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                return "menu"
 
         return None
 
