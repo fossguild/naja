@@ -27,6 +27,7 @@ from ecs.components.velocity import Velocity
 from ecs.components.snake_body import SnakeBody
 from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
+from ecs.components.input_buffer import InputBuffer
 
 
 @dataclass
@@ -49,6 +50,7 @@ class Snake(Entity):
     body: SnakeBody
     interpolation: Interpolation
     renderable: Renderable
+    input_buffer: InputBuffer
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.

@@ -168,6 +168,12 @@ class MovementSystem(BaseSystem):
                     )
                     body.segments.append(new_seg)
 
+            # Check if there's a buffered direction to apply
+            if hasattr(snake, "input_buffer") and snake.input_buffer.moves:
+                next_dx, next_dy = snake.input_buffer.moves.pop(0)
+                velocity.dx = next_dx
+                velocity.dy = next_dy
+
             # Move head by exactly one grid cell in velocity direction
             # Only wrap around if electric walls are disabled
             # If electric walls are enabled, collision system will handle out-of-bounds
