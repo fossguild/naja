@@ -181,7 +181,12 @@ class GameModesScene(BaseScene):
             desc_text = self._assets.render_custom(
                 description, (120, 120, 120), int(self._width / 45)
             )
-            desc_rect = desc_text.get_rect(center=(self._width / 2, self._height * 0.7))
+            desc_rect = desc_text.get_rect(
+                center=(
+                    self._width / 2,
+                    self._height / 2 + 1 * (self._height * 0.12) + self._height * 0.05,
+                )
+            )
             self._renderer.blit(desc_text, desc_rect)
 
         # Draw back instruction
