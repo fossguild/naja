@@ -31,7 +31,17 @@ from core.types.color import Color
 from game import constants
 
 
-DifficultyLevel = Literal["None", "Easy", "Medium", "Hard", "Impossible"]
+DifficultyLevel = Literal[
+    "None",
+    "Easy",
+    "Medium",
+    "Hard",
+    "Impossible",
+    "Dynamic Spawn Easy",
+    "Dynamic Spawn Medium",
+    "Dynamic Spawn Hard",
+    "Dynamic Spawn Impossible",
+]
 
 
 def create_obstacles(
@@ -42,12 +52,9 @@ def create_obstacles(
 ) -> list[int]:
     """Create obstacle entities based on difficulty level.
 
-    Creates obstacles that fill a percentage of the board based on difficulty:
-    - None: 0%
-    - Easy: 4%
-    - Medium: 6%
-    - Hard: 10%
-    - Impossible: 15%
+    Creates obstacles that fill a percentage of the board based on difficulty.
+    Difficulties obstacles percentages are defined as DIFFICULTY_PERCENTAGES in
+    constants.py.
 
     Args:
         world: ECS world to create entities in

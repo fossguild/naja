@@ -75,7 +75,17 @@ class GameSettings:
             "key": "obstacle_difficulty",
             "label": "Obstacles",
             "type": "select",
-            "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
+            "options": [
+                "None",
+                "Easy",
+                "Medium",
+                "Hard",
+                "Impossible",
+                "Dynamic Spawn Easy",
+                "Dynamic Spawn Medium",
+                "Dynamic Spawn Hard",
+                "Dynamic Spawn Impossible",
+            ],
             "requires_reset": True,
         },
         {
@@ -153,6 +163,7 @@ class GameSettings:
             return
         else:
             with open(os.path.join(self.data_dir, "settings.json"), "r") as f:
+                print(f"PATH {self.data_dir}")
                 self.settings = json.load(f)
                 print("Settings loaded from file.")
 

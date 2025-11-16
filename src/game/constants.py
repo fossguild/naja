@@ -27,7 +27,15 @@ DIFFICULTY_PERCENTAGES = {
     "Medium": 0.06,
     "Hard": 0.10,
     "Impossible": 0.15,
+    "Dynamic Spawn Easy": 0.02,  # Dynamic difficulties require fewer obstacles at start
+    "Dynamic Spawn Medium": 0.04,  # Dynamic difficulties require fewer obstacles at start
+    "Dynamic Spawn Hard": 0.06,  # Dynamic difficulties require fewer obstacles at start
+    "Dynamic Spawn Impossible": 0.10,  # Dynamic difficulties require fewer obstacles at start
 }
+
+# Percentage of blocks that can be occupied by obstacles in dynamic difficulty modes
+# When staturation is reached, no new obstacles will spawn
+DYNAMIC_OBSTACLES_SATURATION_PERCENTAGE = 0.25
 
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [
