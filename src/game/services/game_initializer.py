@@ -258,12 +258,14 @@ class GameInitializer:
             grid_size: Size of grid cells in pixels
         """
         difficulty = self._settings.get("obstacle_difficulty")
+        dynamic_spawn = self._settings.get("dynamic_spawn_obstacles")
         if difficulty and difficulty != "None":
             from ecs.prefabs.obstacle_field import create_obstacles
 
             _ = create_obstacles(
                 world=world,
                 difficulty=difficulty,
+                dynamic_spawn=dynamic_spawn,
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )

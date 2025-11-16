@@ -195,11 +195,14 @@ class ECSGameApp:
 
         # create obstacles based on difficulty
         difficulty = self.settings.get("obstacle_difficulty")
+        # define dynamic obstacle according to settings
+        dynamic_spawn = self.settings.get("dynamic_spawn_obstacles")
 
         if difficulty and difficulty != "None":
             _ = create_obstacles(
                 world=self.world,
                 difficulty=difficulty,
+                dynamic_spawn=dynamic_spawn,
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )
