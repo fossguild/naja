@@ -111,10 +111,52 @@ class SettingsScene(BaseScene):
                     # Apply audio settings immediately
                     self._apply_audio_setting_if_changed(current_field["key"])
 
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # Right Mouse Button
+                if event.button == 1:
+                    current_field = self._settings.MENU_FIELDS[self._selected_index]
+                    self._settings.start_key_hold(current_field, +1)
+                    # Apply audio settings immediately
+                    self._apply_audio_setting_if_changed(current_field["key"])
+                # Left Mouse Button
+                elif event.button == 3:
+                    current_field = self._settings.MENU_FIELDS[self._selected_index]
+                    self._settings.start_key_hold(current_field, -1)
+                    # Apply audio settings immediately
+                    self._apply_audio_setting_if_changed(current_field["key"])
+            
             elif event.type == pygame.KEYUP:
                 # Stop holding when any left/right key is released
                 if event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                     self._settings.stop_key_hold()
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                # Stop holding when the mouse button is released
+                self._settings.stop_key_hold()
+
+            elif event.type == pygame.MOUSEMOTION:
+                row_h = int(self._height * 0.06)
+                visible_rows = int(self._height * 0.70 // row_h)
+                top_index = max(0, self._selected_index - visible_rows + 3)
+                padding_y = int(self._height * 0.22)
+                
+                for draw_i, field_i in enumerate(
+                    range(top_index, len(self._settings.MENU_FIELDS))
+                ):
+                    if draw_i >= visible_rows:
+                        break
+                    f = self._settings.MENU_FIELDS[field_i]
+
+                    text = self._assets.render_custom(
+                        f"{f['label']}: xxxxxxxxxxxxxxxxxxxxx",
+                        "#ffffff",
+                        int(self._width / 30),
+                    )
+                    rect = text.get_rect()
+                    rect.left = int(self._width * 0.10)
+                    rect.top = padding_y + draw_i * row_h
+                    if rect.collidepoint(event.pos):
+                        self._selected_index = field_i
 
         return None
 

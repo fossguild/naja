@@ -111,7 +111,7 @@ class GameplayScene(BaseScene):
         self._systems.extend(
             [
                 InputSystem(
-                    self._pygame_adapter, self._settings
+                    self._pygame_adapter, self._settings, self._renderer
                 ),  # 0: read user input and update velocity/game state
                 MovementSystem(
                     self._get_electric_walls
