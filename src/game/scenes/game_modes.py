@@ -87,7 +87,7 @@ def get_display_mode_name() -> str:
     if _selected_game_mode == 0:
         return "Classic Snake Game"
     elif _selected_game_mode == 1:
-        return "🎲 Random"
+        return "Random"
     else:
         return "Classic Snake Game"
 
