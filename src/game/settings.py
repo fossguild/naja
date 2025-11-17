@@ -151,6 +151,17 @@ class GameSettings:
             "last_step_time": 0,
         }
 
+    def _merge_missing_defaults(self) -> None:
+        """Add any missing default keys (for forward compatibility)."""
+        added = False
+        for k, v in self.DEFAULT_SETTINGS.items():
+            if k not in self.settings:
+                self.settings[k] = v
+                added = True
+        if added:
+            # Persist newly added keys so next run is clean
+            self.save_settings()
+
     def load_settings(self) -> None:
         """Load settings from the user data directory, or initialize as default."""
 
@@ -169,6 +180,8 @@ class GameSettings:
                 print(f"PATH {self.data_dir}")
                 self.settings = json.load(f)
                 print("Settings loaded from file.")
+            # merge in missing keys introduced after file creation
+            self._merge_missing_defaults()
 
     def save_settings(self) -> None:
         """Save current settings to the user data directory."""
@@ -352,6 +365,9 @@ class GameSettings:
         kind = field["type"]
 
         if kind == "bool":
+            if key not in self.settings:
+                # Fallback: initialize from defaults if missing
+                self.settings[key] = self.DEFAULT_SETTINGS.get(key, False)
             self.settings[key] = not self.settings[key]
             return
 
