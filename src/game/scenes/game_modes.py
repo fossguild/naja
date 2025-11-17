@@ -140,6 +140,10 @@ class GameModesScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     # save the selected game mode
                     set_selected_game_mode(self._selected_index)
+                    # if Classic Snake Game is selected, reset settings to default
+                    if self._selected_index == 0:  # Classic mode
+                        self._settings.reset_to_defaults()
+                        self._settings.save_settings()
                     # go back to main menu
                     return "menu"
                 elif event.key == pygame.K_ESCAPE:
