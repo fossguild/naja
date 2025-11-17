@@ -75,7 +75,7 @@ class MenuScene(BaseScene):
         self._assets = assets
         self._settings = settings
         self._selected_index = 0
-        self._menu_items = ["Start Game", "Settings", "Quit"]
+        self._menu_items = ["Start Game", "Game Modes", "Settings", "Quit"]
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update menu logic.
@@ -104,6 +104,8 @@ class MenuScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     if self._menu_items[self._selected_index] == "Start Game":
                         return "gameplay"
+                    elif self._menu_items[self._selected_index] == "Game Modes":
+                        return "game_modes"
                     elif self._menu_items[self._selected_index] == "Settings":
                         return "settings"
                     elif self._menu_items[self._selected_index] == "Quit":
@@ -120,12 +122,22 @@ class MenuScene(BaseScene):
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
 
-        # Draw title
+        # Draw title (bigger and more prominent)
         title = self._assets.render_custom(
-            WINDOW_TITLE, MESSAGE_COLOR, int(self._width / 12)
+            WINDOW_TITLE, MESSAGE_COLOR, int(self._width / 8)
         )
-        title_rect = title.get_rect(center=(self._width / 2, self._height / 4))
+        title_rect = title.get_rect(center=(self._width / 2, self._height / 5))
         self._renderer.blit(title, title_rect)
+
+        # Draw selected game mode below title
+        mode_text = self._get_selected_mode_text()
+        mode_surface = self._assets.render_custom(
+            mode_text, (150, 150, 150), int(self._width / 32)
+        )
+        mode_rect = mode_surface.get_rect(
+            center=(self._width / 2, self._height / 5 + self._height * 0.10)
+        )
+        self._renderer.blit(mode_surface, mode_rect)
 
         # Draw menu items
         for i, item in enumerate(self._menu_items):
@@ -144,3 +156,16 @@ class MenuScene(BaseScene):
         # (it might have stopped if coming from game over)
         if self._settings.get("background_music"):
             GameAssets.play_background_music(loop=True)
+
+    def _get_selected_mode_text(self) -> str:
+        """Get text for currently selected game mode.
+
+        Returns:
+            Display text for selected game mode
+        """
+        try:
+            from game.scenes.game_modes import get_display_mode_name
+
+            return get_display_mode_name()
+        except Exception:
+            return "Classic Snake Game"
