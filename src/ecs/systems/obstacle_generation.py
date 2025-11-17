@@ -273,16 +273,17 @@ class ObstacleGenerationSystem(BaseSystem):
         """Create obstacle entity at specified position."""
         obstacle = ObstacleEntity(position=Position(x=x, y=y), tag=ObstacleTag())
         return world.registry.add(obstacle)
-    
+
     def _update_game_state_obstacles(self, world: World) -> None:
         """Sync GameStates list with worlds obstacles."""
         entities = world.registry.query_by_component("game_state")
-        if not entities: return
+        if not entities:
+            return
         game_state = next(iter(entities.values())).game_state
 
         game_state.obstacles.clear()
-        
-        obstacle_entities = world.registry.query_by_type(ObstacleEntity) 
+
+        obstacle_entities = world.registry.query_by_type(ObstacleEntity)
         for entity in obstacle_entities.values():
             if hasattr(entity, "position"):
                 game_state.obstacles.append((entity.position.x, entity.position.y))
