@@ -299,6 +299,10 @@ class CollisionSystem(BaseSystem):
                         if hasattr(score_entity, "score"):
                             score_entity.score.current += 1
 
+                    game_state = self._get_game_state(world)
+                    if game_state:
+                        game_state.apples_eaten_count += 1
+
                     # increase speed by 10%, respect max_speed
                     if hasattr(snake, "velocity"):
                         current_speed = snake.velocity.speed

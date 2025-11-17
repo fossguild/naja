@@ -19,8 +19,8 @@
 
 """Game state component for managing game flow state."""
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List, Tuple
 
 
 @dataclass
@@ -42,3 +42,5 @@ class GameState:
     settings_menu_open: bool = False
     settings_selected_index: int = 0
     settings_menu_item_count: int = 0  # total items including "Return to Menu"
+    apples_eaten_count: int = 0
+    obstacles: List[Tuple[int, int]] = field(default_factory=list)
