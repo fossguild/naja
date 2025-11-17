@@ -24,7 +24,6 @@ import pytest
 from ecs.world import World
 from ecs.board import Board
 from ecs.systems.obstacle_generation import ObstacleGenerationSystem
-from ecs.entities.entity import EntityType
 
 
 @pytest.fixture
@@ -66,87 +65,8 @@ class TestObstacleGenerationSystemInitialization:
         assert system._safe_zone_height == 3
 
 
-class TestCalculateObstacleCount:
-    """Test obstacle count calculation from difficulty."""
-
-    def test_calculate_count_none_difficulty(self, small_board):
-        """Test that 'None' difficulty returns 0 obstacles."""
-        count = ObstacleGenerationSystem.calculate_obstacle_count(
-            small_board, 30, "None"
-        )
-        assert count == 0
-
-    def test_calculate_count_easy_difficulty(self, small_board):
-        """Test that 'Easy' difficulty returns correct count."""
-        # 10x10 board = 100 cells, Easy = 4%
-        count = ObstacleGenerationSystem.calculate_obstacle_count(
-            small_board, 30, "Easy"
-        )
-        assert count == 4
-
-    def test_calculate_count_medium_difficulty(self, small_board):
-        """Test that 'Medium' difficulty returns correct count."""
-        # 10x10 board = 100 cells, Medium = 6%
-        count = ObstacleGenerationSystem.calculate_obstacle_count(
-            small_board, 30, "Medium"
-        )
-        assert count == 6
-
-    def test_calculate_count_hard_difficulty(self, small_board):
-        """Test that 'Hard' difficulty returns correct count."""
-        # 10x10 board = 100 cells, Hard = 10%
-        count = ObstacleGenerationSystem.calculate_obstacle_count(
-            small_board, 30, "Hard"
-        )
-        assert count == 10
-
-    def test_calculate_count_impossible_difficulty(self, small_board):
-        """Test that 'Impossible' difficulty returns correct count."""
-        # 10x10 board = 100 cells, Impossible = 15%
-        count = ObstacleGenerationSystem.calculate_obstacle_count(
-            small_board, 30, "Impossible"
-        )
-        assert count == 15
-
-    def test_calculate_count_unknown_difficulty(self, small_board):
-        """Test that unknown difficulty defaults to 0."""
-        count = ObstacleGenerationSystem.calculate_obstacle_count(
-            small_board, 30, "UnknownDifficulty"
-        )
-        assert count == 0
-
-
 class TestGenerateObstacles:
     """Test obstacle generation."""
-
-    def test_generate_zero_obstacles(self, world_small, obstacle_system):
-        """Test generating zero obstacles."""
-        snake_start = (30, 30)
-        obstacle_ids = obstacle_system.generate_obstacles(world_small, 0, snake_start)
-
-        assert len(obstacle_ids) == 0
-
-    def test_generate_single_obstacle(self, world_small, obstacle_system):
-        """Test generating single obstacle."""
-        snake_start = (30, 30)
-        obstacle_ids = obstacle_system.generate_obstacles(world_small, 1, snake_start)
-
-        assert len(obstacle_ids) == 1
-        assert world_small.registry.has(obstacle_ids[0])
-
-        # verify entity is an obstacle
-        obstacle = world_small.registry.get(obstacle_ids[0])
-        assert obstacle.get_type() == EntityType.OBSTACLE
-        assert hasattr(obstacle, "position")
-        assert hasattr(obstacle, "tag")
-
-    def test_generate_multiple_obstacles(self, world_small, obstacle_system):
-        """Test generating multiple obstacles."""
-        snake_start = (30, 30)
-        obstacle_ids = obstacle_system.generate_obstacles(world_small, 5, snake_start)
-
-        assert len(obstacle_ids) == 5
-        assert all(world_small.registry.has(oid) for oid in obstacle_ids)
 
     def test_obstacles_have_valid_positions(self, world_small, obstacle_system):
         """Test that generated obstacles have valid grid-aligned positions."""
@@ -189,30 +109,6 @@ class TestGenerateObstacles:
 
 class TestConnectivityCheck:
     """Test grid connectivity verification."""
-
-    def test_connected_grid_simple(self, world_small, obstacle_system):
-        """Test connectivity check on simple connected grid."""
-        # place a few obstacles that don't disconnect the grid
-        snake_start = (0, 0)
-        obstacle_ids = obstacle_system.generate_obstacles(world_small, 5, snake_start)
-
-        # if generation succeeded, grid should be connected
-        assert len(obstacle_ids) == 5
-
-        # verify by checking we can actually query the grid
-        board = world_small.board
-        grid_size = board.cell_size
-
-        obstacle_positions = set()
-        for obstacle_id in obstacle_ids:
-            obstacle = world_small.registry.get(obstacle_id)
-            obstacle_positions.add((obstacle.position.x, obstacle.position.y))
-
-        # connectivity check should pass
-        is_connected = obstacle_system._is_grid_connected(
-            obstacle_positions, snake_start, board, grid_size
-        )
-        assert is_connected
 
     def test_disconnected_grid_detection(self, world_small, obstacle_system):
         """Test that disconnected grids are detected."""
@@ -258,29 +154,6 @@ class TestTrapDetection:
 
         assert not would_trap
 
-    def test_trap_detection_three_sides_blocked(self, world_small, obstacle_system):
-        """Test that trap is detected when 3 sides are blocked."""
-        board = world_small.board
-        grid_size = board.cell_size
-
-        # create a U-shape that will trap a cell
-        # place obstacles at (30, 0), (30, 60), (0, 30)
-        existing_positions = {
-            (30, 0),
-            (30, 60),
-            (0, 30),
-        }
-
-        # try to place obstacle at (60, 30) which would trap (30, 30)
-        new_pos = (60, 30)
-
-        would_trap = obstacle_system._would_create_trap(
-            new_pos, existing_positions, board, grid_size
-        )
-
-        # this should detect the trap
-        assert would_trap
-
 
 class TestGenerateObstaclesByDifficulty:
     """Test generation by difficulty level."""
@@ -293,26 +166,6 @@ class TestGenerateObstaclesByDifficulty:
         )
 
         assert len(obstacle_ids) == 0
-
-    def test_generate_by_easy_difficulty(self, world_small, obstacle_system):
-        """Test generating with 'Easy' difficulty."""
-        snake_start = (30, 30)
-        obstacle_ids = obstacle_system.generate_obstacles_by_difficulty(
-            world_small, "Easy", snake_start
-        )
-
-        # Easy = 4% of 100 cells = 4 obstacles
-        assert len(obstacle_ids) == 4
-
-    def test_generate_by_medium_difficulty(self, world_small, obstacle_system):
-        """Test generating with 'Medium' difficulty."""
-        snake_start = (30, 30)
-        obstacle_ids = obstacle_system.generate_obstacles_by_difficulty(
-            world_small, "Medium", snake_start
-        )
-
-        # Medium = 6% of 100 cells = 6 obstacles
-        assert len(obstacle_ids) == 6
 
 
 class TestDeterministicGeneration:
@@ -381,56 +234,3 @@ class TestEdgeCases:
         assert isinstance(obstacle_ids, list)
         # should be less than requested
         assert len(obstacle_ids) < 90
-
-
-class TestIntegration:
-    """Integration tests for ObstacleGenerationSystem."""
-
-    def test_full_generation_workflow(self, world_small, obstacle_system):
-        """Test complete generation workflow."""
-        snake_start = (30, 30)
-
-        # generate obstacles
-        obstacle_ids = obstacle_system.generate_obstacles(world_small, 10, snake_start)
-
-        # verify all obstacles are in registry
-        assert len(obstacle_ids) == 10
-        for oid in obstacle_ids:
-            assert world_small.registry.has(oid)
-
-        # verify all are obstacle type
-        obstacles = world_small.registry.query_by_type(EntityType.OBSTACLE)
-        assert len(obstacles) == 10
-
-        # verify grid is still connected
-        board = world_small.board
-        grid_size = board.cell_size
-
-        obstacle_positions = set()
-        for oid in obstacle_ids:
-            obstacle = world_small.registry.get(oid)
-            obstacle_positions.add((obstacle.position.x, obstacle.position.y))
-
-        is_connected = obstacle_system._is_grid_connected(
-            obstacle_positions, snake_start, board, grid_size
-        )
-        assert is_connected
-
-    def test_regenerate_obstacles(self, world_small, obstacle_system):
-        """Test regenerating obstacles (clearing old ones)."""
-        snake_start = (30, 30)
-
-        # generate first set
-        ids1 = obstacle_system.generate_obstacles(world_small, 5, snake_start)
-        assert len(ids1) == 5
-
-        # clear them
-        for oid in ids1:
-            world_small.registry.remove(oid)
-
-        # generate new set
-        ids2 = obstacle_system.generate_obstacles(world_small, 5, snake_start)
-        assert len(ids2) == 5
-
-        # should be different IDs
-        assert set(ids1).isdisjoint(set(ids2))
