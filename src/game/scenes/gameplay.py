@@ -90,7 +90,9 @@ class GameplayScene(BaseScene):
         self._entity_render_system: Optional[EntityRenderSystem] = None
         self._ui_render_system: Optional[UIRenderSystem] = None
         self._overlay_render_system: Optional[OverlayRenderSystem] = None
-        self._game_initializer = GameInitializer(settings=settings)
+        self._game_initializer = GameInitializer(
+            settings=settings, config=config, assets=assets
+        )
         self._audio_service = AudioService(settings=settings)
         self._sfx_queue_service = SfxQueueService()
 
