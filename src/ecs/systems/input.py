@@ -343,7 +343,7 @@ class InputSystem(BaseSystem):
                 if not pygame.mixer.music.get_busy():
                     try:
                         pygame.mixer.music.load(
-                            "assets/sound/BoxCat_Games_CPU_Talk.ogg"
+                            "assets/sound/Slither_Sprint.mp3"
                         )
                         pygame.mixer.music.play(-1)
                     except Exception:
