@@ -226,7 +226,7 @@ class GameplayScene(BaseScene):
         """Called when entering gameplay scene."""
         self.set_next_scene(None)
         self._game_initializer.reset_world(self._world)
-        self._audio_service.play_music("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+        self._audio_service.play_music("assets/sound/Slither_Sprint.mp3")
         self.on_attach()
 
     def on_exit(self) -> None:

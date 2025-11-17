@@ -24,7 +24,7 @@ class GameAssets:
     """Manages loading and reloading of game assets (sounds, sprites, fonts)."""
 
     # Asset file paths
-    BACKGROUND_MUSIC_PATH = "assets/sound/BoxCat_Games_CPU_Talk.ogg"
+    BACKGROUND_MUSIC_PATH = "assets/sound/Slither_Sprint.mp3"
     DEATH_MUSIC_PATH = "assets/sound/death_song.mp3"
     GAMEOVER_SOUND_PATH = "assets/sound/gameover.wav"
     EAT_SOUND = "assets/sound/eat.flac"

@@ -157,7 +157,7 @@ class AudioService:
             # If music isn't playing, try to reload and play background music
             if not pygame.mixer.music.get_busy():
                 try:
-                    pygame.mixer.music.load("assets/sound/BoxCat_Games_CPU_Talk.ogg")
+                    pygame.mixer.music.load("assets/sound/Slither_Sprint.mp3")
                     pygame.mixer.music.play(-1)
                 except Exception:
                     pass
