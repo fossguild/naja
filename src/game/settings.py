@@ -38,6 +38,7 @@ class GameSettings:
         "number_of_apples": 1,
         "background_music": True,
         "sound_effects": True,  # Controls all sound effects (eat, death, etc.)
+        "dynamic_spawn_obstacles": False,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
     }
@@ -75,7 +76,13 @@ class GameSettings:
             "key": "obstacle_difficulty",
             "label": "Obstacles",
             "type": "select",
-            "options": ["None", "Easy", "Medium", "Hard", "Impossible"],
+            "options": [
+                "None",
+                "Easy",
+                "Medium",
+                "Hard",
+                "Impossible",
+            ],
             "requires_reset": True,
         },
         {
@@ -98,6 +105,12 @@ class GameSettings:
             "label": "Sound Effects",
             "type": "bool",
             "requires_reset": False,
+        },
+        {
+            "key": "dynamic_spawn_obstacles",
+            "label": "Dynamic Spawn Obstacles",
+            "type": "bool",
+            "requires_reset": True,
         },
         {
             "key": "electric_walls",
@@ -138,6 +151,17 @@ class GameSettings:
             "last_step_time": 0,
         }
 
+    def _merge_missing_defaults(self) -> None:
+        """Add any missing default keys (for forward compatibility)."""
+        added = False
+        for k, v in self.DEFAULT_SETTINGS.items():
+            if k not in self.settings:
+                self.settings[k] = v
+                added = True
+        if added:
+            # Persist newly added keys so next run is clean
+            self.save_settings()
+
     def load_settings(self) -> None:
         """Load settings from the user data directory, or initialize as default."""
 
@@ -153,8 +177,11 @@ class GameSettings:
             return
         else:
             with open(os.path.join(self.data_dir, "settings.json"), "r") as f:
+                print(f"PATH {self.data_dir}")
                 self.settings = json.load(f)
                 print("Settings loaded from file.")
+            # merge in missing keys introduced after file creation
+            self._merge_missing_defaults()
 
     def save_settings(self) -> None:
         """Save current settings to the user data directory."""
@@ -338,6 +365,9 @@ class GameSettings:
         kind = field["type"]
 
         if kind == "bool":
+            if key not in self.settings:
+                # Fallback: initialize from defaults if missing
+                self.settings[key] = self.DEFAULT_SETTINGS.get(key, False)
             self.settings[key] = not self.settings[key]
             return
 

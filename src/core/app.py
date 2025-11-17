@@ -195,31 +195,17 @@ class ECSGameApp:
 
         # create obstacles based on difficulty
         difficulty = self.settings.get("obstacle_difficulty")
+        # define dynamic obstacle according to settings
+        dynamic_spawn = self.settings.get("dynamic_spawn_obstacles")
 
         if difficulty and difficulty != "None":
             _ = create_obstacles(
                 world=self.world,
                 difficulty=difficulty,
+                dynamic_spawn=dynamic_spawn,
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )
-
-    def _calculate_obstacle_count(self) -> int:
-        """Calculate number of obstacles based on difficulty setting."""
-        difficulty = self.settings.get("obstacle_difficulty")
-
-        # difficulty percentages
-        percentages = {
-            "None": 0.0,
-            "Easy": 0.04,
-            "Medium": 0.06,
-            "Hard": 0.10,
-            "Impossible": 0.15,
-        }
-
-        percentage = percentages.get(difficulty, 0.0)
-        total_cells = self.world.board.width * self.world.board.height
-        return int(total_cells * percentage)
 
     def run(self) -> None:
         """Run the main game loop."""

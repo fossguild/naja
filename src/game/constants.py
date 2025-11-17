@@ -28,6 +28,19 @@ DIFFICULTY_PERCENTAGES = {
     "Hard": 0.10,
     "Impossible": 0.15,
 }
+"""
+Coefficient applied to the difficulty obstacle percentages to calculate
+the maximum number of obstacles in dynamic spawn modes, defining a saturation point.
+The value is chosen so that, at maximum difficulty, the board can reach up to 33.0%.
+"""
+DYNAMIC_SPAWN_OBSTACLES_SATURATION_COEFFICIENT = 3.3
+
+"""
+Coefficient applied to the difficulty obstacle percentages to calculate
+the initial number of obstacles in dynamic spawn modes. The value is chosen
+so that the initial number is 3/4 of the initial value in static modes.
+"""
+DYNAMIC_SPAWN_OBSTACLES_INITIAL_COEFFICIENT = 0.75
 
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [

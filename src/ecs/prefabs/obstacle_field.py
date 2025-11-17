@@ -31,27 +31,32 @@ from core.types.color import Color
 from game import constants
 
 
-DifficultyLevel = Literal["None", "Easy", "Medium", "Hard", "Impossible"]
+DifficultyLevel = Literal[
+    "None",
+    "Easy",
+    "Medium",
+    "Hard",
+    "Impossible",
+]
 
 
 def create_obstacles(
     world: World,
     difficulty: DifficultyLevel,
+    dynamic_spawn: bool,
     grid_size: int,
     random_seed: Optional[int] = None,
 ) -> list[int]:
     """Create obstacle entities based on difficulty level.
 
-    Creates obstacles that fill a percentage of the board based on difficulty:
-    - None: 0%
-    - Easy: 4%
-    - Medium: 6%
-    - Hard: 10%
-    - Impossible: 15%
+    Creates obstacles that fill a percentage of the board based on difficulty.
+    Difficulties obstacles percentages are defined as DIFFICULTY_PERCENTAGES in
+    constants.py.
 
     Args:
         world: ECS world to create entities in
         difficulty: Difficulty level determining number of obstacles
+        dynamic_spawn: Whether to use dynamic spawn mode for obstacles
         grid_size: Size of each grid cell in pixels
         random_seed: Optional seed for deterministic obstacle placement (testing)
 
@@ -59,7 +64,7 @@ def create_obstacles(
         list[int]: List of entity IDs for created obstacles
 
     Example:
-        >>> obstacle_ids = create_obstacles(world, "Medium", grid_size=20)
+        >>> obstacle_ids = create_obstacles(world, "Medium", False, grid_size=20)
         >>> len(obstacle_ids)  # 6% of total cells
         30
     """
@@ -77,7 +82,9 @@ def create_obstacles(
     total_cells = grid_width_tiles * grid_height_tiles
 
     # calculate number of obstacles based on difficulty
-    num_obstacles = _calculate_obstacles_from_difficulty(difficulty, total_cells)
+    num_obstacles = _calculate_obstacles_from_difficulty(
+        difficulty, dynamic_spawn, total_cells
+    )
 
     if num_obstacles == 0:
         return []
@@ -121,18 +128,25 @@ def create_obstacles(
 
 def _calculate_obstacles_from_difficulty(
     difficulty: DifficultyLevel,
+    dynamic_spawn: bool,
     total_cells: int,
 ) -> int:
     """Calculate number of obstacles based on difficulty and total cells.
 
     Args:
         difficulty: Difficulty level
+        dynamic_spawn: Whether dynamic spawn mode is enabled
         total_cells: Total number of cells in the grid
 
     Returns:
         int: Number of obstacles to create
     """
     percentage = constants.DIFFICULTY_PERCENTAGES.get(difficulty, 0.0)
+
+    if dynamic_spawn:
+        # In dynamic spawn mode, use initial coefficient to reduce the number of obstacles
+        percentage *= constants.DYNAMIC_SPAWN_OBSTACLES_INITIAL_COEFFICIENT
+
     return int(total_cells * percentage)
 
 
