@@ -342,9 +342,7 @@ class InputSystem(BaseSystem):
                 # if music isn't playing, reload and start it
                 if not pygame.mixer.music.get_busy():
                     try:
-                        pygame.mixer.music.load(
-                            "assets/sound/Slither_Sprint.mp3"
-                        )
+                        pygame.mixer.music.load("assets/sound/Slither_Sprint.mp3")
                         pygame.mixer.music.play(-1)
                     except Exception:
                         pass
