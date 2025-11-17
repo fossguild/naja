@@ -42,13 +42,22 @@ class GameInitializer:
     of concerns and make the code more testable.
     """
 
-    def __init__(self, settings: Optional[Any] = None):
+    def __init__(
+        self,
+        settings: Optional[Any] = None,
+        config: Optional[Any] = None,
+        assets: Optional[Any] = None,
+    ):
         """Initialize the game initializer.
 
         Args:
             settings: Game settings object (Settings instance)
+            config: Game configuration object
+            assets: Game assets (for font reloading when window resizes)
         """
         self._settings = settings
+        self._config = config
+        self._assets = assets
         self._game_over = False
         self._death_reason = ""
 
@@ -67,6 +76,10 @@ class GameInitializer:
         # reset game over state
         self._game_over = False
         self._death_reason = ""
+
+        # ensure board dimensions match current settings BEFORE creating entities
+        # this fixes the bug where apple count is wrong on first game after changing cells_per_side
+        self._sync_board_with_settings(world)
 
         # create initial entities
         self.create_initial_entities(world)
@@ -315,3 +328,79 @@ class GameInitializer:
         """
         self._game_over = True
         self._death_reason = reason
+
+    def _sync_board_with_settings(self, world: World) -> None:
+        """Ensure board dimensions match current settings.
+
+        This must be called before creating entities to ensure AppleConfig
+        and other entities use the correct board dimensions.
+
+        Fixes bug where apple distribution is incorrect on first game after
+        changing cells_per_side setting.
+
+        Args:
+            world: ECS world instance
+        """
+        if not self._settings:
+            return
+
+        # get desired cells_per_side from settings
+        desired_cells = self._settings.get("cells_per_side")
+        actual_cells = world.board.width  # board is always square
+
+        # if board doesn't match settings, recreate it
+        if desired_cells != actual_cells:
+            # need config to calculate optimal sizes
+            if not self._config:
+                from game.config import GameConfig
+
+                config = GameConfig()
+            else:
+                config = self._config
+
+            # ensure minimum size
+            desired_cells = max(10, int(desired_cells))
+
+            # calculate optimal grid/cell size
+            new_cell_size = config.get_optimal_grid_size(desired_cells)
+
+            # calculate new window dimensions (must be multiple of cell size)
+            new_width_pixels, new_height_pixels = config.calculate_window_size(
+                new_cell_size
+            )
+
+            # calculate board dimensions in cells
+            new_width_cells = new_width_pixels // new_cell_size
+            new_height_cells = new_height_pixels // new_cell_size
+
+            # create a new board with the new dimensions
+            from ecs.board import Board
+
+            new_board = Board(
+                width=new_width_cells,
+                height=new_height_cells,
+                cell_size=new_cell_size,
+            )
+
+            # replace the board in the world
+            world.board = new_board
+
+            # update pygame display window to match new dimensions
+            import pygame
+
+            current_surface = pygame.display.get_surface()
+            if current_surface:
+                current_w, current_h = current_surface.get_size()
+                if current_w != new_width_pixels or current_h != new_height_pixels:
+                    pygame.display.set_mode((new_width_pixels, new_height_pixels))
+
+                    # reload fonts with new dimensions if assets available
+                    if self._assets:
+                        self._assets.reload_fonts(new_width_pixels)
+
+            print(
+                f"[GameInitializer] Synced board to settings: {desired_cells}x{desired_cells} cells, "
+                f"cell_size={new_cell_size}px, "
+                f"board={new_width_cells}x{new_height_cells} cells, "
+                f"window={new_width_pixels}x{new_height_pixels}px"
+            )
