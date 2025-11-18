@@ -1,0 +1,11 @@
+name: Unit Test Checks
+on: pull_request
+
+jobs:
+  black:
+    name: runner / pytest unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run pytest .

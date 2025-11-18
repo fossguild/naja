@@ -32,6 +32,7 @@ from ecs.components.color_scheme import ColorScheme
 from ecs.components.game_state import GameState
 from ecs.components.score import Score
 from ecs.components.moving_apple import MovingApple
+from ecs.components.input_buffer import InputBuffer
 
 __all__ = [
     "Position",
@@ -48,4 +49,5 @@ __all__ = [
     "GameState",
     "Score",
     "MovingApple",
+    "InputBuffer",
 ]
