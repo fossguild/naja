@@ -138,7 +138,6 @@ celerybeat.pid
 .env
 .envrc
 .venv
-.najaenv/
 env/
 venv/
 ENV/
