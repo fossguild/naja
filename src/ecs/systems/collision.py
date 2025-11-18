@@ -130,21 +130,17 @@ class CollisionSystem(BaseSystem):
         the order of the body segments, so the snake continues
         a coherent path from the other end.
         """
-        # Precisamos de position e body
+        
         if not hasattr(snake, "position") or not hasattr(snake, "body"):
             return
 
         position = snake.position
         body = snake.body
 
-        # Sem segmentos não existe cauda pra trocar
         if not body.segments:
             return
-
-        # Monta a cadeia completa [head, s1, ..., sN]
         chain = [position] + body.segments
 
-        # Salva coordenadas (incluindo prev_ para interpolação)
         coords = []
         for seg in chain:
             x = getattr(seg, "x", None)
@@ -156,27 +152,26 @@ class CollisionSystem(BaseSystem):
         # Inverte a cadeia
         coords.reverse()
 
-        # Aplica no head
+        # apply to the head
         head_x, head_y, head_prev_x, head_prev_y = coords[0]
         position.x = head_x
         position.y = head_y
         position.prev_x = head_prev_x
         position.prev_y = head_prev_y
 
-        # Aplica no corpo (segments)
+        # apply to the body (segments)
         for seg, (x, y, prev_x, prev_y) in zip(body.segments, coords[1:]):
             seg.x = x
             seg.y = y
             seg.prev_x = prev_x
             seg.prev_y = prev_y
 
-        # Atualiza a direção pra cabeça apontar "pra fora" do corpo
         if hasattr(snake, "velocity") and body.segments:
             first = body.segments[0]
             dx = position.x - first.x
             dy = position.y - first.y
 
-            # Normaliza pra um passo de grade (4 direções)
+            # normalize
             if dx > 0:
                 snake.velocity.dx = 1
                 snake.velocity.dy = 0
@@ -190,7 +185,7 @@ class CollisionSystem(BaseSystem):
                 snake.velocity.dx = 0
                 snake.velocity.dy = -1
 
-        # Limpa o buffer de inputs pra não ter direções antigas "estranhas"
+        # clean buffer
         if (
             hasattr(snake, "input_buffer")
             and snake.input_buffer
