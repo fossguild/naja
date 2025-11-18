@@ -31,6 +31,9 @@ from typing import Optional
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
+from game.game_modes_registry import GameModeType
+from game.settings import GameSettings
+from game.scoreboard import Scoreboard
 
 
 class ScoringSystem(BaseSystem):
@@ -54,17 +57,23 @@ class ScoringSystem(BaseSystem):
 
     def __init__(
         self,
-        scoreboard: Optional[object] = None,
-        settings: Optional[object] = None,
+        scoreboard: Optional[Scoreboard] = None,
+        settings: Optional[GameSettings] = None,
+        gamemode: Optional[GameModeType] = None,
     ):
         """Initialize the ScoringSystem.
 
         Args:
             scoreboard: Scoreboard for saving high scores (Scoreboard)
             settings: Game settings for scoreboard hash (GameSettings)
+            gamemode: Current game mode (GameModeType)
         """
         self._scoreboard = scoreboard
         self._settings = settings
+        self._gamemode = gamemode
+        print(
+            "ScoringSystem initialized with settings:", settings, "gamemode:", gamemode
+        )
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
@@ -247,7 +256,7 @@ class ScoringSystem(BaseSystem):
             return False
 
         try:
-            self._scoreboard.add_entry(self._settings, current_score)
+            self._scoreboard.add_entry(self._settings, self._gamemode, current_score)
             self._scoreboard.save()
             print(f"Score saved to scoreboard: {current_score}")
             return True

@@ -17,6 +17,7 @@ class TestScoreboard:
         """Set up test fixtures before each test method."""
         self.scoreboard = Scoreboard()
         self.settings = GameSettings(640, 20)
+        self.gamemode = "Classic Snake Game"
 
     def test_init(self):
         """Test Scoreboard initialization."""
@@ -27,58 +28,61 @@ class TestScoreboard:
 
     def test_add_entry(self):
         """Test adding a score entry."""
-        self.scoreboard.add_entry(self.settings, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
 
-        listing_hash = self.settings.scoreboard_hash()
-        assert listing_hash in self.scoreboard._entries
-        assert len(self.scoreboard._entries[listing_hash]["scores"]) == 1
-        assert self.scoreboard._entries[listing_hash]["scores"][0]["value"] == 10
+        # Verify entry was added by checking sorted scores
+        scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
+        assert len(scores) == 1
+        assert scores[0]["value"] == 10
 
     def test_add_multiple_entries(self):
         """Test adding multiple score entries."""
-        self.scoreboard.add_entry(self.settings, 10)
-        self.scoreboard.add_entry(self.settings, 20)
-        self.scoreboard.add_entry(self.settings, 15)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 20)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 15)
 
-        listing_hash = self.settings.scoreboard_hash()
-        scores = self.scoreboard._entries[listing_hash]["scores"]
+        # Verify entries using sorted_scores
+        scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         assert len(scores) == 3
-        assert scores[0]["value"] == 10
-        assert scores[1]["value"] == 20
-        assert scores[2]["value"] == 15
+        # Note: sorted_scores returns in descending order by score
+        assert scores[0]["value"] == 20
+        assert scores[1]["value"] == 15
+        assert scores[2]["value"] == 10
 
     def test_sorted_scores(self):
         """Test retrieving sorted scores."""
-        self.scoreboard.add_entry(self.settings, 30)
-        self.scoreboard.add_entry(self.settings, 10)
-        self.scoreboard.add_entry(self.settings, 20)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 30)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 20)
 
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         values = [entry["value"] for entry in sorted_scores]
 
         assert values == [30, 20, 10]  # sorted descending
 
     def test_sorted_scores_empty(self):
         """Test retrieving sorted scores when no scores exist."""
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         assert sorted_scores == []
 
     def test_sorted_scores_different_settings(self):
         """Test that scores are separated by settings."""
         # Add scores with default settings
-        self.scoreboard.add_entry(self.settings, 10)
-        self.scoreboard.add_entry(self.settings, 20)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 20)
 
         # Create different settings
         other_settings = GameSettings(640, 20)
         other_settings.set("electric_walls", False)
 
         # Add scores with different settings
-        self.scoreboard.add_entry(other_settings, 100)
+        self.scoreboard.add_entry(other_settings, "Classic Snake Game", 100)
 
         # Verify scores are separate
-        sorted_scores1 = self.scoreboard.sorted_scores(self.settings)
-        sorted_scores2 = self.scoreboard.sorted_scores(other_settings)
+        sorted_scores1 = self.scoreboard.sorted_scores(self.settings, self.gamemode)
+        sorted_scores2 = self.scoreboard.sorted_scores(
+            other_settings, "Classic Snake Game"
+        )
 
         assert len(sorted_scores1) == 2
         assert len(sorted_scores2) == 1
@@ -89,9 +93,9 @@ class TestScoreboard:
         """Test getting top scores."""
         # Add more than MAX_SCOREBOARD_ENTRIES scores
         for score in [10, 20, 30, 40, 50, 60, 70]:
-            self.scoreboard.add_entry(self.settings, score)
+            self.scoreboard.add_entry(self.settings, self.gamemode, score)
 
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         top_scores = sorted_scores[:MAX_SCOREBOARD_ENTRIES]
 
         assert len(top_scores) == MAX_SCOREBOARD_ENTRIES
@@ -100,8 +104,8 @@ class TestScoreboard:
 
     def test_clear(self):
         """Test clearing the scoreboard."""
-        self.scoreboard.add_entry(self.settings, 10)
-        self.scoreboard.add_entry(self.settings, 20)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 20)
 
         assert len(self.scoreboard._entries) > 0
 
@@ -111,11 +115,11 @@ class TestScoreboard:
 
     def test_all_entries(self):
         """Test retrieving all entries."""
-        self.scoreboard.add_entry(self.settings, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
 
         other_settings = GameSettings(640, 20)
         other_settings.set("electric_walls", False)
-        self.scoreboard.add_entry(other_settings, 20)
+        self.scoreboard.add_entry(other_settings, "Classic Snake Game", 20)
 
         all_entries = self.scoreboard.all_entries()
 
@@ -124,35 +128,36 @@ class TestScoreboard:
 
     def test_entry_has_timestamp(self):
         """Test that entries have timestamps."""
-        self.scoreboard.add_entry(self.settings, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
 
-        listing_hash = self.settings.scoreboard_hash()
-        entry = self.scoreboard._entries[listing_hash]["scores"][0]
-
-        assert "timestamp" in entry
-        assert isinstance(entry["timestamp"], datetime)
+        # Verify through sorted_scores that timestamp exists
+        scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
+        assert len(scores) == 1
+        assert "timestamp" in scores[0]
+        assert isinstance(scores[0]["timestamp"], datetime)
 
     def test_entry_structure(self):
-        """Test that entries have correct structure."""
-        self.scoreboard.add_entry(self.settings, 10)
+        """Test that entries have correct structure through the public API."""
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
 
-        listing_hash = self.settings.scoreboard_hash()
-        listing = self.scoreboard._entries[listing_hash]
+        # Verify structure through sorted_scores (public API)
+        scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
+        assert len(scores) == 1
+        entry = scores[0]
 
-        assert "settings" in listing
-        assert "hash" in listing
-        assert "scores" in listing
-        assert isinstance(listing["settings"], dict)
-        assert isinstance(listing["hash"], str)
-        assert isinstance(listing["scores"], list)
+        # Check that each score entry has the expected fields
+        assert "value" in entry
+        assert "timestamp" in entry
+        assert isinstance(entry["value"], int)
+        assert isinstance(entry["timestamp"], datetime)
 
     def test_save_and_load(self):
         """Test saving and loading scoreboard."""
         # Use a temporary directory for testing
         with tempfile.TemporaryDirectory() as tmpdir:
             # Add some scores
-            self.scoreboard.add_entry(self.settings, 10)
-            self.scoreboard.add_entry(self.settings, 20)
+            self.scoreboard.add_entry(self.settings, self.gamemode, 10)
+            self.scoreboard.add_entry(self.settings, self.gamemode, 20)
 
             # Override data_dir for testing
             self.scoreboard.data_dir = tmpdir
@@ -170,7 +175,7 @@ class TestScoreboard:
             new_scoreboard = new_scoreboard.reload()
 
             # Verify scores were loaded
-            sorted_scores = new_scoreboard.sorted_scores(self.settings)
+            sorted_scores = new_scoreboard.sorted_scores(self.settings, self.gamemode)
             assert len(sorted_scores) == 2
             values = [entry["value"] for entry in sorted_scores]
             assert values == [20, 10]  # descending order
@@ -179,27 +184,45 @@ class TestScoreboard:
 class TestScoreboardSettings:
     """Test scoreboard interaction with settings."""
 
+    def setup_method(self):
+        """Set up test fixtures before each test method."""
+        self.scoreboard = Scoreboard()
+
     def test_scoreboard_hash_consistency(self):
-        """Test that the same settings produce the same hash."""
+        """Test that the same settings and gamemode produce consistent storage."""
+        # This tests that scores are stored and retrieved consistently
         settings1 = GameSettings(640, 20)
         settings2 = GameSettings(640, 20)
+        gamemode = "Classic Snake Game"
 
-        hash1 = settings1.scoreboard_hash()
-        hash2 = settings2.scoreboard_hash()
+        self.scoreboard.add_entry(settings1, gamemode, 100)
 
-        assert hash1 == hash2
+        # Should be able to retrieve with equivalent settings
+        scores = self.scoreboard.sorted_scores(settings2, gamemode)
+        assert len(scores) == 1
+        assert scores[0]["value"] == 100
 
     def test_scoreboard_hash_differences(self):
-        """Test that different settings produce different hashes."""
+        """Test that different settings produce separate scoreboards."""
         settings1 = GameSettings(640, 20)
 
         settings2 = GameSettings(640, 20)
         settings2.set("electric_walls", False)
 
-        hash1 = settings1.scoreboard_hash()
-        hash2 = settings2.scoreboard_hash()
+        gamemode = "Classic Snake Game"
 
-        assert hash1 != hash2
+        # Add scores to both settings
+        self.scoreboard.add_entry(settings1, gamemode, 100)
+        self.scoreboard.add_entry(settings2, gamemode, 200)
+
+        # Should be separate
+        scores1 = self.scoreboard.sorted_scores(settings1, gamemode)
+        scores2 = self.scoreboard.sorted_scores(settings2, gamemode)
+
+        assert len(scores1) == 1
+        assert scores1[0]["value"] == 100
+        assert len(scores2) == 1
+        assert scores2[0]["value"] == 200
 
     def test_scoreboard_settings_filtering(self):
         """Test that scoreboard_settings only includes relevant settings."""
@@ -225,19 +248,20 @@ class TestScoreboardIntegration:
         """Test that scores persist across multiple scoreboard instances."""
         with tempfile.TemporaryDirectory() as tmpdir:
             settings = GameSettings(640, 20)
+            gamemode = "Classic Snake Game"
 
             # Session 1: Add scores
             scoreboard1 = Scoreboard()
             scoreboard1.data_dir = tmpdir
-            scoreboard1.add_entry(settings, 10)
-            scoreboard1.add_entry(settings, 20)
+            scoreboard1.add_entry(settings, gamemode, 10)
+            scoreboard1.add_entry(settings, gamemode, 20)
             scoreboard1.save()
 
             # Session 2: Load and add more scores
             scoreboard2 = Scoreboard()
             scoreboard2.data_dir = tmpdir
             scoreboard2 = scoreboard2.reload()
-            scoreboard2.add_entry(settings, 30)
+            scoreboard2.add_entry(settings, gamemode, 30)
             scoreboard2.save()
 
             # Session 3: Verify all scores are present
@@ -245,7 +269,7 @@ class TestScoreboardIntegration:
             scoreboard3.data_dir = tmpdir
             scoreboard3 = scoreboard3.reload()
 
-            sorted_scores = scoreboard3.sorted_scores(settings)
+            sorted_scores = scoreboard3.sorted_scores(settings, gamemode)
             values = [entry["value"] for entry in sorted_scores]
             assert values == [30, 20, 10]  # descending order
 
@@ -264,14 +288,15 @@ class TestScoreboardIntegration:
         config2.set("obstacle_difficulty", "Hard")
 
         # Add scores for each configuration
-        scoreboard.add_entry(config1, 50)
-        scoreboard.add_entry(config1, 60)
-        scoreboard.add_entry(config2, 20)
-        scoreboard.add_entry(config2, 25)
+        gamemode = "Classic Snake Game"
+        scoreboard.add_entry(config1, gamemode, 50)
+        scoreboard.add_entry(config1, gamemode, 60)
+        scoreboard.add_entry(config2, gamemode, 20)
+        scoreboard.add_entry(config2, gamemode, 25)
 
         # Verify scores are separated
-        scores1 = scoreboard.sorted_scores(config1)
-        scores2 = scoreboard.sorted_scores(config2)
+        scores1 = scoreboard.sorted_scores(config1, gamemode)
+        scores2 = scoreboard.sorted_scores(config2, gamemode)
 
         assert len(scores1) == 2
         assert len(scores2) == 2

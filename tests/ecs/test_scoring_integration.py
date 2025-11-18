@@ -20,6 +20,7 @@ class TestScoringSystemIntegration:
         self.board = Board(width=20, height=20, cell_size=20)
         self.world = World(self.board)
         self.settings = GameSettings(640, 20)
+        self.gamemode = "Classic Snake Game"
         self.scoreboard = Scoreboard()
 
         # Create a score entity
@@ -36,7 +37,7 @@ class TestScoringSystemIntegration:
     def test_scoring_system_with_scoreboard(self):
         """Test that scoring system can save scores to scoreboard."""
         scoring_system = ScoringSystem(
-            scoreboard=self.scoreboard, settings=self.settings
+            scoreboard=self.scoreboard, settings=self.settings, gamemode=self.gamemode
         )
 
         # Simulate eating apples
@@ -52,14 +53,14 @@ class TestScoringSystemIntegration:
         assert success is True
 
         # Verify score was saved
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         assert len(sorted_scores) == 1
         assert sorted_scores[0]["value"] == 3
 
     def test_scoring_system_save_zero_score(self):
         """Test that zero scores are not saved."""
         scoring_system = ScoringSystem(
-            scoreboard=self.scoreboard, settings=self.settings
+            scoreboard=self.scoreboard, settings=self.settings, gamemode=self.gamemode
         )
 
         # Don't eat any apples - score stays at 0
@@ -87,7 +88,7 @@ class TestScoringSystemIntegration:
     def test_scoring_system_high_score_tracking(self):
         """Test that high score is tracked across games."""
         scoring_system = ScoringSystem(
-            scoreboard=self.scoreboard, settings=self.settings
+            scoreboard=self.scoreboard, settings=self.settings, gamemode=self.gamemode
         )
 
         # Game 1: Score 5
@@ -124,7 +125,9 @@ class TestScoringSystemIntegration:
             self.scoreboard.data_dir = tmpdir
 
             scoring_system = ScoringSystem(
-                scoreboard=self.scoreboard, settings=self.settings
+                scoreboard=self.scoreboard,
+                settings=self.settings,
+                gamemode=self.gamemode,
             )
 
             # Score some points and save
@@ -139,14 +142,14 @@ class TestScoringSystemIntegration:
             new_scoreboard = new_scoreboard.reload()
 
             # Verify score was persisted
-            sorted_scores = new_scoreboard.sorted_scores(self.settings)
+            sorted_scores = new_scoreboard.sorted_scores(self.settings, self.gamemode)
             assert len(sorted_scores) == 1
             assert sorted_scores[0]["value"] == 5
 
     def test_multiple_games_scoreboard_accumulation(self):
         """Test that multiple game scores accumulate in scoreboard."""
         scoring_system = ScoringSystem(
-            scoreboard=self.scoreboard, settings=self.settings
+            scoreboard=self.scoreboard, settings=self.settings, gamemode=self.gamemode
         )
 
         # Play 3 games with different scores
@@ -164,7 +167,7 @@ class TestScoringSystemIntegration:
             scoring_system.save_score_to_scoreboard(self.world)
 
         # Verify all scores are in scoreboard
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         values = [entry["value"] for entry in sorted_scores]
 
         assert len(values) == 3
@@ -173,7 +176,7 @@ class TestScoringSystemIntegration:
     def test_scoring_with_variable_points(self):
         """Test scoring with different point values."""
         scoring_system = ScoringSystem(
-            scoreboard=self.scoreboard, settings=self.settings
+            scoreboard=self.scoreboard, settings=self.settings, gamemode=self.gamemode
         )
 
         # Eat apples with different point values
@@ -186,7 +189,7 @@ class TestScoringSystemIntegration:
 
         # Save and verify
         scoring_system.save_score_to_scoreboard(self.world)
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         assert sorted_scores[0]["value"] == 7
 
 
@@ -198,6 +201,7 @@ class TestScoringSystemWithDifferentSettings:
         self.board = Board(width=20, height=20, cell_size=20)
         self.world = World(self.board)
         self.scoreboard = Scoreboard()
+        self.gamemode = "Classic Snake Game"
 
         # Create a score entity
         class ScoreEntity:
@@ -214,7 +218,9 @@ class TestScoringSystemWithDifferentSettings:
         """Test that different settings have separate score lists."""
         # Settings 1: Default
         settings1 = GameSettings(640, 20)
-        scoring_system1 = ScoringSystem(scoreboard=self.scoreboard, settings=settings1)
+        scoring_system1 = ScoringSystem(
+            scoreboard=self.scoreboard, settings=settings1, gamemode=self.gamemode
+        )
 
         # Play with settings 1
         for _ in range(5):
@@ -227,7 +233,9 @@ class TestScoringSystemWithDifferentSettings:
         # Settings 2: Different (electric walls off)
         settings2 = GameSettings(640, 20)
         settings2.set("electric_walls", False)
-        scoring_system2 = ScoringSystem(scoreboard=self.scoreboard, settings=settings2)
+        scoring_system2 = ScoringSystem(
+            scoreboard=self.scoreboard, settings=settings2, gamemode=self.gamemode
+        )
 
         # Play with settings 2
         for _ in range(10):
@@ -235,8 +243,8 @@ class TestScoringSystemWithDifferentSettings:
         scoring_system2.save_score_to_scoreboard(self.world)
 
         # Verify scores are separated
-        scores1 = self.scoreboard.sorted_scores(settings1)
-        scores2 = self.scoreboard.sorted_scores(settings2)
+        scores1 = self.scoreboard.sorted_scores(settings1, self.gamemode)
+        scores2 = self.scoreboard.sorted_scores(settings2, self.gamemode)
 
         assert len(scores1) == 1
         assert len(scores2) == 1

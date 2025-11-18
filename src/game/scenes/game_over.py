@@ -55,7 +55,10 @@ from game.constants import (
     GAME_OVER_TIMESTAMP_COLOR,
     GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR,
 )
-from game.scoreboard import MAX_SCOREBOARD_ENTRIES
+from game.scoreboard import Scoreboard, MAX_SCOREBOARD_ENTRIES
+from game.settings import GameSettings
+from game.game_modes_registry import GameModeType
+from ecs.world import World
 
 
 class GameOverScene(BaseScene):
@@ -69,9 +72,9 @@ class GameOverScene(BaseScene):
         height: int,
         assets: GameAssets,
         death_reason: str = "",
-        settings: Optional[object] = None,
-        scoreboard: Optional[object] = None,
-        world: Optional[object] = None,
+        settings: Optional[GameSettings] = None,
+        scoreboard: Optional[Scoreboard] = None,
+        world: Optional[World] = None,
     ):
         """Initialize the game over scene.
 
@@ -85,6 +88,7 @@ class GameOverScene(BaseScene):
             settings: Optional GameSettings instance
             scoreboard: Optional Scoreboard instance
             world: Optional World instance to read final score from
+            gamemode: Optional game mode identifier
         """
         super().__init__(pygame_adapter, renderer, width, height)
         self._assets = assets
@@ -92,6 +96,10 @@ class GameOverScene(BaseScene):
         self._settings = settings
         self._scoreboard = scoreboard
         self._world = world
+
+        # Get gamemode from parameter or from world's game state component
+        self._gamemode: GameModeType | None = None
+
         self._current_score = 0
         self._is_new_high_score = False
         self._new_score_timestamp = None
@@ -194,7 +202,9 @@ class GameOverScene(BaseScene):
                 self._renderer.blit(highscores_title, highscores_rect)
 
                 # Get sorted scores for current settings
-                sorted_scores = self._scoreboard.sorted_scores(self._settings)
+                sorted_scores = self._scoreboard.sorted_scores(
+                    self._settings, self._gamemode
+                )
                 # Take top entries oldest first
                 top_scores = (
                     sorted_scores[:MAX_SCOREBOARD_ENTRIES]
@@ -286,12 +296,15 @@ class GameOverScene(BaseScene):
                 entity = next(iter(game_state_entities.values()))
                 if hasattr(entity, "game_state"):
                     self._current_score = entity.game_state.final_score
+                    self._gamemode = entity.game_state.game_mode
 
         # Check if this is a new high score and capture timestamp
         # Note: The score has already been added to the scoreboard by ScoringSystem
         self._is_new_high_score = False
         if self._scoreboard and self._settings and self._current_score > 0:
-            sorted_scores = self._scoreboard.sorted_scores(self._settings)
+            sorted_scores = self._scoreboard.sorted_scores(
+                self._settings, self._gamemode
+            )
 
             # Find all entries with the current score value
             matching_scores = [

@@ -116,7 +116,9 @@ class GameplayScene(BaseScene):
 
         # Create scoring system first so collision system can use it
         scoring_system = ScoringSystem(
-            scoreboard=self._scoreboard, settings=self._settings
+            scoreboard=self._scoreboard,
+            settings=self._settings,
+            gamemode=self._current_game_mode,
         )
 
         # game logic systems (indices 0-7, paused during pause)

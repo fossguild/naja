@@ -20,6 +20,7 @@ class TestGameOverSceneDisplay:
         self.world = World(self.board)
         self.settings = GameSettings(640, 20)
         self.scoreboard = Scoreboard()
+        self.gamemode = "Classic Snake Game"  # Default gamemode for tests
 
         # Mock pygame adapter and renderer
         self.pygame_adapter = Mock()
@@ -34,14 +35,15 @@ class TestGameOverSceneDisplay:
         """Helper to create a game state entity with a final score."""
 
         class GameStateComponent:
-            def __init__(self, score):
+            def __init__(self, score, gamemode):
                 self.final_score = score
+                self.game_mode = gamemode
 
         class GameStateEntity:
-            def __init__(self, score):
-                self.game_state = GameStateComponent(score)
+            def __init__(self, score, gamemode):
+                self.game_state = GameStateComponent(score, gamemode)
 
-        entity = GameStateEntity(final_score)
+        entity = GameStateEntity(final_score, self.gamemode)
         self.world.registry.add(entity)
         return entity
 
@@ -62,7 +64,7 @@ class TestGameOverSceneDisplay:
         self.create_game_state_entity(100)
 
         # Add score to scoreboard
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
         # Enter the scene
         with patch("pygame.mixer.music.load"), patch("pygame.mixer.music.play"):
@@ -75,9 +77,9 @@ class TestGameOverSceneDisplay:
     def test_new_high_score_detection_beats_existing(self):
         """Test that new high score is detected when it beats existing scores."""
         # Add some existing scores
-        self.scoreboard.add_entry(self.settings, 50)
-        self.scoreboard.add_entry(self.settings, 75)
-        self.scoreboard.add_entry(self.settings, 90)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 50)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 75)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 90)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -94,7 +96,7 @@ class TestGameOverSceneDisplay:
         self.create_game_state_entity(150)
 
         # Add the new score to scoreboard
-        self.scoreboard.add_entry(self.settings, 150)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 150)
 
         # Enter the scene
         with patch("pygame.mixer.music.load"), patch("pygame.mixer.music.play"):
@@ -107,9 +109,9 @@ class TestGameOverSceneDisplay:
     def test_not_high_score_when_lower(self):
         """Test that score is not marked as high score when it's lower than existing."""
         # Add some existing scores
-        self.scoreboard.add_entry(self.settings, 100)
-        self.scoreboard.add_entry(self.settings, 150)
-        self.scoreboard.add_entry(self.settings, 200)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 150)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 200)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -126,7 +128,7 @@ class TestGameOverSceneDisplay:
         self.create_game_state_entity(75)
 
         # Add the new score to scoreboard
-        self.scoreboard.add_entry(self.settings, 75)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 75)
 
         # Enter the scene
         with patch("pygame.mixer.music.load"), patch("pygame.mixer.music.play"):
@@ -139,7 +141,7 @@ class TestGameOverSceneDisplay:
     def test_timestamp_capture_for_new_score(self):
         """Test that timestamp is captured for the new score."""
         # Add the score to scoreboard first
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -180,7 +182,7 @@ class TestGameOverSceneDisplay:
         self.create_game_state_entity(0)
 
         # Add zero score to scoreboard
-        self.scoreboard.add_entry(self.settings, 0)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 0)
 
         # Enter the scene
         with patch("pygame.mixer.music.load"), patch("pygame.mixer.music.play"):
@@ -192,11 +194,11 @@ class TestGameOverSceneDisplay:
     def test_zero_score_no_highlighting_in_list(self):
         """Test that zero score doesn't get highlighted even if it matches timestamp."""
         # Add some existing scores
-        self.scoreboard.add_entry(self.settings, 50)
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 50)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
         # Add zero score
-        self.scoreboard.add_entry(self.settings, 0)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 0)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -225,10 +227,10 @@ class TestGameOverSceneDisplay:
         """Test that top scores are properly prepared for display."""
         # Add more than MAX_SCOREBOARD_ENTRIES scores
         for score in [10, 20, 30, 40, 50, 60, 70, 80]:
-            self.scoreboard.add_entry(self.settings, score)
+            self.scoreboard.add_entry(self.settings, self.gamemode, score)
 
         # Get sorted scores
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         # Take top entries (highest scores)
         top_scores = sorted_scores[:MAX_SCOREBOARD_ENTRIES]
 
@@ -245,9 +247,9 @@ class TestGameOverSceneDisplay:
     def test_timestamp_formatting_in_scores(self):
         """Test that timestamps are properly included in score entries."""
         # Add score with known timestamp
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
 
         assert len(sorted_scores) > 0
         assert "timestamp" in sorted_scores[0]
@@ -279,7 +281,7 @@ class TestGameOverSceneDisplay:
     def test_equal_score_to_high_score(self):
         """Test behavior when new score equals existing high score."""
         # Add an existing high score
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -296,7 +298,7 @@ class TestGameOverSceneDisplay:
         self.create_game_state_entity(100)
 
         # Add the new score to scoreboard
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
         # Enter the scene
         with patch("pygame.mixer.music.load"), patch("pygame.mixer.music.play"):
@@ -308,8 +310,8 @@ class TestGameOverSceneDisplay:
     def test_equal_score_but_not_most_recent(self):
         """Test that tying high score but not being most recent doesn't show as new high."""
         # Add two scores at 100
-        self.scoreboard.add_entry(self.settings, 100)
-        self.scoreboard.add_entry(self.settings, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 100)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -326,14 +328,16 @@ class TestGameOverSceneDisplay:
         self.create_game_state_entity(100)
 
         # Get the sorted scores - first entry has the most recent timestamp for value 100
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         scene._current_score = 100
         # Use the second timestamp (older one, not the most recent)
         scene._new_score_timestamp = sorted_scores[1]["timestamp"]
 
         # Call the high score check logic manually (simulating on_enter)
         if scene._scoreboard and scene._settings and scene._current_score > 0:
-            sorted_scores = scene._scoreboard.sorted_scores(scene._settings)
+            sorted_scores = scene._scoreboard.sorted_scores(
+                scene._settings, scene._gamemode
+            )
             if sorted_scores:
                 highest_score = sorted_scores[0][
                     "value"
@@ -356,6 +360,7 @@ class TestScoreHighlighting:
         self.world = World(self.board)
         self.settings = GameSettings(640, 20)
         self.scoreboard = Scoreboard()
+        self.gamemode = "Classic Snake Game"  # Default gamemode for tests
 
         self.pygame_adapter = Mock()
         self.renderer = Mock()
@@ -366,11 +371,11 @@ class TestScoreHighlighting:
     def test_timestamp_matching_identifies_new_score(self):
         """Test that timestamp matching correctly identifies the new score in list."""
         # Manually create entries with specific timestamps
-        self.scoreboard.add_entry(self.settings, 50)
-        self.scoreboard.add_entry(self.settings, 75)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 50)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 75)
 
         # Add the "new" score
-        self.scoreboard.add_entry(self.settings, 90)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 90)
 
         scene = GameOverScene(
             self.pygame_adapter,
@@ -387,6 +392,7 @@ class TestScoreHighlighting:
         class GameStateComponent:
             def __init__(self):
                 self.final_score = 90
+                self.game_mode = "Classic Snake Game"
 
         class GameStateEntity:
             def __init__(self):
@@ -403,7 +409,7 @@ class TestScoreHighlighting:
         assert scene._new_score_timestamp is not None
 
         # The timestamp should match the latest 90 score
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         matching_scores = [s for s in sorted_scores if s["value"] == 90]
         assert len(matching_scores) > 0
         assert scene._new_score_timestamp == matching_scores[-1]["timestamp"]
@@ -418,6 +424,7 @@ class TestGameOverSceneLayout:
         self.world = World(self.board)
         self.settings = GameSettings(640, 20)
         self.scoreboard = Scoreboard()
+        self.gamemode = "Classic Snake Game"  # Default gamemode for tests
 
         self.pygame_adapter = Mock()
         self.renderer = Mock()
@@ -449,11 +456,11 @@ class TestGameOverSceneLayout:
     def test_fewer_than_5_scores_handled(self):
         """Test that display handles fewer scores than max correctly."""
         # Add only 3 scores
-        self.scoreboard.add_entry(self.settings, 10)
-        self.scoreboard.add_entry(self.settings, 20)
-        self.scoreboard.add_entry(self.settings, 30)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 10)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 20)
+        self.scoreboard.add_entry(self.settings, self.gamemode, 30)
 
-        sorted_scores = self.scoreboard.sorted_scores(self.settings)
+        sorted_scores = self.scoreboard.sorted_scores(self.settings, self.gamemode)
         # Take top entries (highest scores)
         top_scores = (
             sorted_scores[:MAX_SCOREBOARD_ENTRIES]

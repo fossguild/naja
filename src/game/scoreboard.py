@@ -13,8 +13,10 @@ import os
 import json
 from typing import Any, TypedDict
 from game.settings import GameSettings
+from game.game_modes_registry import GameModeType
 from game.constants import USER_DATA_DIR
 from datetime import datetime
+from hashlib import sha256
 
 # Filename for the scoreboard persistence file
 SCOREBOARD_FILE_NAME = "scoreboard.json"
@@ -27,11 +29,16 @@ MAX_SCOREBOARD_ENTRIES = 5
 # Contains the score value and the timestamp when it was achieved
 ScoreboardEntry = TypedDict("ScoreboardEntry", {"value": int, "timestamp": datetime})
 
-# Type definition for a scoreboard listing per settings configuration
+# Type definition for a scoreboard listing per settings configuration and gamemode
 # Each unique game configuration has its own listing with associated scores
 ScoreboardListing = TypedDict(
     "ScoreboardListing",
-    {"settings": dict[str, Any], "hash": str, "scores": list[ScoreboardEntry]},
+    {
+        "gamemode": GameModeType,
+        "settings": dict[str, Any],
+        "hash": str,
+        "scores": list[ScoreboardEntry],
+    },
 )
 
 
@@ -69,7 +76,14 @@ class Scoreboard:
         """
         self._entries = {}
 
-    def add_entry(self, settings: GameSettings, score: int) -> None:
+    def _hash(self, settings: GameSettings, gamemode: GameModeType) -> str:
+        settings_str = json.dumps(settings.scoreboard_settings())
+        gamemode_str = json.dumps(gamemode)
+        return sha256((settings_str + gamemode_str).encode()).hexdigest()
+
+    def add_entry(
+        self, settings: GameSettings, gamemode: GameModeType, score: int
+    ) -> None:
         """Add a new score entry for the given settings configuration.
 
         If this is the first score for these settings, creates a new
@@ -78,16 +92,18 @@ class Scoreboard:
         Args:
             settings: The game settings under which the score was achieved.
                      Used to determine which scoreboard listing to add to.
+            gamemode: The game mode under which the score was achieved.
             score: The score value to add (typically the final game score).
 
         Note:
             This method does not persist the score to disk. Call `save()`
             after adding entries to persist them.
         """
-        listing_hash = settings.scoreboard_hash()
+        listing_hash = self._hash(settings, gamemode)
 
         if listing_hash not in self._entries:
             self._entries[listing_hash] = {
+                "gamemode": gamemode,
                 "settings": settings.scoreboard_settings(),
                 "hash": listing_hash,
                 "scores": [],
@@ -106,7 +122,9 @@ class Scoreboard:
         """
         return list(self._entries.values())
 
-    def sorted_scores(self, settings: GameSettings) -> list[ScoreboardEntry]:
+    def sorted_scores(
+        self, settings: GameSettings, gamemode: GameModeType
+    ) -> list[ScoreboardEntry]:
         """Get scores for specific settings, sorted by value and timestamp.
 
         Scores are sorted in descending order by value (highest first).
@@ -114,6 +132,7 @@ class Scoreboard:
 
         Args:
             settings: The game settings configuration to retrieve scores for.
+            gamemode: The game mode to retrieve scores for.
 
         Returns:
             A list of score entries sorted by (-value, -timestamp).
@@ -124,7 +143,7 @@ class Scoreboard:
             multiple scores have the same value, the most recent one appears
             first in the sorted list.
         """
-        listing_hash = settings.scoreboard_hash()
+        listing_hash = self._hash(settings, gamemode)
         if listing_hash not in self._entries:
             return []
 

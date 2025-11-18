@@ -25,7 +25,6 @@ from typing import Any
 import os
 import json
 from .constants import SNAKE_COLOR_PALETTES, USER_DATA_DIR
-from hashlib import sha256
 
 
 class GameSettings:
@@ -493,7 +492,3 @@ class GameSettings:
             k: v for k, v in self.settings.items() if k in relevant_settings
         }
         return filtered_settings
-
-    def scoreboard_hash(self) -> str:
-        settings_str = json.dumps(self.scoreboard_settings())
-        return sha256(settings_str.encode()).hexdigest()
