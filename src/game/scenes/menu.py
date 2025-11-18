@@ -122,12 +122,21 @@ class MenuScene(BaseScene):
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
 
-        # Draw title (bigger and more prominent)
-        title = self._assets.render_custom(
-            WINDOW_TITLE, MESSAGE_COLOR, int(self._width / 8)
-        )
-        title_rect = title.get_rect(center=(self._width / 2, self._height / 5))
-        self._renderer.blit(title, title_rect)
+        if self._assets.background_menu:
+            # Resize the image to cover all screen size
+            scaled_background = pygame.transform.scale(
+                self._assets.background_menu, (self._width * 1.1, self._height * 1.1)
+            )
+            # draw the background image
+            self._renderer.blit(scaled_background, (-40, -50))
+        else:
+            # if image doesn`t upload:
+            # Draw title (bigger and more prominent)
+            title = self._assets.render_custom(
+                WINDOW_TITLE, MESSAGE_COLOR, int(self._width / 8)
+            )
+            title_rect = title.get_rect(center=(self._width / 2, self._height / 5))
+            self._renderer.blit(title, title_rect)
 
         # Draw selected game mode below title
         mode_text = self._get_selected_mode_text()

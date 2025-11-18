@@ -31,6 +31,7 @@ class GameAssets:
     SPEAKER_ON_SPRITE_PATH = "assets/sprites/speaker-on.png"
     SPEAKER_MUTED_SPRITE_PATH = "assets/sprites/speaker-muted.png"
     FONT_PATH = "assets/font/GetVoIP-Grotesque.ttf"
+    BACKGROUND_MENU_PATH = "assets/sprites/background-menu.png"
 
     # track currently loaded music to avoid unnecessary reloads
     _current_music_track = None
@@ -92,6 +93,14 @@ class GameAssets:
         except pygame.error as e:
             print(f"Warning: Could not load speaker-muted sprite: {e}")
             self.speaker_muted_sprite = None
+
+        try:
+            self.background_menu = pygame.image.load(
+                self.BACKGROUND_MENU_PATH
+            ).convert_alpha()
+        except pygame.error as e:
+            print(f"Warning: Could not load background: {e}")
+            self.background_menu = None
 
     def load_sounds(self) -> None:
         """Load sound effects."""
