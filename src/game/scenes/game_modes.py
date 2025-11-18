@@ -39,17 +39,6 @@ from game.game_modes_registry import (
 # global variable to store selected game mode
 _selected_game_mode = 0  # 0 = Classic, 1 = Random, 2 = Head-Tail Swap
 
-# Available actual game modes (not including random)
-ACTUAL_GAME_MODES = [
-    "Classic Snake Game",
-    "Head-Tail Swap", 
-    # Future modes will be added here:
-    # "More Fruits",
-    # "Poisoned Apple",
-    # "Flying Apple",
-    # etc.
-]
-
 
 def get_selected_game_mode() -> int:
     """Get the currently selected game mode.
@@ -222,7 +211,7 @@ class GameModesScene(BaseScene):
                 )
             )
             self._renderer.blit(desc_text, desc_rect)
-        
+
         elif self._selected_index == 2:  # Head-Tail Swap mode
             description = "Each apple swaps snake head and tail"
             desc_text = self._assets.render_custom(

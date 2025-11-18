@@ -191,7 +191,11 @@ class CollisionSystem(BaseSystem):
                 snake.velocity.dy = -1
 
         # Limpa o buffer de inputs pra não ter direções antigas "estranhas"
-        if hasattr(snake, "input_buffer") and snake.input_buffer and snake.input_buffer.moves:
+        if (
+            hasattr(snake, "input_buffer")
+            and snake.input_buffer
+            and snake.input_buffer.moves
+        ):
             snake.input_buffer.moves.clear()
 
     def _get_game_state(self, world: World):

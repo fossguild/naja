@@ -21,6 +21,7 @@
 
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
+HEAD_TAIL_SWITCH_NAME = "Head-Tail Swap"
 
 ACTUAL_GAME_MODES = [
     {
@@ -30,6 +31,10 @@ ACTUAL_GAME_MODES = [
     {
         "name": MOVING_APPLE_MODE_NAME,
         "description": "Apples drift slowly around the board, forcing constant pursuit.",
+    },
+    {
+        "name": HEAD_TAIL_SWITCH_NAME,
+        "description": "State toggle when the snake consumes an apple.",
     },
 ]
 
