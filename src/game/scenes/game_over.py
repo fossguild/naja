@@ -154,8 +154,14 @@ class GameOverScene(BaseScene):
         # Play death song (like old code) - only if audio is not muted
         if not self._settings or self._settings.get("background_music"):
             try:
+                from game.services.audio_service import AudioService
+                from game.services.assets import GameAssets
+
                 pygame.mixer.music.load("assets/sound/death_song.mp3")
                 pygame.mixer.music.play(-1)  # loop
+                # update trackers to prevent audio service from reloading the same track
+                AudioService._current_music_track = "assets/sound/death_song.mp3"
+                GameAssets._current_music_track = "assets/sound/death_song.mp3"
             except Exception:
                 pass
 
@@ -163,6 +169,12 @@ class GameOverScene(BaseScene):
         """Called when exiting game over."""
         # Stop death song
         try:
+            from game.services.audio_service import AudioService
+            from game.services.assets import GameAssets
+
             pygame.mixer.music.stop()
+            # clear trackers so background music can start when returning to menu/gameplay
+            AudioService._current_music_track = None
+            GameAssets._current_music_track = None
         except Exception:
             pass

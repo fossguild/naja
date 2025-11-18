@@ -32,6 +32,9 @@ class GameAssets:
     SPEAKER_MUTED_SPRITE_PATH = "assets/sprites/speaker-muted.png"
     FONT_PATH = "assets/font/GetVoIP-Grotesque.ttf"
 
+    # track currently loaded music to avoid unnecessary reloads
+    _current_music_track = None
+
     def __init__(self, window_width: int):
         """Initialize and load all game assets.
 
@@ -182,6 +185,7 @@ class GameAssets:
             pygame.mixer.music.set_volume(volume)
             if start_playing:
                 pygame.mixer.music.play(-1)  # Loop forever
+            GameAssets._current_music_track = GameAssets.BACKGROUND_MUSIC_PATH
         except pygame.error as e:
             print(f"Warning: Could not load background music: {e}")
 
@@ -196,6 +200,7 @@ class GameAssets:
             pygame.mixer.music.stop()
             pygame.mixer.music.load(GameAssets.DEATH_MUSIC_PATH)
             pygame.mixer.music.play(-1 if loop else 0)
+            GameAssets._current_music_track = GameAssets.DEATH_MUSIC_PATH
         except pygame.error as e:
             print(f"Warning: Could not load death music: {e}")
 
@@ -207,8 +212,11 @@ class GameAssets:
             loop: Whether to loop the background music
         """
         try:
-            pygame.mixer.music.stop()
-            pygame.mixer.music.load(GameAssets.BACKGROUND_MUSIC_PATH)
-            pygame.mixer.music.play(-1 if loop else 0)
+            # only reload if the background music is not already the current track
+            # this prevents resetting the track when transitioning between menu screens
+            if GameAssets._current_music_track != GameAssets.BACKGROUND_MUSIC_PATH:
+                pygame.mixer.music.load(GameAssets.BACKGROUND_MUSIC_PATH)
+                pygame.mixer.music.play(-1 if loop else 0)
+                GameAssets._current_music_track = GameAssets.BACKGROUND_MUSIC_PATH
         except pygame.error as e:
             print(f"Warning: Could not load background music: {e}")
