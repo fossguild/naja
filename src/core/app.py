@@ -82,9 +82,6 @@ class ECSGameApp:
             self.config.initial_width, self.config.initial_grid_size
         )
 
-        # load scoreboard
-        from game.scoreboard import Scoreboard
-
         self.scoreboard = Scoreboard.load()
 
         # create game window

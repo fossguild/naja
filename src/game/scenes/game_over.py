@@ -17,25 +17,6 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#!/usr/bin/env python3
-#
-#   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
-#
-#   This file is part of Naja.
-#
-#   Naja is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Game over scene."""
 
 from __future__ import annotations
@@ -49,6 +30,7 @@ from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.constants import (
     ARENA_COLOR,
+    GAME_OVER_MESSAGE_COLOR,
     GAME_OVER_HIGHLIGHT_COLOR,
     GAME_OVER_NEW_SCORE_COLOR,
     GAME_OVER_HIGH_SCORE_COLOR,
@@ -157,7 +139,7 @@ class GameOverScene(BaseScene):
                 tiny_font = pygame.font.Font(None, tiny_font_size)
 
             # Use color constants from game.constants
-            message_color = (128, 128, 128)  # MESSAGE_COLOR converted to tuple
+            message_color =  GAME_OVER_MESSAGE_COLOR
             highlight_color = GAME_OVER_HIGHLIGHT_COLOR
             new_score_color = GAME_OVER_NEW_SCORE_COLOR
             high_score_color = GAME_OVER_HIGH_SCORE_COLOR

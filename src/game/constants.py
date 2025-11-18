@@ -19,6 +19,7 @@ SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
 # Game over screen colors
+GAME_OVER_MESSAGE_COLOR = (128, 128, 128)  # Gray for game over message
 GAME_OVER_HIGHLIGHT_COLOR = (200, 200, 200)  # Lighter gray for score display
 GAME_OVER_NEW_SCORE_COLOR = (
     255,
