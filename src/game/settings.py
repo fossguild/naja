@@ -20,6 +20,7 @@
 """Dynamic game settings and menu configuration."""
 
 import time
+from types import FunctionType
 import platformdirs
 import os
 import json
@@ -205,7 +206,8 @@ class GameSettings:
             json.dump(self.settings, f, indent=4)
             print("Settings saved to file.")
 
-    def save_on_exit(func) -> None:
+    @staticmethod
+    def save_on_exit(func) -> FunctionType:
         """Save settings after function returns, this should be used as a decorator."""
 
         def save_on_exit(self, *args, **kwargs):
