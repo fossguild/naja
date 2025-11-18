@@ -17,7 +17,7 @@ SCORE_COLOR = "#ffffff"  # Color of the scoreboard and text of menu items.
 # Color of the ground, also used as a general-purpose background.
 ARENA_PRIMARY_COLOR = "#202020"
 # Secondary color for the ground (used to render a checkerboard pattern)
-ARENA_SECONDARY_COLOR = "#363636"
+ARENA_SECONDARY_COLOR = "#2c2c2c"
 # Color of the game-over message, also used for the score counter.
 MESSAGE_COLOR = "#808080"
 # Color of the grid, also used for footer hint text.
