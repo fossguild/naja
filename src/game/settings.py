@@ -21,10 +21,11 @@
 
 import time
 from types import FunctionType
-import platformdirs
+from typing import Any
 import os
 import json
-from .constants import SNAKE_COLOR_PALETTES
+from .constants import SNAKE_COLOR_PALETTES, USER_DATA_DIR
+from hashlib import sha256
 
 
 class GameSettings:
@@ -177,7 +178,7 @@ class GameSettings:
     def load_settings(self) -> None:
         """Load settings from the user data directory, or initialize as default."""
 
-        self.data_dir = platformdirs.user_data_dir("naja", "fossguild")
+        self.data_dir = USER_DATA_DIR
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
         if not os.access(self.data_dir, os.W_OK):
@@ -199,7 +200,7 @@ class GameSettings:
         """Save current settings to the user data directory."""
 
         if not hasattr(self, "data_dir"):
-            self.data_dir = platformdirs.user_data_dir("naja", "fossguild")
+            self.data_dir = USER_DATA_DIR
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
         with open(os.path.join(self.data_dir, "settings.json"), "w") as f:
@@ -485,3 +486,14 @@ class GameSettings:
             for field in self.MENU_FIELDS
             if not field.get("requires_reset", False)
         ]
+
+    def scoreboard_settings(self) -> dict[str, Any]:
+        relevant_settings = {v["key"] for v in self.MENU_FIELDS if v["requires_reset"]}
+        filtered_settings = {
+            k: v for k, v in self.settings.items() if k in relevant_settings
+        }
+        return filtered_settings
+
+    def scoreboard_hash(self) -> str:
+        settings_str = json.dumps(self.scoreboard_settings())
+        return sha256(settings_str.encode()).hexdigest()
