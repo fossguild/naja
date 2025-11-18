@@ -19,11 +19,11 @@
 
 """Core engine module."""
 
-from core.app import ECSGameApp
-
 
 def main():
     """Main game entry point."""
+    from core.app import ECSGameApp
+
     app = ECSGameApp()
     app.initialize()
     app.run()
