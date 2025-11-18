@@ -31,11 +31,12 @@ from game.settings import GameSettings
 from game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR
 
 # global variable to store selected game mode
-_selected_game_mode = 0  # 0 = Classic, 1 = Random
+_selected_game_mode = 0  # 0 = Classic, 1 = Random, 2 = Head-Tail Swap
 
 # Available actual game modes (not including random)
 ACTUAL_GAME_MODES = [
     "Classic Snake Game",
+    "Head-Tail Swap", 
     # Future modes will be added here:
     # "More Fruits",
     # "Poisoned Apple",
@@ -74,6 +75,8 @@ def get_resolved_game_mode() -> str:
     """
     if _selected_game_mode == 1:  # Random mode
         return random.choice(ACTUAL_GAME_MODES)
+    elif _selected_game_mode == 2:  # Head-Tail Swap
+        return ACTUAL_GAME_MODES[1]
     else:  # Classic or other direct modes
         return ACTUAL_GAME_MODES[0]  # For now, only Classic exists
 
@@ -88,6 +91,8 @@ def get_display_mode_name() -> str:
         return "Classic Snake Game"
     elif _selected_game_mode == 1:
         return "Random"
+    elif _selected_game_mode == 2:
+        return "Head-Tail Swap"
     else:
         return "Classic Snake Game"
 
@@ -118,7 +123,7 @@ class GameModesScene(BaseScene):
         self._assets = assets
         self._settings = settings
         self._selected_index = 0
-        self._menu_items = ["Classic Snake Game", "🎲 Random"]
+        self._menu_items = ["Classic Snake Game", "🎲 Random", "Head-Tail Swap"]
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game modes menu logic."""
@@ -140,10 +145,24 @@ class GameModesScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     # save the selected game mode
                     set_selected_game_mode(self._selected_index)
-                    # if Classic Snake Game is selected, reset settings to default
+
+                    # Apply mode-specific settings
                     if self._selected_index == 0:  # Classic mode
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
+
+                    elif self._selected_index == 1:  # Random
+                        # por enquanto, só reseta para defaults;
+                        # no futuro você pode randomizar outras coisas aqui
+                        self._settings.reset_to_defaults()
+                        self._settings.save_settings()
+
+                    elif self._selected_index == 2:  # Head-Tail Swap mode
+                        # começa dos defaults e liga o efeito de troca
+                        self._settings.reset_to_defaults()
+                        self._settings.set("swap_head_tail_on_apple", True)
+                        self._settings.save_settings()
+
                     # go back to main menu
                     return "menu"
                 elif event.key == pygame.K_ESCAPE:
@@ -182,6 +201,19 @@ class GameModesScene(BaseScene):
         # Draw description for selected mode
         if self._selected_index == 1:  # Random mode
             description = "Randomly selects a game mode"
+            desc_text = self._assets.render_custom(
+                description, (120, 120, 120), int(self._width / 45)
+            )
+            desc_rect = desc_text.get_rect(
+                center=(
+                    self._width / 2,
+                    self._height / 2 + 1 * (self._height * 0.12) + self._height * 0.05,
+                )
+            )
+            self._renderer.blit(desc_text, desc_rect)
+        
+        elif self._selected_index == 2:  # Head-Tail Swap mode
+            description = "Each apple swaps snake head and tail"
             desc_text = self._assets.render_custom(
                 description, (120, 120, 120), int(self._width / 45)
             )

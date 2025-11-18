@@ -41,6 +41,7 @@ class GameSettings:
         "dynamic_spawn_obstacles": False,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
+        "swap_head_tail_on_apple": False,
     }
 
     # Declarative menu field definitions
