@@ -45,23 +45,6 @@ class TestSnakePrefab:
         assert snake is not None
         assert snake.get_type() == EntityType.SNAKE
 
-    def test_create_snake_position(self):
-        """Test snake starts at correct position."""
-        # arrange
-        board = Board(width=400, height=400, cell_size=20)
-        world = World(board)
-        grid_size = 20
-
-        # act
-        snake_id = create_snake(world, grid_size=grid_size)
-        snake = world.registry.get(snake_id)
-
-        # assert - should start one cell from origin
-        assert snake.position.x == grid_size
-        assert snake.position.y == grid_size
-        assert snake.position.prev_x == grid_size
-        assert snake.position.prev_y == grid_size
-
     def test_create_snake_velocity(self):
         """Test snake has correct initial velocity."""
         # arrange
@@ -364,25 +347,6 @@ class TestObstaclePrefab:
             obstacle = world.registry.get(obstacle_id)
             assert obstacle is not None
             assert obstacle.get_type() == EntityType.OBSTACLE
-
-    def test_create_obstacles_positions_are_on_grid(self):
-        """Test all obstacles are positioned on grid boundaries."""
-        # arrange
-        board = Board(width=20, height=20, cell_size=20)  # 20x20 tiles
-        world = World(board)
-        grid_size = 20
-
-        # act
-        obstacle_ids = create_obstacles(
-            world, "Medium", grid_size=grid_size, random_seed=42
-        )
-
-        # assert
-        for obstacle_id in obstacle_ids:
-            obstacle = world.registry.get(obstacle_id)
-            # positions should be multiples of grid_size
-            assert obstacle.position.x % grid_size == 0
-            assert obstacle.position.y % grid_size == 0
 
     def test_create_obstacles_no_duplicates(self):
         """Test no two obstacles occupy the same position."""

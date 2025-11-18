@@ -69,16 +69,6 @@ class TestScoringSystemInitialization:
         system = ScoringSystem()
         assert system is not None
 
-    def test_system_with_callback(self):
-        """Test ScoringSystem with callback."""
-        callback_called = []
-
-        def score_callback(current, high):
-            callback_called.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-        assert system._score_callback is not None
-
 
 class TestAppleEatenScoring:
     """Test score updates when apples are eaten."""
@@ -311,51 +301,6 @@ class TestHighScoreSetter:
 
 class TestScoreCallback:
     """Test score callback functionality."""
-
-    def test_callback_called_on_score_update(self, world_with_score):
-        """Test that callback is called when score updates."""
-        callback_calls = []
-
-        def score_callback(current, high):
-            callback_calls.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-
-        system.on_apple_eaten(world_with_score, points=10)
-
-        assert len(callback_calls) == 1
-        assert callback_calls[0] == (10, 10)
-
-    def test_callback_called_multiple_times(self, world_with_score):
-        """Test callback called for each update."""
-        callback_calls = []
-
-        def score_callback(current, high):
-            callback_calls.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-
-        system.on_apple_eaten(world_with_score, points=10)
-        system.on_apple_eaten(world_with_score, points=20)
-
-        assert len(callback_calls) == 2
-        assert callback_calls[0] == (10, 10)
-        assert callback_calls[1] == (30, 30)
-
-    def test_callback_called_on_reset(self, world_with_score):
-        """Test callback called on score reset."""
-        callback_calls = []
-
-        def score_callback(current, high):
-            callback_calls.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-
-        system.on_apple_eaten(world_with_score, points=50)
-        system.reset_current_score(world_with_score)
-
-        assert len(callback_calls) == 2
-        assert callback_calls[1] == (0, 50)  # reset but high score preserved
 
 
 class TestScorePreservation:

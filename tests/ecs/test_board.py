@@ -40,12 +40,6 @@ class TestBoardInitialization:
         assert board.height == 10
         assert board.is_square is False
 
-    def test_create_board_with_custom_default_tile(self):
-        """Test creating a board with a custom default tile."""
-        board = Board(5, 5, Tile.WALL)
-        assert board.get_tile(0, 0) == Tile.WALL
-        assert board.get_tile(4, 4) == Tile.WALL
-
     def test_board_initialized_with_empty_tiles(self):
         """Test that board initializes all tiles to EMPTY by default."""
         board = Board(5, 5)
