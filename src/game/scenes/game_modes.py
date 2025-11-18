@@ -28,7 +28,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR
+from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR
 from game.game_modes_registry import (
     ACTUAL_GAME_MODES,
     CLASSIC_MODE_NAME,
@@ -159,7 +159,7 @@ class GameModesScene(BaseScene):
     def render(self) -> None:
         """Render the game modes menu."""
         # Clear screen
-        self._renderer.fill(ARENA_COLOR)
+        self._renderer.fill(ARENA_PRIMARY_COLOR)
 
         # Draw title
         title = self._assets.render_custom(

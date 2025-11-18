@@ -46,7 +46,7 @@ from typing import Optional
 
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
-from game.constants import ARENA_COLOR
+from game.constants import ARENA_PRIMARY_COLOR
 
 
 class GameOverScene(BaseScene):
@@ -104,7 +104,7 @@ class GameOverScene(BaseScene):
     def render(self) -> None:
         """Render the game over screen."""
         # Clear screen with arena color
-        self._renderer.fill(ARENA_COLOR)
+        self._renderer.fill(ARENA_PRIMARY_COLOR)
 
         # Draw game over text (exactly like old code)
         try:

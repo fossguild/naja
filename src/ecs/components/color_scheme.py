@@ -22,7 +22,8 @@
 from dataclasses import dataclass, field
 from core.types.color import Color
 from game.constants import (
-    ARENA_COLOR,
+    ARENA_PRIMARY_COLOR,
+    ARENA_SECONDARY_COLOR,
     GRID_COLOR,
     HEAD_COLOR,
     TAIL_COLOR,
@@ -51,7 +52,8 @@ class ColorScheme:
         obstacle: Obstacle/wall color
     """
 
-    arena: Color = field(default_factory=lambda: Color.from_hex(ARENA_COLOR))
+    arena: Color = field(default_factory=lambda: Color.from_hex(ARENA_PRIMARY_COLOR))
+    arena_secondary: Color = field(default_factory=lambda: Color.from_hex(ARENA_SECONDARY_COLOR))
     grid: Color = field(default_factory=lambda: Color.from_hex(GRID_COLOR))
     snake_head: Color = field(default_factory=lambda: Color.from_hex(HEAD_COLOR))
     snake_body: Color = field(default_factory=lambda: Color.from_hex(TAIL_COLOR))

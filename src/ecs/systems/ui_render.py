@@ -92,8 +92,8 @@ class UIRenderSystem(BaseSystem):
             # render score text
             score_text = score_font.render(str(current_score), True, score_color)
 
-            # make it translucent (~25% opaque)
-            score_text.set_alpha(64)
+            # make it translucent (~75% opaque)
+            score_text.set_alpha(192)
 
             # horizontal center; vertically near the top with margin
             top_margin = getattr(

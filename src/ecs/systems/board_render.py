@@ -101,19 +101,16 @@ class BoardRenderSystem(BaseSystem):
         """
         board = world.board
         cell_size = board.cell_size
-        width = board.width * cell_size
-        height = board.height * cell_size
 
         color_scheme = self._get_color_scheme(world)
-        grid_color = color_scheme.grid.to_tuple()
+        arena_secondary_color = color_scheme.arena_secondary.to_tuple()
 
-        # Draw vertical lines
-        for x in range(0, width, cell_size):
-            self._renderer.draw_line(grid_color, (x, 0), (x, height), 1)
+        # Draw secondary color tiles, for a checkerboard pattern
+        for index in range(0, board.width * board.height, 2):
+            x = (index % board.width) * cell_size
+            y = (index // board.width) * cell_size
 
-        # Draw horizontal lines
-        for y in range(0, height, cell_size):
-            self._renderer.draw_line(grid_color, (0, y), (width, y), 1)
+            self._renderer.draw_rect(arena_secondary_color, pygame.Rect(x, y, cell_size, cell_size))
 
     def draw_tile(
         self, x: int, y: int, tile: Tile, cell_size: int, color_scheme: ColorScheme
