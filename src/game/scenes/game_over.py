@@ -139,7 +139,7 @@ class GameOverScene(BaseScene):
                 tiny_font = pygame.font.Font(None, tiny_font_size)
 
             # Use color constants from game.constants
-            message_color =  GAME_OVER_MESSAGE_COLOR
+            message_color = GAME_OVER_MESSAGE_COLOR
             highlight_color = GAME_OVER_HIGHLIGHT_COLOR
             new_score_color = GAME_OVER_NEW_SCORE_COLOR
             high_score_color = GAME_OVER_HIGH_SCORE_COLOR
