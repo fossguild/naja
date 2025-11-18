@@ -110,6 +110,11 @@ class SnakeRenderSystem(BaseSystem):
             head_color = Color.from_hex(constants.HEAD_COLOR).to_tuple()
             tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()
 
+        # This is for swapping the head and tail (just changing the colors)
+        if hasattr(body, "is_color_swapped") and body.is_color_swapped:
+            head_color, tail_color = tail_color, head_color
+
+
         # Draw tail segments with interpolation
         self._draw_snake_tail(
             body,

@@ -36,3 +36,5 @@ class SnakeBody:
     segments: list[Position] = field(default_factory=list)
     size: int = 1  # Guards the size of the snake
     alive: bool = True
+    is_color_swapped: bool = False
+    

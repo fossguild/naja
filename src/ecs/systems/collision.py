@@ -291,6 +291,7 @@ class CollisionSystem(BaseSystem):
                     # grow snake
                     if hasattr(snake, "body"):
                         snake.body.size += 1
+                        snake.body.is_color_swapped = not snake.body.is_color_swapped
 
                     # increment score
                     score_entities = world.registry.query_by_component("score")
