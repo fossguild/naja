@@ -42,6 +42,7 @@ class GameSettings:
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
         "swap_head_tail_on_apple": False,
+        "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
     }
 
     # Declarative menu field definitions
@@ -72,6 +73,16 @@ class GameSettings:
             "max": 60.0,
             "step": 1.0,
             "requires_reset": True,
+        },
+        {
+            "key": "speed_increase_rate",
+            "label": "Speed increase per apple",
+            "type": "select",
+            "options": [
+                "5%",
+                "10%",
+            ],
+            "requires_reset": False,
         },
         {
             "key": "obstacle_difficulty",
