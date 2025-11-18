@@ -46,6 +46,7 @@ from ecs.systems.ui_render import UIRenderSystem
 from ecs.systems.overlay_render import OverlayRenderSystem
 from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
+from ecs.systems.autoplay import AutoplaySystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME
 
@@ -54,8 +55,8 @@ class GameplayScene(BaseScene):
     """Gameplay scene that coordinates all ECS systems.
 
     Registers and updates systems in proper execution order.
-    Systems 0-7 are game logic (paused during pause).
-    Systems 8+ are rendering/audio (always run).
+    Systems 0-9 are game logic (paused during pause).
+    Systems 10+ are rendering/audio (always run).
     """
 
     def __init__(
@@ -103,15 +104,15 @@ class GameplayScene(BaseScene):
     def on_attach(self) -> None:
         """Initialize and register all game systems in execution order.
 
-        Systems 0-8 are game logic (paused when game is paused).
-        Systems 9+ are rendering/audio (always run).
+        Systems 0-9 are game logic (paused during pause).
+        Systems 10+ are rendering/audio (always run).
         """
         if self._attached:
             return
 
         self._systems.clear()
 
-        # game logic systems (indices 0-7, paused during pause)
+        # game logic systems (indices 0-9, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
 
         self._systems.extend(
@@ -119,40 +120,41 @@ class GameplayScene(BaseScene):
                 InputSystem(
                     self._pygame_adapter, self._settings
                 ),  # 0: read user input and update velocity/game state
+                AutoplaySystem(self._get_electric_walls),  # 1: AI pathfinding
                 MovementSystem(
                     self._get_electric_walls
-                ),  # 1: update entity positions based on velocity
-                MovingAppleSystem(),  # 2: move apples in modes that allow it
+                ),  # 2: update entity positions based on velocity
+                MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
                     self._settings, self._audio_service
-                ),  # 3: detect collisions (wall, self-bite, obstacles, apples)
-                AppleSpawnSystem(1000),  # 4: maintain correct number of apples on board
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
+                AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
                 SpawnSystem(
                     1000, (255, 0, 0), None
-                ),  # 5: create new entities at valid positions
-                ScoringSystem(),  # 6: track score and high score
+                ),  # 6: create new entities at valid positions
+                ScoringSystem(),  # 7: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 7: generate obstacles with connectivity guarantees
+                ),  # 8: generate obstacles with connectivity guarantees
                 SettingsApplySystem(
                     self._settings, self._config, self._assets
-                ),  # 8: apply runtime settings changes (colors, difficulty, etc)
+                ),  # 9: apply runtime settings changes (colors, difficulty, etc)
             ]
         )
 
-        # rendering and audio systems (indices 9+, always run even when paused)
+        # rendering and audio systems (indices 10+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 9: calculate smooth positions for rendering
+                ),  # 10: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 10: play sounds and music
+                ),  # 11: play sounds and music
             ]
         )
 
-        # render systems (11-14: draw board, entities, snake, UI)
+        # render systems (12-15: draw board, entities, snake, UI)
         if self._renderer:
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
@@ -196,9 +198,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-8) but keep input (0) and rendering (9+) running
+        # pause game logic systems (1-9) but keep input (0) and rendering (10+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 8
+        GAME_LOGIC_END = 9
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)

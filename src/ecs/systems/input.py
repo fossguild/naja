@@ -146,20 +146,25 @@ class InputSystem(BaseSystem):
             self._handle_settings_menu_input(world, key)
             return
 
+        # check if autoplay is enabled
+        autoplay_enabled = game_state and getattr(game_state, "autoplay_enabled", False)
+
         # get current direction for 180° turn prevention
         current_dx, current_dy = self._get_current_direction(world)
 
         # movement keys - modify velocity directly with 180° turn prevention
-        if key in (pygame.K_DOWN, pygame.K_s):
-            self._buffer_direction(world, 0, 1)
-        elif key in (pygame.K_UP, pygame.K_w):
-            self._buffer_direction(world, 0, -1)
-        elif key in (pygame.K_RIGHT, pygame.K_d):
-            self._buffer_direction(world, 1, 0)
-        elif key in (pygame.K_LEFT, pygame.K_a):
-            self._buffer_direction(world, -1, 0)
+        if not autoplay_enabled:
+            if key in (pygame.K_DOWN, pygame.K_s):
+                self._buffer_direction(world, 0, 1)
+            elif key in (pygame.K_UP, pygame.K_w):
+                self._buffer_direction(world, 0, -1)
+            elif key in (pygame.K_RIGHT, pygame.K_d):
+                self._buffer_direction(world, 1, 0)
+            elif key in (pygame.K_LEFT, pygame.K_a):
+                self._buffer_direction(world, -1, 0)
+
         # control keys
-        elif key == pygame.K_q:
+        if key == pygame.K_q:
             self._handle_quit(world)
         elif key == pygame.K_p:
             self._handle_pause(world)

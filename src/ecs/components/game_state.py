@@ -46,3 +46,4 @@ class GameState:
     obstacles: List[Tuple[int, int]] = field(default_factory=list)
     game_mode: str = "Classic Snake Game"
     moving_apples_enabled: bool = False
+    autoplay_enabled: bool = False
