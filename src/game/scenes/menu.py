@@ -152,10 +152,21 @@ class MenuScene(BaseScene):
         """Called when entering menu."""
         self._selected_index = 0
 
-        # Ensure background music is playing when entering menu
-        # (it might have stopped if coming from game over)
+        # play menu music when entering menu
         if self._settings.get("background_music"):
-            GameAssets.play_background_music(loop=True)
+            try:
+                import pygame
+                from game.services.audio_service import AudioService
+                from game.services.assets import GameAssets
+
+                # only reload if menu music is not already playing
+                if GameAssets._current_music_track != "assets/sound/menu.mp3":
+                    pygame.mixer.music.load("assets/sound/menu.mp3")
+                    pygame.mixer.music.play(-1)  # loop
+                    GameAssets._current_music_track = "assets/sound/menu.mp3"
+                    AudioService._current_music_track = "assets/sound/menu.mp3"
+            except Exception:
+                pass
 
     def _get_selected_mode_text(self) -> str:
         """Get text for currently selected game mode.

@@ -206,3 +206,19 @@ class GameModesScene(BaseScene):
         """Called when entering game modes menu."""
         # start with cursor on currently selected game mode
         self._selected_index = get_selected_game_mode()
+
+        # play menu music when entering game modes menu
+        if self._settings.get("background_music"):
+            try:
+                import pygame
+                from game.services.audio_service import AudioService
+                from game.services.assets import GameAssets
+
+                # only reload if menu music is not already playing
+                if GameAssets._current_music_track != "assets/sound/menu.mp3":
+                    pygame.mixer.music.load("assets/sound/menu.mp3")
+                    pygame.mixer.music.play(-1)  # loop
+                    GameAssets._current_music_track = "assets/sound/menu.mp3"
+                    AudioService._current_music_track = "assets/sound/menu.mp3"
+            except Exception:
+                pass

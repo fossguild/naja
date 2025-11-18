@@ -40,6 +40,9 @@ class AudioService:
     UI sounds, etc.) that don't fit well into the ECS update loop.
     """
 
+    # track currently loaded music to avoid unnecessary reloads
+    _current_music_track = None
+
     def __init__(self, settings=None):
         """Initialize the audio service.
 
@@ -84,8 +87,12 @@ class AudioService:
             return False
 
         try:
-            pygame.mixer.music.load(music_path)
-            pygame.mixer.music.play(-1 if loop else 0)
+            # only reload if this track is not already the current track
+            # this prevents resetting the track when transitioning between screens
+            if AudioService._current_music_track != music_path:
+                pygame.mixer.music.load(music_path)
+                pygame.mixer.music.play(-1 if loop else 0)
+                AudioService._current_music_track = music_path
             return True
         except Exception:
             # Silently ignore missing files or playback errors
@@ -109,6 +116,7 @@ class AudioService:
         """Stop background music."""
         try:
             pygame.mixer.music.stop()
+            AudioService._current_music_track = None
         except Exception:
             pass
 
