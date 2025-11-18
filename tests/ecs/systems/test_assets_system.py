@@ -32,7 +32,6 @@ def pygame_init():
     """Initialize pygame once for all tests."""
     pygame.init()
     pygame.font.init()
-    pygame.mixer.init()
     yield
     pygame.quit()
 

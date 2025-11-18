@@ -31,6 +31,7 @@ from ecs.components.apple_config import AppleConfig
 from ecs.components.color_scheme import ColorScheme
 from ecs.components.game_state import GameState
 from ecs.components.score import Score
+from ecs.components.input_buffer import InputBuffer
 
 __all__ = [
     "Position",
@@ -46,4 +47,5 @@ __all__ = [
     "ColorScheme",
     "GameState",
     "Score",
+    "InputBuffer",
 ]
