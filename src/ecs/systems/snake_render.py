@@ -114,7 +114,6 @@ class SnakeRenderSystem(BaseSystem):
         if hasattr(body, "is_color_swapped") and body.is_color_swapped:
             head_color, tail_color = tail_color, head_color
 
-
         # Draw tail segments with interpolation
         self._draw_snake_tail(
             body,

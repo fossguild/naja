@@ -37,4 +37,3 @@ class SnakeBody:
     size: int = 1  # Guards the size of the snake
     alive: bool = True
     is_color_swapped: bool = False
-    
