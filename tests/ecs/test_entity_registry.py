@@ -29,6 +29,7 @@ from ecs.components import (
     Interpolation,
     Edible,
     ObstacleTag,
+    InputBuffer,
 )
 
 
@@ -46,6 +47,7 @@ def sample_snake():
         velocity=Velocity(1, 0, 10.0),
         body=SnakeBody(),
         interpolation=Interpolation(),
+        input_buffer=InputBuffer(),
     )
 
 
