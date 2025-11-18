@@ -269,7 +269,9 @@ class TestObstaclePrefab:
         world = World(board)
 
         # act
-        obstacle_ids = create_obstacles(world, "None", grid_size=20)
+        obstacle_ids = create_obstacles(
+            world, "None", grid_size=20, dynamic_spawn=False
+        )
 
         # assert
         assert len(obstacle_ids) == 0
@@ -283,7 +285,9 @@ class TestObstaclePrefab:
         expected_count = int(total_cells * 0.04)  # 4% = 16
 
         # act
-        obstacle_ids = create_obstacles(world, "Easy", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Easy", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert
         assert len(obstacle_ids) == expected_count
@@ -297,7 +301,9 @@ class TestObstaclePrefab:
         expected_count = int(total_cells * 0.06)  # 6% = 24
 
         # act
-        obstacle_ids = create_obstacles(world, "Medium", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Medium", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert
         assert len(obstacle_ids) == expected_count
@@ -311,7 +317,9 @@ class TestObstaclePrefab:
         expected_count = int(total_cells * 0.10)  # 10% = 40
 
         # act
-        obstacle_ids = create_obstacles(world, "Hard", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Hard", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert
         assert len(obstacle_ids) == expected_count
@@ -326,7 +334,7 @@ class TestObstaclePrefab:
 
         # act
         obstacle_ids = create_obstacles(
-            world, "Impossible", grid_size=20, random_seed=42
+            world, "Impossible", grid_size=20, random_seed=42, dynamic_spawn=False
         )
 
         # assert
@@ -339,7 +347,9 @@ class TestObstaclePrefab:
         world = World(board)
 
         # act
-        obstacle_ids = create_obstacles(world, "Medium", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Medium", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert
         for obstacle_id in obstacle_ids:
@@ -355,7 +365,9 @@ class TestObstaclePrefab:
         world = World(board)
 
         # act
-        obstacle_ids = create_obstacles(world, "Hard", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Hard", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert
         positions = set()
@@ -377,7 +389,9 @@ class TestObstaclePrefab:
         snake_pos = (snake.position.x, snake.position.y)
 
         # act
-        obstacle_ids = create_obstacles(world, "Medium", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Medium", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert - no obstacle should be at snake position
         for obstacle_id in obstacle_ids:
@@ -395,10 +409,10 @@ class TestObstaclePrefab:
 
         # act
         obstacle_ids1 = create_obstacles(
-            world1, "Medium", grid_size=20, random_seed=123
+            world1, "Medium", grid_size=20, random_seed=123, dynamic_spawn=False
         )
         obstacle_ids2 = create_obstacles(
-            world2, "Medium", grid_size=20, random_seed=123
+            world2, "Medium", grid_size=20, random_seed=123, dynamic_spawn=False
         )
 
         # assert - same positions in same order
@@ -416,7 +430,9 @@ class TestObstaclePrefab:
         world = World(board)
 
         # act
-        obstacle_ids = create_obstacles(world, "Easy", grid_size=20, random_seed=42)
+        obstacle_ids = create_obstacles(
+            world, "Easy", grid_size=20, random_seed=42, dynamic_spawn=False
+        )
 
         # assert
         for obstacle_id in obstacle_ids:
@@ -431,7 +447,7 @@ class TestObstaclePrefab:
         world = World(board)
 
         # act
-        result = create_obstacles(world, "None", grid_size=20)
+        result = create_obstacles(world, "None", grid_size=20, dynamic_spawn=False)
 
         # assert
         assert isinstance(result, list)

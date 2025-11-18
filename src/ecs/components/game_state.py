@@ -44,3 +44,5 @@ class GameState:
     settings_menu_item_count: int = 0  # total items including "Return to Menu"
     apples_eaten_count: int = 0
     obstacles: List[Tuple[int, int]] = field(default_factory=list)
+    game_mode: str = "Classic Snake Game"
+    moving_apples_enabled: bool = False

@@ -17,13 +17,29 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Core engine module."""
+"""Central definition of the available game modes."""
 
+CLASSIC_MODE_NAME = "Classic Snake Game"
+MOVING_APPLE_MODE_NAME = "Moving Apple"
 
-def main():
-    """Main game entry point."""
-    from core.app import ECSGameApp
+ACTUAL_GAME_MODES = [
+    {
+        "name": CLASSIC_MODE_NAME,
+        "description": "Classic snake gameplay with stationary apples and default settings.",
+    },
+    {
+        "name": MOVING_APPLE_MODE_NAME,
+        "description": "Apples drift slowly around the board, forcing constant pursuit.",
+    },
+]
 
-    app = ECSGameApp()
-    app.initialize()
-    app.run()
+RANDOM_MODE_LABEL = "🎲 Random"
+RANDOM_MODE_INDEX = len(ACTUAL_GAME_MODES)
+
+__all__ = [
+    "CLASSIC_MODE_NAME",
+    "MOVING_APPLE_MODE_NAME",
+    "ACTUAL_GAME_MODES",
+    "RANDOM_MODE_LABEL",
+    "RANDOM_MODE_INDEX",
+]

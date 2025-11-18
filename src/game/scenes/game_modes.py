@@ -29,6 +29,12 @@ from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
 from game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR
+from game.game_modes_registry import (
+    ACTUAL_GAME_MODES,
+    CLASSIC_MODE_NAME,
+    RANDOM_MODE_INDEX,
+    RANDOM_MODE_LABEL,
+)
 
 # global variable to store selected game mode
 _selected_game_mode = 0  # 0 = Classic, 1 = Random, 2 = Head-Tail Swap
@@ -58,10 +64,11 @@ def set_selected_game_mode(mode: int) -> None:
     """Set the selected game mode.
 
     Args:
-        mode: Index of game mode to select (0=Classic, 1=Random)
+        mode: Index of game mode to select (actual modes + random option)
     """
     global _selected_game_mode
-    _selected_game_mode = mode
+    max_index = RANDOM_MODE_INDEX
+    _selected_game_mode = max(0, min(mode, max_index))
 
 
 def get_resolved_game_mode() -> str:
@@ -73,12 +80,12 @@ def get_resolved_game_mode() -> str:
     Returns:
         Name of the actual game mode to play
     """
-    if _selected_game_mode == 1:  # Random mode
-        return random.choice(ACTUAL_GAME_MODES)
-    elif _selected_game_mode == 2:  # Head-Tail Swap
-        return ACTUAL_GAME_MODES[1]
-    else:  # Classic or other direct modes
-        return ACTUAL_GAME_MODES[0]  # For now, only Classic exists
+    if _selected_game_mode == RANDOM_MODE_INDEX:  # Random mode
+        return random.choice([mode["name"] for mode in ACTUAL_GAME_MODES])
+    elif _selected_game_mode < len(ACTUAL_GAME_MODES):
+        return ACTUAL_GAME_MODES[_selected_game_mode]["name"]
+    else:
+        return CLASSIC_MODE_NAME
 
 
 def get_display_mode_name() -> str:
@@ -87,14 +94,12 @@ def get_display_mode_name() -> str:
     Returns:
         Display name showing what will be played
     """
-    if _selected_game_mode == 0:
-        return "Classic Snake Game"
-    elif _selected_game_mode == 1:
-        return "Random"
-    elif _selected_game_mode == 2:
-        return "Head-Tail Swap"
-    else:
-        return "Classic Snake Game"
+    if _selected_game_mode == RANDOM_MODE_INDEX:
+        available = ", ".join(mode["name"] for mode in ACTUAL_GAME_MODES)
+        return f"Random ({available})"
+    elif _selected_game_mode < len(ACTUAL_GAME_MODES):
+        return ACTUAL_GAME_MODES[_selected_game_mode]["name"]
+    return CLASSIC_MODE_NAME
 
 
 class GameModesScene(BaseScene):
@@ -123,7 +128,10 @@ class GameModesScene(BaseScene):
         self._assets = assets
         self._settings = settings
         self._selected_index = 0
-        self._menu_items = ["Classic Snake Game", "🎲 Random", "Head-Tail Swap"]
+        self._menu_items = [
+            *[mode["name"] for mode in ACTUAL_GAME_MODES],
+            RANDOM_MODE_LABEL,
+        ]
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game modes menu logic."""
@@ -145,9 +153,10 @@ class GameModesScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     # save the selected game mode
                     set_selected_game_mode(self._selected_index)
-
-                    # Apply mode-specific settings
-                    if self._selected_index == 0:  # Classic mode
+                    # if Classic Snake Game is selected, reset settings to default
+                    if (
+                        self._selected_index == 0
+                    ):  # Classic mode intentionally resets custom tweaks
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
 
@@ -189,7 +198,7 @@ class GameModesScene(BaseScene):
 
             # add arrow indicator if this mode is selected (confirmed)
             display_text = item
-            if i == get_selected_game_mode():
+            if i == self._selected_index:
                 display_text = f">> {item} <<"
 
             text = self._assets.render_small(display_text, color)
@@ -199,15 +208,17 @@ class GameModesScene(BaseScene):
             self._renderer.blit(text, rect)
 
         # Draw description for selected mode
-        if self._selected_index == 1:  # Random mode
-            description = "Randomly selects a game mode"
+        description = self._get_description_for_index(self._selected_index)
+        if description:
             desc_text = self._assets.render_custom(
                 description, (120, 120, 120), int(self._width / 45)
             )
             desc_rect = desc_text.get_rect(
                 center=(
                     self._width / 2,
-                    self._height / 2 + 1 * (self._height * 0.12) + self._height * 0.05,
+                    self._height / 2
+                    + self._selected_index * (self._height * 0.12)
+                    + self._height * 0.08,
                 )
             )
             self._renderer.blit(desc_text, desc_rect)
@@ -254,3 +265,11 @@ class GameModesScene(BaseScene):
                     AudioService._current_music_track = "assets/sound/menu.mp3"
             except Exception:
                 pass
+
+    def _get_description_for_index(self, index: int) -> Optional[str]:
+        """Get the friendly description for a menu entry."""
+        if index < len(ACTUAL_GAME_MODES):
+            return ACTUAL_GAME_MODES[index]["description"]
+        elif index == RANDOM_MODE_INDEX:
+            return "Randomly selects one of the unlocked game modes."
+        return None
