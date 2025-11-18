@@ -17,13 +17,16 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Core engine module."""
+"""Component that stores autonomous apple movement state."""
+
+from dataclasses import dataclass
 
 
-def main():
-    """Main game entry point."""
-    from core.app import ECSGameApp
+@dataclass
+class MovingApple:
+    """Movement data for apples that are allowed to roam around the board."""
 
-    app = ECSGameApp()
-    app.initialize()
-    app.run()
+    dx: int
+    dy: int
+    time_accumulator_ms: float = 0.0
+    current_speed: float = 0.0  # cells per second, adjusted slowly toward target

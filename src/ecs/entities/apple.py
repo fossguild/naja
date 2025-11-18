@@ -20,11 +20,13 @@
 """Apple entity."""
 
 from dataclasses import dataclass
+from typing import Optional
 
 from ecs.entities.entity import Entity, EntityType
 from ecs.components.position import Position
 from ecs.components.edible import Edible
 from ecs.components.renderable import Renderable
+from ecs.components.moving_apple import MovingApple
 
 
 @dataclass
@@ -40,6 +42,7 @@ class Apple(Entity):
     position: Position
     edible: Edible
     renderable: Renderable
+    moving_apple: Optional[MovingApple] = None
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.
