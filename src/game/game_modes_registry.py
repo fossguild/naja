@@ -21,6 +21,7 @@
 
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
+AUTOPLAY_MODE_NAME = "AutoPlay"
 
 ACTUAL_GAME_MODES = [
     {
@@ -31,6 +32,10 @@ ACTUAL_GAME_MODES = [
         "name": MOVING_APPLE_MODE_NAME,
         "description": "Apples drift slowly around the board, forcing constant pursuit.",
     },
+    {
+        "name": AUTOPLAY_MODE_NAME,
+        "description": "The snake plays itself, the player just watches.",
+    },
 ]
 
 RANDOM_MODE_LABEL = "🎲 Random"
@@ -39,6 +44,7 @@ RANDOM_MODE_INDEX = len(ACTUAL_GAME_MODES)
 __all__ = [
     "CLASSIC_MODE_NAME",
     "MOVING_APPLE_MODE_NAME",
+    "AUTOPLAY_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",

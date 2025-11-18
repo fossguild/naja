@@ -113,42 +113,46 @@ class GameplayScene(BaseScene):
 
         # game logic systems (indices 0-7, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
+        from ecs.systems.autoplay import AutoplaySystem
 
         self._systems.extend(
             [
                 InputSystem(
-                    self._pygame_adapter, self._settings
+                    self._pygame_adapter, self._settings, self._current_game_mode
                 ),  # 0: read user input and update velocity/game state
+                AutoplaySystem(
+                    self._current_game_mode, self._settings
+                ),  # 1: calculate next move in autoplay mode
                 MovementSystem(
                     self._get_electric_walls
-                ),  # 1: update entity positions based on velocity
-                MovingAppleSystem(),  # 2: move apples in modes that allow it
+                ),  # 2: update entity positions based on velocity
+                MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
                     self._settings, self._audio_service
-                ),  # 3: detect collisions (wall, self-bite, obstacles, apples)
-                AppleSpawnSystem(1000),  # 4: maintain correct number of apples on board
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
+                AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
                 SpawnSystem(
                     1000, (255, 0, 0), None
-                ),  # 5: create new entities at valid positions
-                ScoringSystem(),  # 6: track score and high score
+                ),  # 6: create new entities at valid positions
+                ScoringSystem(),  # 7: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 7: generate obstacles with connectivity guarantees
+                ),  # 8: generate obstacles with connectivity guarantees
                 SettingsApplySystem(
                     self._settings, self._config, self._assets
-                ),  # 8: apply runtime settings changes (colors, difficulty, etc)
+                ),  # 9: apply runtime settings changes (colors, difficulty, etc)
             ]
         )
 
-        # rendering and audio systems (indices 9+, always run even when paused)
+        # rendering and audio systems (indices 10+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 9: calculate smooth positions for rendering
+                ),  # 10: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 10: play sounds and music
+                ),  # 11: play sounds and music
             ]
         )
 
@@ -196,9 +200,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-8) but keep input (0) and rendering (9+) running
+        # pause game logic systems (1-9) but keep input (0) and rendering (10+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 8
+        GAME_LOGIC_END = 9
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)
