@@ -42,8 +42,8 @@ class MovingAppleSystem(BaseSystem):
 
     def __init__(
         self,
-        base_speed_ratio: float = 0.6,
-        speed_ramp_rate: float = 0.6,
+        base_speed_ratio: float = 0.4,
+        speed_ramp_rate: float = 0.4,
         direction_change_chance: float = 0.2,
         random_seed: Optional[int] = None,
     ):

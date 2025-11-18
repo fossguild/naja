@@ -174,7 +174,7 @@ class GameModesScene(BaseScene):
 
             # add arrow indicator if this mode is selected (confirmed)
             display_text = item
-            if i == get_selected_game_mode():
+            if i == self._selected_index:
                 display_text = f">> {item} <<"
 
             text = self._assets.render_small(display_text, color)
