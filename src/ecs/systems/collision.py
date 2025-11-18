@@ -311,7 +311,18 @@ class CollisionSystem(BaseSystem):
                             if self._settings
                             else 20.0
                         )
-                        new_speed = min(current_speed * 1.1, max_speed)
+                        speed_increase_rate = (
+                            self._settings.get("speed_increase_rate")
+                            if self._settings
+                            else "10%"
+                        )
+                        # Convert percentage string to multiplier (5% -> 1.05, 10% -> 1.10)
+                        if speed_increase_rate == "5%":
+                            multiplier = 1.05
+                        else:  # default to 10%
+                            multiplier = 1.10
+                        new_speed = min(current_speed * multiplier, max_speed)
+
                         snake.velocity.speed = new_speed
 
                     # remove eaten apple
