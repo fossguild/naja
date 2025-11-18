@@ -110,7 +110,9 @@ class BoardRenderSystem(BaseSystem):
             x = (index % board.width) * cell_size
             y = (index // board.width) * cell_size
 
-            self._renderer.draw_rect(arena_secondary_color, pygame.Rect(x, y, cell_size, cell_size))
+            self._renderer.draw_rect(
+                arena_secondary_color, pygame.Rect(x, y, cell_size, cell_size)
+            )
 
     def draw_tile(
         self, x: int, y: int, tile: Tile, cell_size: int, color_scheme: ColorScheme

@@ -53,7 +53,9 @@ class ColorScheme:
     """
 
     arena: Color = field(default_factory=lambda: Color.from_hex(ARENA_PRIMARY_COLOR))
-    arena_secondary: Color = field(default_factory=lambda: Color.from_hex(ARENA_SECONDARY_COLOR))
+    arena_secondary: Color = field(
+        default_factory=lambda: Color.from_hex(ARENA_SECONDARY_COLOR)
+    )
     grid: Color = field(default_factory=lambda: Color.from_hex(GRID_COLOR))
     snake_head: Color = field(default_factory=lambda: Color.from_hex(HEAD_COLOR))
     snake_body: Color = field(default_factory=lambda: Color.from_hex(TAIL_COLOR))
