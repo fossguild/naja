@@ -92,6 +92,9 @@ def create_obstacles(
     # get all occupied cells (snake, apples, etc)
     occupied_cells = _get_occupied_cells(world)
 
+    # Add safe zone cells to occupied cells to prevent spawning there
+    occupied_cells.update(_get_safe_zone_cells(world))
+
     # get all available cells for obstacle placement
     available_cells = []
     for tile_x in range(grid_width_tiles):
@@ -179,3 +182,35 @@ def _get_occupied_cells(world: World) -> set[tuple[int, int]]:
                 occupied.add((segment.x, segment.y))
 
     return occupied
+
+
+def _get_safe_zone_cells(world: World) -> set[tuple[int, int]]:
+    """Get set of safe zone cells where obstacles should not spawn.
+
+    Includes 3 cells in front of the snake's movement direction.
+
+    Args:
+        world: ECS world to query
+
+    Returns:
+        set[tuple[int, int]]: Set of (x, y) tuples representing safe cells
+    """
+    safe_cells = set()
+    registry = world.registry
+    from ecs.entities.entity import EntityType
+
+    snakes = registry.query_by_type(EntityType.SNAKE)
+    for _, snake in snakes.items():
+        if hasattr(snake, "position") and hasattr(snake, "velocity"):
+            head_x, head_y = snake.position.x, snake.position.y
+            dx, dy = snake.velocity.dx, snake.velocity.dy
+
+            # Block 3 cells in front of the snake
+            # If velocity is 0 (unlikely for snake), we don't block anything extra
+            if dx != 0 or dy != 0:
+                for i in range(1, 4):
+                    safe_x = head_x + int(dx * i)
+                    safe_y = head_y + int(dy * i)
+                    safe_cells.add((safe_x, safe_y))
+
+    return safe_cells
