@@ -32,6 +32,7 @@ from ecs.components.hunger import Hunger
 from core.types.color import Color
 from game import constants
 
+
 def create_snake(
     world: World,
     grid_size: int,
