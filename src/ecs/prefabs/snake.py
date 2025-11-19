@@ -49,6 +49,7 @@ def create_snake(
         initial_speed: Initial movement speed in cells per second
         head_color: RGB color for snake head (default: green)
         tail_color: RGB color for snake tail (default: light green)
+        enable_hunger: Whether to enable hunger mechanic for the snake (default: False)
 
     Returns:
         int: Entity ID of created snake
