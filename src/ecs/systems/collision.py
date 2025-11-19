@@ -130,7 +130,7 @@ class CollisionSystem(BaseSystem):
         the order of the body segments, so the snake continues
         a coherent path from the other end.
         """
-        
+
         if not hasattr(snake, "position") or not hasattr(snake, "body"):
             return
 
