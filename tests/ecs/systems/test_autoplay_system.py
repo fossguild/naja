@@ -35,6 +35,7 @@ from ecs.components.edible import Edible
 from ecs.components.renderable import Renderable
 from ecs.components.interpolation import Interpolation
 from ecs.components.obstacle import ObstacleTag
+from ecs.components.hunger import Hunger
 from core.types.color import Color
 from game.game_modes_registry import AUTOPLAY_MODE_NAME, CLASSIC_MODE_NAME
 
@@ -58,6 +59,7 @@ def snake(world):
         interpolation=Interpolation(),
         renderable=Renderable(shape="square", color=Color(0, 255, 0)),
         input_buffer=InputBuffer(),
+        hunger=(Hunger(current_time=0.0, max_time=0.0)),
     )
     world.registry.add(snake)
     return snake
