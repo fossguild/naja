@@ -208,9 +208,12 @@ def _get_safe_zone_cells(world: World) -> set[tuple[int, int]]:
             # Block 3 cells in front of the snake
             # If velocity is 0 (unlikely for snake), we don't block anything extra
             if dx != 0 or dy != 0:
+                board = world.board
                 for i in range(1, 4):
-                    safe_x = head_x + int(dx * i)
-                    safe_y = head_y + int(dy * i)
-                    safe_cells.add((safe_x, safe_y))
+                    safe_x = head_x + dx * i
+                    safe_y = head_y + dy * i
+                    # Only add cells within grid boundaries
+                    if 0 <= safe_x < board.width and 0 <= safe_y < board.height:
+                        safe_cells.add((safe_x, safe_y))
 
     return safe_cells
