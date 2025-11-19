@@ -64,6 +64,8 @@ SNAKE_COLOR_PALETTES = [
     {"head": "#dc143c", "tail": "#ff6b6b", "name": "Red"},
     # Forest
     {"head": "#228b22", "tail": "#32cd32", "name": "Forest"},
+    # Obsidian
+    {"head": "#3d2b4f", "tail": "#17171a", "name": "Obsidian"},
 ]
 
 
