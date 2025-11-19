@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+#
+#   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
+#
+#   This file is part of Naja.
+#
+#   Naja is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Autoplay system for controlling the snake automatically."""
+
+from collections import deque
+from typing import List, Tuple, Set, Optional, Any
+
+from ecs.systems.base_system import BaseSystem
+from ecs.world import World
+from ecs.entities.entity import EntityType
+from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+
+class AutoplaySystem(BaseSystem):
+    """System that controls the snake in Autoplay mode.
+
+    Reads: Position, Velocity, SnakeBody, Apple, Obstacle
+    Writes: InputBuffer (simulates input)
+    """
+
+    def __init__(self, game_mode: str, settings: Optional[Any] = None):
+        """Initialize the AutoplaySystem.
+
+        Args:
+            game_mode: The current game mode.
+            settings: Game settings.
+        """
+        self._game_mode = game_mode
+        self._settings = settings
+        self._path: List[Tuple[int, int]] = []
+        self._last_calc_time = 0.0
+        self._calc_interval = 50.0  # Recalculate path frequently
+
+    def update(self, world: World) -> None:
+        """Update the snake's direction based on pathfinding.
+
+        Args:
+            world: ECS world containing entities and components
+        """
+        if self._game_mode != AUTOPLAY_MODE_NAME:
+            return
+
+        # Only recalculate path periodically
+        self._last_calc_time += world.dt_ms
+        if self._last_calc_time < self._calc_interval:
+            return
+
+        self._last_calc_time = 0.0
+
+        snake = self._get_snake(world)
+        if not snake:
+            return
+
+        # Get target (apple)
+        target = self._get_target(world)
+        if not target:
+            return
+
+        # Calculate path
+        start = (snake.position.x, snake.position.y)
+        goal = (target.position.x, target.position.y)
+
+        obstacles = self._get_obstacles(world, snake)
+
+        electric_walls = (
+            self._settings.get("electric_walls") if self._settings else True
+        )
+
+        current_direction = (snake.velocity.dx, snake.velocity.dy)
+
+        path = self._bfs(
+            start,
+            goal,
+            obstacles,
+            world.board.width,
+            world.board.height,
+            electric_walls,
+            current_direction,
+        )
+
+        if path:
+            self._path = path
+            next_pos = path[0]
+            dx = next_pos[0] - start[0]
+            dy = next_pos[1] - start[1]
+
+            # Handle wrapping for direction calculation
+            if not electric_walls:
+                if dx > 1:
+                    dx = -1
+                elif dx < -1:
+                    dx = 1
+                if dy > 1:
+                    dy = -1
+                elif dy < -1:
+                    dy = 1
+
+            self._buffer_direction(snake, dx, dy)
+        else:
+            # Fallback: try to survive by moving to any valid neighbor
+            self._survive(
+                snake,
+                obstacles,
+                world.board.width,
+                world.board.height,
+                electric_walls,
+                current_direction,
+            )
+
+    def _get_snake(self, world: World):
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        if snakes:
+            return next(iter(snakes.values()))
+        return None
+
+    def _get_target(self, world: World):
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        if apples:
+            # Find closest apple? For now just pick the first one
+            return next(iter(apples.values()))
+        return None
+
+    def _get_obstacles(self, world: World, snake) -> Set[Tuple[int, int]]:
+        obstacles = set()
+
+        # Add snake body to obstacles
+        if hasattr(snake, "body") and snake.body.segments:
+            # We don't add the tail as an obstacle because it will move
+            # But for safety in simple BFS, let's add all segments except maybe the very last one
+            # if we want to be aggressive. For now, add all segments to be safe.
+            for segment in snake.body.segments[:-1]:  # Exclude tail tip as it will move
+                obstacles.add((segment.x, segment.y))
+
+        # Add static obstacles
+        obs_entities = world.registry.query_by_type(EntityType.OBSTACLE)
+        for entity in obs_entities.values():
+            if hasattr(entity, "position"):
+                obstacles.add((entity.position.x, entity.position.y))
+
+        return obstacles
+
+    def _bfs(
+        self,
+        start: Tuple[int, int],
+        goal: Tuple[int, int],
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+        current_direction: Tuple[int, int],
+    ) -> List[Tuple[int, int]]:
+        queue = deque([(start, [])])
+        visited = {start}
+
+        while queue:
+            (current, path) = queue.popleft()
+
+            if current == goal:
+                return path
+
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                # Prevent 180 degree turn at the start
+                if not path:  # Only check for first move
+                    if (dx != 0 and current_direction[0] == -dx) or (
+                        dy != 0 and current_direction[1] == -dy
+                    ):
+                        continue
+
+                if electric_walls:
+                    next_x = current[0] + dx
+                    next_y = current[1] + dy
+                    if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
+                        continue
+                else:
+                    next_x = (current[0] + dx) % width
+                    next_y = (current[1] + dy) % height
+
+                neighbor = (next_x, next_y)
+
+                if neighbor not in visited and neighbor not in obstacles:
+                    visited.add(neighbor)
+                    new_path = path + [neighbor]
+                    queue.append((neighbor, new_path))
+
+        return []
+
+    def _survive(
+        self,
+        snake,
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+        current_direction: Tuple[int, int],
+    ):
+        start = (snake.position.x, snake.position.y)
+
+        # Try all directions
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            # Prevent 180 degree turn
+            if (dx != 0 and current_direction[0] == -dx) or (
+                dy != 0 and current_direction[1] == -dy
+            ):
+                continue
+
+            if electric_walls:
+                next_x = start[0] + dx
+                next_y = start[1] + dy
+                if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
+                    continue
+            else:
+                next_x = (start[0] + dx) % width
+                next_y = (start[1] + dy) % height
+
+            neighbor = (next_x, next_y)
+
+            if neighbor not in obstacles:
+                self._buffer_direction(snake, dx, dy)
+                return
+
+    def _buffer_direction(self, snake, dx: int, dy: int) -> None:
+        if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
+            from src.ecs.components.input_buffer import InputBuffer
+
+            snake.input_buffer = InputBuffer()
+
+        buf = snake.input_buffer
+
+        # Don't fill buffer too much
+        if len(buf.moves) >= 1:
+            return
+
+        # Check if we are reversing direction (invalid move)
+        last_dx, last_dy = (snake.velocity.dx, snake.velocity.dy)
+        if buf.moves:
+            last_dx, last_dy = buf.moves[-1]
+
+        if (dx != 0 and last_dx == -dx) or (dy != 0 and last_dy == -dy):
+            return
+
+        buf.moves.append((dx, dy))
