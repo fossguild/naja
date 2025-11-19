@@ -32,6 +32,7 @@ from ecs.components.snake_body import SnakeBody
 from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
 from ecs.components.input_buffer import InputBuffer
+from ecs.components.hunger import Hunger
 from core.types.color import Color
 
 
@@ -123,6 +124,7 @@ class TestSpawnApple:
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
             input_buffer=InputBuffer(),
+            hunger=(Hunger(current_time=0.0, max_time=0.0)),
         )
         world_small.registry.add(snake)
 
@@ -147,6 +149,7 @@ class TestSpawnApple:
                         shape="square", color=Color(0, 255, 0), size=30
                     ),
                     input_buffer=InputBuffer(),
+                    hunger=(Hunger(current_time=0.0, max_time=0.0)),
                 )
                 world_small.registry.add(snake)
 
@@ -210,6 +213,7 @@ class TestFreeCellsCount:
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
             input_buffer=InputBuffer(),
+            hunger=(Hunger(current_time=0.0, max_time=0.0)),
         )
         world_small.registry.add(snake)
 
@@ -234,6 +238,7 @@ class TestFreeCellsCount:
             interpolation=Interpolation(),
             renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
             input_buffer=InputBuffer(),
+            hunger=(Hunger(current_time=0.0, max_time=0.0)),
         )
         world_small.registry.add(snake)
 
@@ -256,6 +261,7 @@ class TestFreeCellsCount:
                         shape="square", color=Color(0, 255, 0), size=30
                     ),
                     input_buffer=InputBuffer(),
+                    hunger=(Hunger(current_time=0.0, max_time=0.0)),
                 )
                 world_small.registry.add(snake)
 
@@ -285,6 +291,7 @@ class TestOccupiedCells:
                 interpolation=Interpolation(),
                 renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
                 input_buffer=InputBuffer(),
+                hunger=(Hunger(current_time=0.0, max_time=0.0)),
             )
             world_small.registry.add(snake)
 
