@@ -38,7 +38,7 @@ ACTUAL_GAME_MODES = [
     },
 ]
 
-RANDOM_MODE_LABEL = "🎲 Random"
+RANDOM_MODE_LABEL = "Random"
 RANDOM_MODE_INDEX = len(ACTUAL_GAME_MODES)
 
 __all__ = [
