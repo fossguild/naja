@@ -174,15 +174,15 @@ class OverlayRenderSystem(BaseSystem):
         padding_y = int(surface_height * 0.20)
         left_margin = int(surface_width * 0.15)
         category_indent = int(surface_width * 0.05)
-        
+
         # Calculate scroll offset
         item_height_avg = row_h
         scroll_offset = max(0, (selected_index - 3) * item_height_avg)
-        
+
         # Get in-game adjustable settings
         menu_fields = self._settings.get_in_game_menu_fields()
         return_to_menu_index = len(menu_fields)
-        
+
         # Calculate available height for content
         content_start_y = padding_y
         content_end_y = int(surface_height * 0.88)
@@ -199,17 +199,17 @@ class OverlayRenderSystem(BaseSystem):
 
         current_y = padding_y - scroll_offset
         current_category = None
-        
+
         # Draw settings grouped by category
         for field_i, f in enumerate(menu_fields):
             # Draw category header if this is a new category
             if f.get("category") != current_category:
                 current_category = f.get("category", "Other")
-                
+
                 # Add spacing before category (except first)
                 if field_i > 0:
                     current_y += int(surface_height * 0.03)
-                
+
                 # Draw category header only if visible
                 if content_start_y - category_h <= current_y <= content_end_y:
                     category_text = category_font.render(
@@ -221,43 +221,47 @@ class OverlayRenderSystem(BaseSystem):
                     category_rect.left = left_margin - category_indent
                     category_rect.top = current_y
                     self._renderer.blit(category_text, category_rect)
-                
+
                 current_y += category_h
-            
+
             # Draw setting field only if visible
             if content_start_y - row_h <= current_y <= content_end_y:
                 val = self._settings.get(f["key"])
-                
+
                 # Calculate current grid size for display
                 current_grid_size = 20
                 if self._config:
                     desired_cells = max(10, int(self._settings.get("cells_per_side")))
-                    current_grid_size = self._config.get_optimal_grid_size(desired_cells)
-                
+                    current_grid_size = self._config.get_optimal_grid_size(
+                        desired_cells
+                    )
+
                 formatted_val = self._settings.format_setting_value(
                     f,
                     val,
                     surface_width,
                     current_grid_size,
                 )
-                
+
                 # Highlight selected item
                 text_color = (
                     Color.from_hex(constants.SCORE_COLOR).to_tuple()
                     if field_i == selected_index
                     else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
                 )
-                text = item_font.render(f"{f['label']}: {formatted_val}", True, text_color)
+                text = item_font.render(
+                    f"{f['label']}: {formatted_val}", True, text_color
+                )
                 rect = text.get_rect()
                 rect.left = left_margin
                 rect.top = current_y
                 self._renderer.blit(text, rect)
-            
+
             current_y += row_h
 
         # Draw "Return to Menu" option
         current_y += int(surface_height * 0.04)
-        
+
         # Only draw if visible
         if content_start_y - row_h <= current_y <= content_end_y:
             text_color = (
@@ -265,7 +269,9 @@ class OverlayRenderSystem(BaseSystem):
                 if selected_index == return_to_menu_index
                 else (200, 100, 100)
             )
-            return_text = item_font.render("──  Return to Main Menu  ──", True, text_color)
+            return_text = item_font.render(
+                "──  Return to Main Menu  ──", True, text_color
+            )
             rect = return_text.get_rect()
             rect.left = left_margin - category_indent
             rect.top = current_y

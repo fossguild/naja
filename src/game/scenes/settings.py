@@ -180,7 +180,7 @@ class SettingsScene(BaseScene):
         # Calculate available height for content
         content_start_y = padding_y
         content_end_y = int(self._height * 0.88)
-        
+
         # Calculate scroll offset to keep selected item visible
         item_height_avg = row_h
         scroll_offset = max(0, (self._selected_index - 3) * item_height_avg)
