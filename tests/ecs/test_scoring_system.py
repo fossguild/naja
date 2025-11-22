@@ -416,3 +416,13 @@ class TestIntegration:
             scoring_system.reset_current_score(world_with_score)
             assert scoring_system.get_current_score(world_with_score) == 0
             assert scoring_system.get_high_score(world_with_score) == 10
+
+        def test_get_scores_returns_correct_tuple(
+            self, world_with_score, scoring_system
+        ):
+            """get_scores returns (current, high)."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.reset_current_score(world_with_score)
+            current, high = scoring_system.get_scores(world_with_score)
+            assert current == 0
+            assert high == 10
