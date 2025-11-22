@@ -409,3 +409,10 @@ class TestIntegration:
                 world_with_score, snake_tail_length=5
             )
             assert scoring_system.get_high_score(world_with_score) == 10
+
+        def test_reset_clears_current_only(self, world_with_score, scoring_system):
+            """Reset sets current score to zero but keeps high score."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.reset_current_score(world_with_score)
+            assert scoring_system.get_current_score(world_with_score) == 0
+            assert scoring_system.get_high_score(world_with_score) == 10
