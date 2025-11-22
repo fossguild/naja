@@ -385,3 +385,11 @@ class TestIntegration:
         # can still use apple eaten (though in real game, only one method is used)
         scoring_system.on_apple_eaten(world_with_score, points=5)
         assert scoring_system.get_current_score(world_with_score) == 15
+
+    class TestScoreEntityHelperBehavior:
+        """Tests that verify scoring still works correctly after refactoring."""
+
+        def test_apple_eaten_updates_score(self, world_with_score, scoring_system):
+            """Eating apple increases the current score."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            assert scoring_system.get_current_score(world_with_score) == 10
