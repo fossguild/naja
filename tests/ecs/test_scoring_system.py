@@ -401,3 +401,11 @@ class TestIntegration:
                 world_with_score, snake_tail_length=5
             )
             assert scoring_system.get_current_score(world_with_score) == 5
+
+        def test_high_score_remains_highest(self, world_with_score, scoring_system):
+            """High score is preserved when score is overwritten."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.update_score_from_snake_length(
+                world_with_score, snake_tail_length=5
+            )
+            assert scoring_system.get_high_score(world_with_score) == 10
