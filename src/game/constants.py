@@ -5,6 +5,7 @@ before runtime and never changed
 """
 
 import random
+import platformdirs
 
 
 HEAD_COLOR = "#00aa00"  # Color of the snake's head.
@@ -17,8 +18,27 @@ GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
+# Game over screen colors
+GAME_OVER_MESSAGE_COLOR = (128, 128, 128)  # Gray for game over message
+GAME_OVER_HIGHLIGHT_COLOR = (200, 200, 200)  # Lighter gray for score display
+GAME_OVER_NEW_SCORE_COLOR = (
+    255,
+    215,
+    0,
+)  # Gold color for highlighting new score in list
+GAME_OVER_HIGH_SCORE_COLOR = (255, 69, 0)  # Red-orange for "NEW HIGH SCORE!" message
+GAME_OVER_TIMESTAMP_COLOR = (80, 80, 80)  # Dark gray for timestamps
+GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR = (180, 160, 0)  # Gold-ish for new score timestamp
+
 WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
+
+# Application data directory constants
+APP_NAME = "naja"  # Application name for data directory
+APP_AUTHOR = "fossguild"  # Organization/author name for data directory
+USER_DATA_DIR = platformdirs.user_data_dir(
+    APP_NAME, APP_AUTHOR
+)  # Platform-specific user data directory
 
 # Difficulty percentages for obstacle count
 DIFFICULTY_PERCENTAGES = {

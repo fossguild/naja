@@ -22,19 +22,25 @@
 This system handles score updates when apples are eaten.
 It maintains current score and high score, preserving high score
 across game resets and settings changes.
+It also manages the scoreboard, saving scores when the game ends.
 """
 
 from __future__ import annotations
 
+from typing import Optional
+
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
+from game.game_modes_registry import GameModeType
+from game.settings import GameSettings
+from game.scoreboard import Scoreboard
 
 
 class ScoringSystem(BaseSystem):
     """System for managing score and high score.
 
     Reads: Edible (for points value), SnakeBody (for current length)
-    Writes: Score (current and high_score)
+    Writes: Score (current and high_score), Scoreboard
     Queries: entities with Score component
 
     Responsibilities:
@@ -43,14 +49,31 @@ class ScoringSystem(BaseSystem):
     - Update score based on snake length
     - Preserve high score across settings changes
     - Reset current score on game over
+    - Save scores to scoreboard when game ends
 
     Note: Score in Naja is based on snake length (tail size).
     Each apple eaten adds points based on Edible.points component.
     """
 
-    def __init__(self):
-        """Initialize the ScoringSystem."""
-        pass
+    def __init__(
+        self,
+        scoreboard: Optional[Scoreboard] = None,
+        settings: Optional[GameSettings] = None,
+        gamemode: Optional[GameModeType] = None,
+    ):
+        """Initialize the ScoringSystem.
+
+        Args:
+            scoreboard: Scoreboard for saving high scores (Scoreboard)
+            settings: Game settings for scoreboard hash (GameSettings)
+            gamemode: Current game mode (GameModeType)
+        """
+        self._scoreboard = scoreboard
+        self._settings = settings
+        self._gamemode = gamemode
+        print(
+            "ScoringSystem initialized with settings:", settings, "gamemode:", gamemode
+        )
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
@@ -73,7 +96,7 @@ class ScoringSystem(BaseSystem):
             points: Points to add to score
         """
         # find score entity (should be singleton)
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             # no score entity exists, cannot update
@@ -83,17 +106,15 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        if not hasattr(score_entity, "current") or not hasattr(
-            score_entity, "high_score"
-        ):
+        if not hasattr(score_entity, "score"):
             return
 
         # update current score
-        score_entity.current += points
+        score_entity.score.current += points
 
         # update high score if current exceeds it
-        if score_entity.current > score_entity.high_score:
-            score_entity.high_score = score_entity.current
+        if score_entity.score.current > score_entity.score.high_score:
+            score_entity.score.high_score = score_entity.score.current
 
     def update_score_from_snake_length(
         self, world: World, snake_tail_length: int
@@ -107,7 +128,7 @@ class ScoringSystem(BaseSystem):
             snake_tail_length: Current snake tail length
         """
         # find score entity
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             return
@@ -115,18 +136,17 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        if not hasattr(score_entity, "current") or not hasattr(
-            score_entity, "high_score"
-        ):
+        if not hasattr(score_entity, "score"):
             return
 
         # update current score to match snake length
-        score_entity.current = snake_tail_length
+        score_entity.score.current = snake_tail_length
 
         # update high score if current exceeds it
-        if score_entity.current > score_entity.high_score:
-            score_entity.high_score = score_entity.current
+        if score_entity.score.current > score_entity.score.high_score:
+            score_entity.score.high_score = score_entity.score.current
 
+    # This is not being used anywhere beside the tests :/
     def reset_current_score(self, world: World) -> None:
         """Reset current score to 0 while preserving high score.
 
@@ -136,7 +156,7 @@ class ScoringSystem(BaseSystem):
             world: ECS world
         """
         # find score entity
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             return
@@ -144,11 +164,11 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        if not hasattr(score_entity, "current"):
+        if not hasattr(score_entity, "score"):
             return
 
         # reset current score to 0
-        score_entity.current = 0
+        score_entity.score.current = 0
 
     def get_current_score(self, world: World) -> int:
         """Get current score.
@@ -159,7 +179,7 @@ class ScoringSystem(BaseSystem):
         Returns:
             Current score, or 0 if no score entity exists
         """
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             return 0
@@ -167,8 +187,8 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        if hasattr(score_entity, "current"):
-            return score_entity.current
+        if hasattr(score_entity, "score"):
+            return score_entity.score.current
 
         return 0
 
@@ -181,7 +201,7 @@ class ScoringSystem(BaseSystem):
         Returns:
             High score, or 0 if no score entity exists
         """
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             return 0
@@ -189,8 +209,8 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        if hasattr(score_entity, "high_score"):
-            return score_entity.high_score
+        if hasattr(score_entity, "score"):
+            return score_entity.score.high_score
 
         return 0
 
@@ -203,7 +223,7 @@ class ScoringSystem(BaseSystem):
             world: ECS world
             high_score: High score value to set
         """
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             return
@@ -211,8 +231,38 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        if hasattr(score_entity, "high_score"):
-            score_entity.high_score = high_score
+        if hasattr(score_entity, "score"):
+            score_entity.score.high_score = high_score
+
+    def save_score_to_scoreboard(self, world: World) -> bool:
+        """Save current score to scoreboard.
+
+        This should be called when the game ends (on death).
+        Only the ScoringSystem should manage the scoreboard.
+
+        Args:
+            world: ECS world
+
+        Returns:
+            True if score was saved successfully, False otherwise
+        """
+        if not self._scoreboard or not self._settings:
+            return False
+
+        current_score = self.get_current_score(world)
+
+        # Don't save zero scores
+        if current_score <= 0:
+            return False
+
+        try:
+            self._scoreboard.add_entry(self._settings, self._gamemode, current_score)
+            self._scoreboard.save()
+            print(f"Score saved to scoreboard: {current_score}")
+            return True
+        except Exception as e:
+            print(f"Failed to save score to scoreboard: {e}")
+            return False
 
     def get_scores(self, world: World) -> tuple[int, int]:
         """Get both current and high scores.
@@ -223,7 +273,7 @@ class ScoringSystem(BaseSystem):
         Returns:
             Tuple of (current_score, high_score)
         """
-        score_entities = world.registry.query_by_component("current")
+        score_entities = world.registry.query_by_component("score")
 
         if not score_entities:
             return (0, 0)
@@ -231,7 +281,9 @@ class ScoringSystem(BaseSystem):
         score_entity_id = list(score_entities.keys())[0]
         score_entity = world.registry.get(score_entity_id)
 
-        current = score_entity.current if hasattr(score_entity, "current") else 0
-        high = score_entity.high_score if hasattr(score_entity, "high_score") else 0
+        if hasattr(score_entity, "score"):
+            current = score_entity.score.current
+            high = score_entity.score.high_score
+            return (current, high)
 
-        return (current, high)
+        return (0, 0)

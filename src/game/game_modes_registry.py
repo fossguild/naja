@@ -19,6 +19,8 @@
 
 """Central definition of the available game modes."""
 
+GameModeType = str
+
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
 AUTOPLAY_MODE_NAME = "AutoPlay"
