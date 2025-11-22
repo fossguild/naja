@@ -393,3 +393,11 @@ class TestIntegration:
             """Eating apple increases the current score."""
             scoring_system.on_apple_eaten(world_with_score, points=10)
             assert scoring_system.get_current_score(world_with_score) == 10
+
+        def test_snake_length_overwrites_score(self, world_with_score, scoring_system):
+            """Score updates based on snake tail length."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.update_score_from_snake_length(
+                world_with_score, snake_tail_length=5
+            )
+            assert scoring_system.get_current_score(world_with_score) == 5
