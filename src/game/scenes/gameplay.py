@@ -145,7 +145,6 @@ class GameplayScene(BaseScene):
                 SpawnSystem(
                     1000, (255, 0, 0), None
                 ),  # 6: create new entities at valid positions
-
                 ScoringSystem(),  # 7: track score and high score
                 # 8: conditionally enable HungerSystem based on game settings
                 *(
@@ -154,7 +153,6 @@ class GameplayScene(BaseScene):
                     else []
                 ),
                 scoring_system,  # 7: track score and high score
-              
                 ObstacleGenerationSystem(
                     100, 8, 2, None
                 ),  # 9: generate obstacles with connectivity guarantees
