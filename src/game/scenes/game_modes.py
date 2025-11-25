@@ -176,41 +176,43 @@ class GameModesScene(BaseScene):
 
         # Draw title
         title = self._assets.render_custom(
-            "Game Modes", MESSAGE_COLOR, int(self._width / 15)
+            "Game Modes", MESSAGE_COLOR, int(self._width / 12)
         )
-        title_rect = title.get_rect(center=(self._width / 2, self._height / 4))
+        title_rect = title.get_rect(center=(self._width / 2, self._height / 6))
         self._renderer.blit(title, title_rect)
 
-        # Draw menu items
+        # Layout parameters - no scroll needed for few items
+        item_spacing = self._height * 0.10
+        base_y = self._height * 0.35
+
+        # Draw menu items (no scrolling for few items)
         for i, item in enumerate(self._menu_items):
+            item_y = base_y + i * item_spacing
+
             color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
 
             # add arrow indicator if this mode is selected (confirmed)
             display_text = item
-            if i == self._selected_index:
+            if i == get_selected_game_mode():
                 display_text = f">> {item} <<"
 
-            text = self._assets.render_small(display_text, color)
-            rect = text.get_rect(
-                center=(self._width / 2, self._height / 2 + i * (self._height * 0.12))
+            # Use smaller font size
+            text = self._assets.render_custom(
+                display_text, color, int(self._width / 28)
             )
+            rect = text.get_rect(center=(self._width / 2, item_y))
             self._renderer.blit(text, rect)
 
-        # Draw description for selected mode
-        description = self._get_description_for_index(self._selected_index)
-        if description:
-            desc_text = self._assets.render_custom(
-                description, (120, 120, 120), int(self._width / 45)
-            )
-            desc_rect = desc_text.get_rect(
-                center=(
-                    self._width / 2,
-                    self._height / 2
-                    + self._selected_index * (self._height * 0.12)
-                    + self._height * 0.08,
-                )
-            )
-            self._renderer.blit(desc_text, desc_rect)
+            # Draw description for currently navigated mode (closer to the mode name)
+            if i == self._selected_index:
+                description = self._get_description_for_index(i)
+                if description:
+                    desc_y = item_y + self._height * 0.035
+                    desc_text = self._assets.render_custom(
+                        description, (120, 120, 120), int(self._width / 50)
+                    )
+                    desc_rect = desc_text.get_rect(center=(self._width / 2, desc_y))
+                    self._renderer.blit(desc_text, desc_rect)
 
         elif self._selected_index == 2:  # Head-Tail Swap mode
             description = "Each apple swaps snake head and tail"
@@ -225,13 +227,11 @@ class GameModesScene(BaseScene):
             )
             self._renderer.blit(desc_text, desc_rect)
 
-        # Draw back instruction
+        # Draw back instruction (always at the bottom)
         back_text = self._assets.render_custom(
             "Press ESC to go back", MESSAGE_COLOR, int(self._width / 40)
         )
-        back_rect = back_text.get_rect(
-            center=(self._width / 2, self._height - self._height * 0.1)
-        )
+        back_rect = back_text.get_rect(center=(self._width / 2, self._height * 0.92))
         self._renderer.blit(back_text, back_rect)
 
     def on_enter(self) -> None:
