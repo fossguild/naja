@@ -23,6 +23,7 @@ GameModeType = str
 
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
+CHEESE_MODE_NAME = "Cheese Mode"
 AUTOPLAY_MODE_NAME = "AutoPlay"
 
 ACTUAL_GAME_MODES = [
@@ -33,6 +34,10 @@ ACTUAL_GAME_MODES = [
     {
         "name": MOVING_APPLE_MODE_NAME,
         "description": "Apples drift slowly around the board, forcing constant pursuit.",
+    },
+    {
+        "name": CHEESE_MODE_NAME,
+        "description": "Snake body has holes - pass through them safely, but avoid solid segments!",
     },
     {
         "name": AUTOPLAY_MODE_NAME,
@@ -46,6 +51,7 @@ RANDOM_MODE_INDEX = len(ACTUAL_GAME_MODES)
 __all__ = [
     "CLASSIC_MODE_NAME",
     "MOVING_APPLE_MODE_NAME",
+    "CHEESE_MODE_NAME",
     "AUTOPLAY_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
