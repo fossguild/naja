@@ -227,15 +227,31 @@ class CollisionSystem(BaseSystem):
         cheese_mode = game_state.cheese_mode_enabled if game_state else False
 
         # check collision with tail segments
-        tail_positions = [(seg.x, seg.y) for seg in snake.body.segments]
-        for i, square in enumerate(tail_positions):
+        tail_positions = snake.body.segments
+        for i, segment in enumerate(tail_positions):
             # In Cheese mode, only solid segments (even indices: 0, 2, 4...) cause collision
             # Hole segments (odd indices: 1, 3, 5...) allow pass-through
             if cheese_mode and i % 2 == 1:
                 continue  # Skip hole segments in Cheese mode
 
-            if head_x == square[0] and head_y == square[1]:
+            # Standard overlap check
+            if head_x == segment.x and head_y == segment.y:
                 return True
+
+            # Cheese Mode Special Case: Tunneling/Swap Check
+            # If moving against the body, head and segment can swap positions in one frame,
+            # skipping the overlap check. We must detect this "swap".
+            # Only applies to SOLID segments (which we are currently checking).
+            if cheese_mode:
+                # Check if Head and Segment swapped places
+                # Head is now where Segment was, AND Segment is now where Head was
+                if (
+                    head_x == segment.prev_x
+                    and head_y == segment.prev_y
+                    and snake.position.prev_x == segment.x
+                    and snake.position.prev_y == segment.y
+                ):
+                    return True
 
         return False
 
