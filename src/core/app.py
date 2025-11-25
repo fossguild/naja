@@ -24,6 +24,7 @@ depending on old_code.
 """
 
 import sys
+from typing import Optional
 
 from ecs.world import World
 from ecs.board import Board
@@ -43,6 +44,7 @@ from game.settings import GameSettings
 from game.services.assets import GameAssets
 from game.constants import WINDOW_TITLE
 from core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
+from game.scoreboard import Scoreboard
 
 
 class ECSGameApp:
@@ -51,18 +53,19 @@ class ECSGameApp:
     This version uses pure ECS architecture with GameplayScene and systems.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ECS game application."""
-        self.pygame_adapter = None
-        self.config = None
-        self.settings = None
-        self.assets = None
-        self.world = None
-        self.scene_manager = None
-        self.clock = None
-        self.renderer = None
-        self.running = False
+        self.pygame_adapter: Optional[PygameIOAdapter] = None
+        self.config: Optional[GameConfig] = None
+        self.settings: Optional[GameSettings] = None
+        self.assets: Optional[GameAssets] = None
+        self.world: Optional[World] = None
+        self.scene_manager: Optional[SceneManager] = None
+        self.clock: Optional[GameClock] = None
+        self.renderer: Optional[PygameSurfaceRenderer] = None
+        self.running: bool = False
         self.surface = None
+        self.scoreboard: Optional[Scoreboard] = None
 
     def initialize(self) -> None:
         """Initialize all game systems and resources."""
@@ -78,6 +81,8 @@ class ECSGameApp:
         self.settings = GameSettings(
             self.config.initial_width, self.config.initial_grid_size
         )
+
+        self.scoreboard = Scoreboard.load()
 
         # create game window
         self.surface = self.pygame_adapter.set_mode(
@@ -167,6 +172,7 @@ class ECSGameApp:
             config=self.config,
             settings=self.settings,
             assets=self.assets,
+            scoreboard=self.scoreboard,
         )
         self.scene_manager.register_scene("gameplay", gameplay_scene)
 
@@ -178,6 +184,8 @@ class ECSGameApp:
             height=self.config.initial_height,
             assets=self.assets,
             settings=self.settings,
+            scoreboard=self.scoreboard,
+            world=self.world,
         )
         self.scene_manager.register_scene("game_over", game_over_scene)
 

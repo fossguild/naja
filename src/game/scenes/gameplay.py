@@ -17,13 +17,12 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Gameplay scene that coordinates all ECS systems.
-
 This scene registers and manages all game systems in the correct execution order.
 It acts as the integration point for the ECS architecture, ensuring all systems
 work together harmoniously.
 """
 
-from typing import Optional, Any, List
+from typing import Optional, List
 
 from game.scenes.base_scene import BaseScene
 from game.services.game_initializer import GameInitializer
@@ -49,6 +48,7 @@ from ecs.systems.settings_apply import SettingsApplySystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME
 from ecs.systems.hunger import HungerSystem
+from src.game.settings import GameSettings
 
 
 class GameplayScene(BaseScene):
@@ -66,9 +66,10 @@ class GameplayScene(BaseScene):
         width: int,
         height: int,
         world: World,
-        config: Optional[Any] = None,
-        settings: Optional[Any] = None,
-        assets: Optional[Any] = None,
+        config: Optional[object] = None,
+        settings: Optional[GameSettings] = None,
+        assets: Optional[object] = None,
+        scoreboard: Optional[object] = None,
     ):
         """Initialize the gameplay scene.
 
@@ -78,15 +79,17 @@ class GameplayScene(BaseScene):
             width: Scene width
             height: Scene height
             world: ECS world instance
-            config: Game configuration
-            settings: Game settings
-            assets: Game assets (fonts, sounds, etc.)
+            config: Game configuration (GameConfig)
+            settings: Game settings (GameSettings)
+            assets: Game assets (GameAssets - fonts, sounds, etc.)
+            scoreboard: Scoreboard for tracking high scores (Scoreboard)
         """
         super().__init__(pygame_adapter, renderer, width, height)
         self._world = world
         self._config = config
         self._settings = settings
         self._assets = assets
+        self._scoreboard = scoreboard
         self._systems: List[BaseSystem] = []
         self._attached = False
         self._board_render_system: Optional[BoardRenderSystem] = None
@@ -112,6 +115,13 @@ class GameplayScene(BaseScene):
 
         self._systems.clear()
 
+        # Create scoring system first so collision system can use it
+        scoring_system = ScoringSystem(
+            scoreboard=self._scoreboard,
+            settings=self._settings,
+            gamemode=self._current_game_mode,
+        )
+
         # game logic systems (indices 0-7, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
         from ecs.systems.autoplay import AutoplaySystem
@@ -129,12 +139,13 @@ class GameplayScene(BaseScene):
                 ),  # 2: update entity positions based on velocity
                 MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
-                    self._settings, self._audio_service
+                    self._settings, self._audio_service, scoring_system
                 ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
                 AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
                 SpawnSystem(
                     1000, (255, 0, 0), None
                 ),  # 6: create new entities at valid positions
+
                 ScoringSystem(),  # 7: track score and high score
                 # 8: conditionally enable HungerSystem based on game settings
                 *(
@@ -142,6 +153,8 @@ class GameplayScene(BaseScene):
                     if self._settings and bool(self._settings.get("enable_hunger"))
                     else []
                 ),
+                scoring_system,  # 7: track score and high score
+              
                 ObstacleGenerationSystem(
                     100, 8, 2, None
                 ),  # 9: generate obstacles with connectivity guarantees

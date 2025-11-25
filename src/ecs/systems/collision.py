@@ -28,10 +28,14 @@ This system detects collisions between the snake and:
 Follows proper ECS architecture by querying world directly.
 """
 
-from typing import Optional, Any
+from typing import Optional
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
+
+from ecs.systems.scoring import ScoringSystem
+from game.settings import GameSettings
+from game.services.audio_service import AudioService
 
 
 class CollisionSystem(BaseSystem):
@@ -61,17 +65,20 @@ class CollisionSystem(BaseSystem):
 
     def __init__(
         self,
-        settings: Optional[Any] = None,
-        audio_service: Optional[Any] = None,
+        settings: Optional[GameSettings] = None,
+        audio_service: Optional[AudioService] = None,
+        scoring_system: Optional[ScoringSystem] = None,
     ):
         """Initialize the CollisionSystem.
 
         Args:
-            settings: Game settings for electric_walls, max_speed
-            audio_service: Audio service for playing sounds
+            settings: Game settings for electric_walls, max_speed (GameSettings)
+            audio_service: Audio service for playing sounds (AudioService)
+            scoring_system: Scoring system for tracking score (ScoringSystem)
         """
         self._settings = settings
         self._audio_service = audio_service
+        self._scoring_system = scoring_system
 
     def update(self, world: World) -> None:
         """Check for all collision types in priority order.
@@ -292,12 +299,13 @@ class CollisionSystem(BaseSystem):
                     if hasattr(snake, "body"):
                         snake.body.size += 1
 
-                    # increment score
-                    score_entities = world.registry.query_by_component("score")
-                    if score_entities:
-                        score_entity = list(score_entities.values())[0]
-                        if hasattr(score_entity, "score"):
-                            score_entity.score.current += 1
+                    # increment score using scoring system
+                    if self._scoring_system:
+                        # Get points from apple's edible component (default to 1)
+                        points = 1
+                        if hasattr(apple, "edible"):
+                            points = apple.edible.points
+                        self._scoring_system.on_apple_eaten(world, points)
 
                     game_state = self._get_game_state(world)
                     if game_state:
@@ -355,11 +363,19 @@ class CollisionSystem(BaseSystem):
         """Handle snake death.
 
         Modifies GameState component and plays death audio.
+        Delegates score saving to the ScoringSystem.
 
         Args:
             world: ECS world
             reason: Death reason message (e.g., "wall", "self-bite", "obstacle")
         """
+        # Get current score and save to scoreboard via scoring system
+        current_score = 0
+        if self._scoring_system:
+            current_score = self._scoring_system.get_current_score(world)
+            # Delegate scoreboard management to scoring system
+            self._scoring_system.save_score_to_scoreboard(world)
+
         # kill the snake
         snake = self._get_snake_entity(world)
         if snake and hasattr(snake, "body"):
@@ -376,5 +392,6 @@ class CollisionSystem(BaseSystem):
             game_state.game_over = True
             game_state.death_reason = reason
             game_state.next_scene = "game_over"
+            game_state.final_score = current_score  # Store score in GameState
 
         print(f"GAME OVER: {reason}")

@@ -19,6 +19,8 @@
 
 """Central definition of the available game modes."""
 
+GameModeType = str
+
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
 AUTOPLAY_MODE_NAME = "AutoPlay"
@@ -38,7 +40,7 @@ ACTUAL_GAME_MODES = [
     },
 ]
 
-RANDOM_MODE_LABEL = "🎲 Random"
+RANDOM_MODE_LABEL = "Random"
 RANDOM_MODE_INDEX = len(ACTUAL_GAME_MODES)
 
 __all__ = [
