@@ -133,6 +133,12 @@ class MovementSystem(BaseSystem):
                 body.segments[0].prev_x = old_x
                 body.segments[0].prev_y = old_y
 
+            # Process pending growth (for Cheese mode +2 mechanic)
+            # Transfer one pending growth to actual size per frame for smooth growth
+            if hasattr(body, "pending_growth") and body.pending_growth > 0:
+                body.size += 1
+                body.pending_growth -= 1
+
             # Maintain correct number of segments based on body size
             desired_tail_len = max(0, body.size - 1)
 

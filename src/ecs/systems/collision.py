@@ -222,9 +222,18 @@ class CollisionSystem(BaseSystem):
             head_x = head_x % world.board.width
             head_y = head_y % world.board.height
 
+        # check if Cheese mode is enabled
+        game_state = self._get_game_state(world)
+        cheese_mode = game_state.cheese_mode_enabled if game_state else False
+
         # check collision with tail segments
         tail_positions = [(seg.x, seg.y) for seg in snake.body.segments]
-        for square in tail_positions:
+        for i, square in enumerate(tail_positions):
+            # In Cheese mode, only solid segments (even indices: 0, 2, 4...) cause collision
+            # Hole segments (odd indices: 1, 3, 5...) allow pass-through
+            if cheese_mode and i % 2 == 1:
+                continue  # Skip hole segments in Cheese mode
+
             if head_x == square[0] and head_y == square[1]:
                 return True
 
@@ -295,9 +304,19 @@ class CollisionSystem(BaseSystem):
                     if self._audio_service:
                         self._audio_service.play_sound("assets/sound/eat.flac")
 
-                    # grow snake
+                    # grow snake - use pending_growth for Cheese mode (+2), immediate for others
+                    game_state = self._get_game_state(world)
+                    cheese_mode = (
+                        game_state.cheese_mode_enabled if game_state else False
+                    )
+
                     if hasattr(snake, "body"):
-                        snake.body.size += 1
+                        if cheese_mode:
+                            # Cheese mode: +2 growth via pending_growth
+                            snake.body.pending_growth += 2
+                        else:
+                            # Classic/other modes: +1 immediate growth
+                            snake.body.size += 1
 
                     # increment score using scoring system
                     if self._scoring_system:
