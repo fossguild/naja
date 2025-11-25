@@ -99,7 +99,7 @@ class GameSettings:
             "label": "Apples",
             "type": "int",
             "min": 1,
-            "max": 30,
+            "max": 50,
             "step": 1,
             "requires_reset": True,
             "category": "Gameplay",
@@ -448,10 +448,32 @@ class GameSettings:
         Returns:
             Validated number of apples (clamped to reasonable limits)
         """
+        from .constants import DIFFICULTY_PERCENTAGES
+
         total_cells = (width // grid_size) * (height // grid_size)
-        max_apples_by_percent = int(total_cells * 0.15)  # 15% of grid
-        max_apples_absolute = 30  # Hard cap
-        max_apples = max(1, min(max_apples_by_percent, max_apples_absolute))
+
+        # determine obstacle count from selected difficulty and subtract
+        difficulty = self.settings.get("obstacle_difficulty", "None")
+        obstacle_pct = DIFFICULTY_PERCENTAGES.get(difficulty, 0.0)
+        obstacles = int(total_cells * obstacle_pct)
+
+        available_cells = max(1, total_cells - obstacles)
+
+        # keep roughly the same ratio used historically (~3/8 = 0.375)
+        apple_ratio = 3.0 / 8.0
+        max_apples_by_ratio = int(available_cells * apple_ratio)
+
+        # round to nearest multiple of 5 for nicer numbers (but at least 1)
+        round_to = 5
+        rounded = int((max_apples_by_ratio + (round_to // 2)) // round_to * round_to)
+        if rounded < 1:
+            rounded = max(1, max_apples_by_ratio)
+
+        # increase the hard cap to 50 as requested
+        max_apples_absolute = 50
+
+        max_apples = max(1, min(rounded, max_apples_absolute))
+
         return min(int(self.settings["number_of_apples"]), max_apples)
 
     def get_field_by_key(self, key: str) -> dict | None:
