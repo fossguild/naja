@@ -24,6 +24,7 @@ GameModeType = str
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
 AUTOPLAY_MODE_NAME = "AutoPlay"
+GAME_MODE_TELEPORT = "Teleport"
 
 ACTUAL_GAME_MODES = [
     {
@@ -38,6 +39,10 @@ ACTUAL_GAME_MODES = [
         "name": AUTOPLAY_MODE_NAME,
         "description": "The snake plays itself, the player just watches.",
     },
+    {
+        "name": GAME_MODE_TELEPORT,
+        "description": "Collect an apple to warp to the other one, maintaining your direction.",
+    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -47,6 +52,7 @@ __all__ = [
     "CLASSIC_MODE_NAME",
     "MOVING_APPLE_MODE_NAME",
     "AUTOPLAY_MODE_NAME",
+    "GAME_MODE_TELEPORT",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",
