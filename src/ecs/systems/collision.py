@@ -370,14 +370,9 @@ class CollisionSystem(BaseSystem):
                     if hasattr(snake, "body"):
                         snake.body.size += 1
 
-                        # swap head with tail when an apple is eaten
-                        if (
-                            self._settings
-                            and hasattr(self._settings, "get")
-                            and self._settings.get("swap_head_tail_on_apple")
-                        ):
+                        if self._should_swap_head_and_tail(world):
                             self._swap_head_and_tail(snake)
-                            
+
                     # increment score using scoring system
                     if self._scoring_system:
                         # Get points from apple's edible component (default to 1)
@@ -453,3 +448,15 @@ class CollisionSystem(BaseSystem):
             game_state.final_score = current_score  # Store score in GameState
 
         print(f"GAME OVER: {reason}")
+
+    def _should_swap_head_and_tail(self, world: World) -> bool:
+        """Determine if apple effects should swap the snake head and tail."""
+        game_state = self._get_game_state(world)
+        if game_state and getattr(game_state, "swap_head_tail_on_apple", False):
+            return True
+
+        return (
+            self._settings
+            and hasattr(self._settings, "get")
+            and self._settings.get("swap_head_tail_on_apple")
+        )

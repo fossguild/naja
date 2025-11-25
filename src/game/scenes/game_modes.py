@@ -37,7 +37,7 @@ from game.game_modes_registry import (
 )
 
 # global variable to store selected game mode
-_selected_game_mode = 0  # 0 = Classic, 1 = Random, 2 = Head-Tail Swap
+_selected_game_mode = 0  # defaults to Classic
 
 
 def get_selected_game_mode() -> int:
@@ -156,9 +156,8 @@ class GameModesScene(BaseScene):
                         self._settings.save_settings()
 
                     elif self._selected_index == 2:  # Head-Tail Swap mode
-                        # começa dos defaults e liga o efeito de troca
+                        # começa dos defaults; efeito de troca é aplicado no modo durante o jogo
                         self._settings.reset_to_defaults()
-                        self._settings.set("swap_head_tail_on_apple", True)
                         self._settings.save_settings()
 
                     # go back to main menu
@@ -213,19 +212,6 @@ class GameModesScene(BaseScene):
                     )
                     desc_rect = desc_text.get_rect(center=(self._width / 2, desc_y))
                     self._renderer.blit(desc_text, desc_rect)
-
-        elif self._selected_index == 2:  # Head-Tail Swap mode
-            description = "Each apple swaps snake head and tail"
-            desc_text = self._assets.render_custom(
-                description, (120, 120, 120), int(self._width / 45)
-            )
-            desc_rect = desc_text.get_rect(
-                center=(
-                    self._width / 2,
-                    self._height / 2 + 1 * (self._height * 0.12) + self._height * 0.05,
-                )
-            )
-            self._renderer.blit(desc_text, desc_rect)
 
         # Draw back instruction (always at the bottom)
         back_text = self._assets.render_custom(

@@ -27,7 +27,11 @@ from typing import Any, Optional
 
 from ecs.world import World
 from core.types.color_utils import hex_to_rgb
-from game.game_modes_registry import CLASSIC_MODE_NAME, MOVING_APPLE_MODE_NAME
+from game.game_modes_registry import (
+    CLASSIC_MODE_NAME,
+    MOVING_APPLE_MODE_NAME,
+    HEAD_TAIL_SWITCH_NAME,
+)
 
 
 class GameInitializer:
@@ -142,6 +146,11 @@ class GameInitializer:
 
         current_mode = self._game_mode
         moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
+        swap_head_tail_enabled = current_mode == HEAD_TAIL_SWITCH_NAME or (
+            self._settings
+            and hasattr(self._settings, "get")
+            and self._settings.get("swap_head_tail_on_apple")
+        )
 
         class GameStateEntity:
             def __init__(self):
@@ -152,6 +161,7 @@ class GameInitializer:
                     next_scene=None,
                     game_mode=current_mode,
                     moving_apples_enabled=moving_apples_enabled,
+                    swap_head_tail_on_apple=swap_head_tail_enabled,
                 )
 
             def get_type(self):
