@@ -47,7 +47,7 @@ from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME
-from src.game.settings import GameSettings
+from game.settings import GameSettings
 
 
 class GameplayScene(BaseScene):
