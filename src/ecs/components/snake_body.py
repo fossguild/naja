@@ -37,3 +37,6 @@ class SnakeBody:
     size: int = 1  # Guards the size of the snake
     alive: bool = True
     pending_growth: int = 0  # For multi-segment growth (e.g., Cheese mode +2)
+    previous_head_positions: list[Position] = field(
+        default_factory=list
+    )  # For Cheese mode history-based reconstruction
