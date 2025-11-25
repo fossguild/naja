@@ -211,6 +211,7 @@ class GameInitializer:
             initial_speed=float(self._settings.get("initial_speed")),
             head_color=head_color,
             tail_color=tail_color,
+            cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:

@@ -97,6 +97,13 @@ class MovementSystem(BaseSystem):
             if not body.alive:
                 continue
 
+            # Check if game has started (wait for first input)
+            game_state_entities = world.registry.query_by_component("game_state")
+            if game_state_entities:
+                entity = next(iter(game_state_entities.values()))
+                if hasattr(entity, "game_state") and not entity.game_state.game_started:
+                    continue  # Don't move until player makes first input
+
             # only move if velocity is non-zero
             if velocity.dx == 0 and velocity.dy == 0:
                 continue
