@@ -201,15 +201,6 @@ class SnakeRenderSystem(BaseSystem):
         if not body.segments:
             return
 
-        # Check if Cheese mode is enabled for visual differentiation
-        cheese_mode = False
-        if world:
-            game_state_entities = world.registry.query_by_component("game_state")
-            if game_state_entities:
-                entity = next(iter(game_state_entities.values()))
-                if hasattr(entity, "game_state"):
-                    cheese_mode = entity.game_state.cheese_mode_enabled
-
         # Draw each tail segment with interpolation
         for i, segment in enumerate(body.segments):
             draw_x, draw_y = self._calculate_interpolated_position(
@@ -231,19 +222,8 @@ class SnakeRenderSystem(BaseSystem):
                 cell_size,
             )
 
-            # In Cheese mode, draw hole segments (odd indices) with transparency
-            if cheese_mode and i % 2 == 1:
-                # Hole segment - draw with transparency
-                # Create a surface with alpha channel
-                hole_surface = pygame.Surface((cell_size, cell_size), pygame.SRCALPHA)
-                # Draw with 3% opacity (8 out of 255) - almost invisible
-                hole_color = (*color, 8)
-                pygame.draw.rect(hole_surface, hole_color, (0, 0, cell_size, cell_size))
-                # Blit to renderer
-                self._renderer.blit(hole_surface, (int(draw_x), int(draw_y)))
-            else:
-                # Solid segment or Classic mode - draw normally
-                self._renderer.draw_rect(color, segment_rect, 0)
+            # All segments in the array are solid (holes are just empty cells)
+            self._renderer.draw_rect(color, segment_rect, 0)
 
             # Draw wraparound duplicate
             if interpolation.wrapped_axis != "none":
@@ -255,8 +235,6 @@ class SnakeRenderSystem(BaseSystem):
                     grid_height,
                     interpolation.wrapped_axis,
                     color,
-                    cheese_mode=cheese_mode,
-                    is_hole=(i % 2 == 1) if cheese_mode else False,
                 )
 
     def _calculate_interpolated_position(
@@ -321,8 +299,6 @@ class SnakeRenderSystem(BaseSystem):
         grid_height: int,
         wrapped_axis: str,
         color: tuple,
-        cheese_mode: bool = False,
-        is_hole: bool = False,
     ) -> None:
         """Draw duplicate of segment on opposite edge for smooth wraparound.
 
@@ -334,8 +310,6 @@ class SnakeRenderSystem(BaseSystem):
             grid_height: Total grid height in pixels
             wrapped_axis: Which axis wrapped
             color: Segment color
-            cheese_mode: Whether Cheese mode is active
-            is_hole: Whether this segment is a hole (for transparency)
         """
         dup_x = draw_x
         dup_y = draw_y
@@ -354,16 +328,8 @@ class SnakeRenderSystem(BaseSystem):
 
         # Only draw duplicate if position actually changed
         if dup_x != draw_x or dup_y != draw_y:
-            if cheese_mode and is_hole:
-                # Draw hole duplicate with transparency
-                hole_surface = pygame.Surface((cell_size, cell_size), pygame.SRCALPHA)
-                hole_color = (*color, 8)
-                pygame.draw.rect(hole_surface, hole_color, (0, 0, cell_size, cell_size))
-                self._renderer.blit(hole_surface, (int(dup_x), int(dup_y)))
-            else:
-                # Draw solid duplicate normally
-                dup_rect = pygame.Rect(int(dup_x), int(dup_y), cell_size, cell_size)
-                self._renderer.draw_rect(color, dup_rect, 0)
+            dup_rect = pygame.Rect(int(dup_x), int(dup_y), cell_size, cell_size)
+            self._renderer.draw_rect(color, dup_rect, 0)
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.

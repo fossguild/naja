@@ -139,12 +139,14 @@ class MovementSystem(BaseSystem):
                     cheese_mode = entity.game_state.cheese_mode_enabled
 
             if cheese_mode:
-                # ===== CHEESE MODE: History-based reconstruction =====
-                # Google Snake Cheese Mode uses a position history list
-                # The body is reconstructed from this history every frame
+                # ===== CHEESE MODE: Stationary segments =====
+                # Segments only appear every OTHER move
+                # This creates gaps (holes) and the jumping effect
 
-                # Insert OLD head position (before this move) at front of history
-                # position.prev_x/prev_y contains where the head WAS before moving
+                # Track if this is an odd or even move using history length
+                move_number = len(body.previous_head_positions)
+
+                # Record this move in history
                 body.previous_head_positions.insert(
                     0,
                     Position(
@@ -155,33 +157,33 @@ class MovementSystem(BaseSystem):
                     ),
                 )
 
-                # Process pending growth (for +2 mechanic)
-                # If growing, don't trim tail; otherwise, remove oldest position
-                if hasattr(body, "pending_growth") and body.pending_growth > 0:
-                    body.size += 1
-                    body.pending_growth -= 1
-                else:
-                    # Trim tail: remove oldest position from history
-                    # Keep only as many positions as needed for current size
-                    if len(body.previous_head_positions) > body.size:
-                        body.previous_head_positions.pop()
+                # Only add a segment every OTHER move (on even move numbers)
+                # move_number starts at 0, so: 0, 2, 4, 6... = even = add segment
+                should_add_segment = move_number % 2 == 0
 
-                # Reconstruct body segments from history
-                # segments[0] is from previous_head_positions[1] (one frame behind head)
-                # segments[1] is from previous_head_positions[2], etc.
-                body.segments = []
-                for i in range(1, min(body.size, len(body.previous_head_positions))):
-                    segment = body.previous_head_positions[i]
-                    # Set prev position for smooth interpolation
-                    # prev should be where this position was one frame ago
-                    if i + 1 < len(body.previous_head_positions):
-                        segment.prev_x = body.previous_head_positions[i + 1].x
-                        segment.prev_y = body.previous_head_positions[i + 1].y
-                    else:
-                        # No older position available
-                        segment.prev_x = segment.x
-                        segment.prev_y = segment.y
-                    body.segments.append(segment)
+                # Handle growth
+                is_growing = hasattr(body, "pending_growth") and body.pending_growth > 0
+                if is_growing:
+                    body.pending_growth -= 1
+                    # Don't remove tail when growing
+
+                if should_add_segment:
+                    # Create new STATIONARY segment at head's previous position
+                    new_segment = Position(
+                        x=position.prev_x,
+                        y=position.prev_y,
+                        prev_x=position.prev_x,
+                        prev_y=position.prev_y,
+                    )
+                    body.segments.insert(0, new_segment)
+
+                    # Remove oldest segment UNLESS we're growing
+                    if not is_growing:
+                        if len(body.segments) > 0:
+                            body.segments.pop()
+
+                # Track actual size (head + segments)
+                body.size = len(body.segments) + 1
 
             else:
                 # ===== CLASSIC MODE: Segment-following logic =====
