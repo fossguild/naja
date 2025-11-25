@@ -236,8 +236,8 @@ class SnakeRenderSystem(BaseSystem):
                 # Hole segment - draw with transparency
                 # Create a surface with alpha channel
                 hole_surface = pygame.Surface((cell_size, cell_size), pygame.SRCALPHA)
-                # Draw with 40% opacity (102 out of 255)
-                hole_color = (*color, 102)
+                # Draw with 3% opacity (8 out of 255) - almost invisible
+                hole_color = (*color, 8)
                 pygame.draw.rect(hole_surface, hole_color, (0, 0, cell_size, cell_size))
                 # Blit to renderer
                 self._renderer.blit(hole_surface, (int(draw_x), int(draw_y)))
@@ -357,7 +357,7 @@ class SnakeRenderSystem(BaseSystem):
             if cheese_mode and is_hole:
                 # Draw hole duplicate with transparency
                 hole_surface = pygame.Surface((cell_size, cell_size), pygame.SRCALPHA)
-                hole_color = (*color, 102)
+                hole_color = (*color, 8)
                 pygame.draw.rect(hole_surface, hole_color, (0, 0, cell_size, cell_size))
                 self._renderer.blit(hole_surface, (int(dup_x), int(dup_y)))
             else:
