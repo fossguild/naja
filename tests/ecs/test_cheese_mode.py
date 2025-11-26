@@ -41,6 +41,7 @@ from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
 from ecs.components.input_buffer import InputBuffer
 from ecs.components.game_state import GameState
+from ecs.components.hunger import Hunger
 from core.types.color import Color
 
 
@@ -107,6 +108,7 @@ def create_snake_at(x, y, segments=None, size=None):
         interpolation=Interpolation(),
         renderable=Renderable(shape="square", color=Color(0, 255, 0), size=30),
         input_buffer=InputBuffer(),
+        hunger=(Hunger(current_time=0.0, max_time=0.0)),
     )
 
 
