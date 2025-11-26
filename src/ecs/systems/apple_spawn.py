@@ -32,6 +32,7 @@ from ecs.systems.base_system import BaseSystem
 from ecs.world import World
 from ecs.entities.entity import EntityType
 from ecs.prefabs.apple import create_apple
+from game.game_modes_registry import GAME_MODE_TELEPORT
 
 
 class AppleSpawnSystem(BaseSystem):
@@ -88,12 +89,24 @@ class AppleSpawnSystem(BaseSystem):
     def _get_desired_apple_count(self, world: World) -> int:
         """Get the desired number of apples from AppleConfig component.
 
+        In TELEPORT mode, always spawn 2 apples instead of 1.
+
         Args:
             world: ECS world
 
         Returns:
-            Desired apple count, or 1 if no config found
+            Desired apple count: 2 for TELEPORT mode, config value for others (default 1)
         """
+        # Check if we're in TELEPORT mode - if so, always maintain 2 apples
+        game_states = world.registry.query_by_component("game_state")
+        if game_states:
+            game_state_entity = list(game_states.values())[0]
+            if (
+                hasattr(game_state_entity, "game_state")
+                and game_state_entity.game_state.game_mode == GAME_MODE_TELEPORT
+            ):
+                return 2
+
         # Query for entities with AppleConfig component
         config_entities = world.registry.query_by_component("apple_config")
 
@@ -113,6 +126,7 @@ class AppleSpawnSystem(BaseSystem):
         - Doesn't overlap with snake body segments
         - Doesn't overlap with obstacles
         - Doesn't overlap with existing apples
+        - In Cheese mode: Has at least 2 empty orthogonal neighbors
 
         Args:
             world: ECS world
@@ -125,12 +139,26 @@ class AppleSpawnSystem(BaseSystem):
         # Get occupied positions
         occupied = self._get_occupied_positions(world)
 
+        # Check if Cheese mode is enabled
+        game_state_entities = world.registry.query_by_component("game_state")
+        cheese_mode = False
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                cheese_mode = entity.game_state.cheese_mode_enabled
+
         # Try to find a valid position
         for _ in range(self._max_spawn_attempts):
             x = random.randint(0, board.width - 1)
             y = random.randint(0, board.height - 1)
 
             if (x, y) not in occupied:
+                # In Cheese mode, require at least 2 empty neighbors
+                if cheese_mode:
+                    empty_neighbors = self._count_empty_neighbors(x, y, board, occupied)
+                    if empty_neighbors < 2:
+                        continue  # Try another position
+
                 return (x, y)
 
         # If we couldn't find a position after max attempts, return None
@@ -173,6 +201,41 @@ class AppleSpawnSystem(BaseSystem):
                 occupied.add((apple.position.x, apple.position.y))
 
         return occupied
+
+    def _count_empty_neighbors(
+        self, x: int, y: int, board, occupied: set[tuple[int, int]]
+    ) -> int:
+        """Count empty orthogonal neighbors (N, S, E, W) for Cheese mode.
+
+        Empty means:
+        - Within board bounds
+        - Not in the occupied set (not a solid snake segment, obstacle, or apple)
+
+        Args:
+            x: X coordinate to check
+            y: Y coordinate to check
+            board: Game board with width/height
+            occupied: Set of occupied positions
+
+        Returns:
+            Number of empty orthogonal neighbors (0-4)
+        """
+        empty_count = 0
+        neighbors = [
+            (x, y - 1),  # North
+            (x, y + 1),  # South
+            (x + 1, y),  # East
+            (x - 1, y),  # West
+        ]
+
+        for nx, ny in neighbors:
+            # Check if within bounds
+            if 0 <= nx < board.width and 0 <= ny < board.height:
+                # Check if not occupied
+                if (nx, ny) not in occupied:
+                    empty_count += 1
+
+        return empty_count
 
     def set_max_spawn_attempts(self, max_attempts: int) -> None:
         """Set the maximum number of spawn attempts.

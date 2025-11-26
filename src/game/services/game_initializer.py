@@ -31,6 +31,7 @@ from game.game_modes_registry import (
     CLASSIC_MODE_NAME,
     MOVING_APPLE_MODE_NAME,
     HEAD_TAIL_SWITCH_NAME,
+    CHEESE_MODE_NAME,
 )
 
 
@@ -151,6 +152,7 @@ class GameInitializer:
             and hasattr(self._settings, "get")
             and self._settings.get("swap_head_tail_on_apple")
         )
+        cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
 
         class GameStateEntity:
             def __init__(self):
@@ -162,6 +164,7 @@ class GameInitializer:
                     game_mode=current_mode,
                     moving_apples_enabled=moving_apples_enabled,
                     swap_head_tail_on_apple=swap_head_tail_enabled,
+                    cheese_mode_enabled=cheese_mode_enabled,
                 )
 
             def get_type(self):
@@ -207,7 +210,12 @@ class GameInitializer:
 
         # convert hex colors to RGB tuples
         head_color = hex_to_rgb(head_color_hex)
-        tail_color = hex_to_rgb(tail_color_hex)
+        # Check for rainbow mode (special marker in tail color)
+        if tail_color_hex == "#rainbow":
+            # Rainbow mode: use black (0,0,0) as marker for render system
+            tail_color = (0, 0, 0)
+        else:
+            tail_color = hex_to_rgb(tail_color_hex)
 
         _ = create_snake(
             world=world,
@@ -215,6 +223,7 @@ class GameInitializer:
             initial_speed=float(self._settings.get("initial_speed")),
             head_color=head_color,
             tail_color=tail_color,
+            cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:

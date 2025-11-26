@@ -24,7 +24,9 @@ GameModeType = str
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
 HEAD_TAIL_SWITCH_NAME = "Head-Tail Swap"
+CHEESE_MODE_NAME = "Cheese Mode"
 AUTOPLAY_MODE_NAME = "AutoPlay"
+GAME_MODE_TELEPORT = "Teleport"
 
 ACTUAL_GAME_MODES = [
     {
@@ -40,8 +42,16 @@ ACTUAL_GAME_MODES = [
         "description": "State toggle when the snake consumes an apple.",
     },
     {
+        "name": CHEESE_MODE_NAME,
+        "description": "Snake body has holes - pass through them safely, but avoid solid segments!",
+    },
+    {
         "name": AUTOPLAY_MODE_NAME,
         "description": "The snake plays itself, the player just watches.",
+    },
+    {
+        "name": GAME_MODE_TELEPORT,
+        "description": "Collect an apple to warp to the other one, maintaining your direction.",
     },
 ]
 
@@ -51,7 +61,9 @@ RANDOM_MODE_INDEX = len(ACTUAL_GAME_MODES)
 __all__ = [
     "CLASSIC_MODE_NAME",
     "MOVING_APPLE_MODE_NAME",
+    "CHEESE_MODE_NAME",
     "AUTOPLAY_MODE_NAME",
+    "GAME_MODE_TELEPORT",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",

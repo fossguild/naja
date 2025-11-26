@@ -36,6 +36,7 @@ from ecs.world import World
 from ecs.systems.scoring import ScoringSystem
 from game.settings import GameSettings
 from game.services.audio_service import AudioService
+from game.game_modes_registry import GAME_MODE_TELEPORT
 
 
 class CollisionSystem(BaseSystem):
@@ -293,11 +294,34 @@ class CollisionSystem(BaseSystem):
             head_x = head_x % world.board.width
             head_y = head_y % world.board.height
 
+        # check if Cheese mode is enabled
+        game_state = self._get_game_state(world)
+        cheese_mode = game_state.cheese_mode_enabled if game_state else False
+
         # check collision with tail segments
-        tail_positions = [(seg.x, seg.y) for seg in snake.body.segments]
-        for square in tail_positions:
-            if head_x == square[0] and head_y == square[1]:
+        tail_positions = snake.body.segments
+        for i, segment in enumerate(tail_positions):
+            # In Cheese mode, segments array now contains ONLY solid segments
+            # Holes are not stored at all - they're just empty space
+            # So we check ALL segments for collision
+
+            # Standard overlap check
+            if head_x == segment.x and head_y == segment.y:
                 return True
+
+            # Cheese Mode Special Case: Tunneling/Swap Check
+            # If moving against the body, head and segment can swap positions in one frame,
+            # skipping the overlap check. We must detect this "swap".
+            if cheese_mode:
+                # Check if Head and Segment swapped places
+                # Head is now where Segment was, AND Segment is now where Head was
+                if (
+                    head_x == segment.prev_x
+                    and head_y == segment.prev_y
+                    and snake.position.prev_x == segment.x
+                    and snake.position.prev_y == segment.y
+                ):
+                    return True
 
         return False
 
@@ -366,9 +390,19 @@ class CollisionSystem(BaseSystem):
                     if self._audio_service:
                         self._audio_service.play_sound("assets/sound/eat.flac")
 
-                    # grow snake
+                    # grow snake - use pending_growth for Cheese mode (+2), immediate for others
+                    game_state = self._get_game_state(world)
+                    cheese_mode = (
+                        game_state.cheese_mode_enabled if game_state else False
+                    )
+
                     if hasattr(snake, "body"):
-                        snake.body.size += 1
+                        if cheese_mode:
+                            # Cheese mode: +2 growth via pending_growth
+                            snake.body.pending_growth += 2
+                        else:
+                            # Classic/other modes: +1 immediate growth
+                            snake.body.size += 1
 
                         if self._should_swap_head_and_tail(world):
                             self._swap_head_and_tail(snake)
@@ -407,8 +441,45 @@ class CollisionSystem(BaseSystem):
 
                         snake.velocity.speed = new_speed
 
-                    # remove eaten apple
-                    world.registry.remove(entity_id)
+                    # Special handling for TELEPORT mode
+                    if game_state and game_state.game_mode == GAME_MODE_TELEPORT:
+                        # Find another active apple on the board
+                        other_apple_id = None
+                        other_apple = None
+                        for other_id, other in apples.items():
+                            if other_id == entity_id:
+                                continue
+                            if hasattr(other, "position"):
+                                other_apple_id = other_id
+                                other_apple = other
+                                break
+
+                        if other_apple is not None:
+                            # Teleport snake head to the other apple's position
+                            snake.position.prev_x = snake.position.x
+                            snake.position.prev_y = snake.position.y
+                            snake.position.x = other_apple.position.x
+                            snake.position.y = other_apple.position.y
+
+                            # Keep velocity unchanged (do nothing to snake.velocity)
+
+                            # Remove both apples so AppleSpawnSystem will respawn them
+                            try:
+                                world.registry.remove(entity_id)
+                            except Exception:
+                                # ignore removal errors
+                                pass
+                            try:
+                                if other_apple_id is not None:
+                                    world.registry.remove(other_apple_id)
+                            except Exception:
+                                pass
+
+                            break  # handled teleport, only one apple per frame
+
+                    else:
+                        # remove eaten apple
+                        world.registry.remove(entity_id)
 
                     break  # only eat one apple per frame
 
