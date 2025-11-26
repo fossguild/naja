@@ -32,6 +32,7 @@ from ecs.systems.base_system import BaseSystem
 from ecs.world import World
 from ecs.entities.entity import EntityType
 from ecs.prefabs.apple import create_apple
+from game.game_modes_registry import GAME_MODE_TELEPORT
 
 
 class AppleSpawnSystem(BaseSystem):
@@ -88,12 +89,24 @@ class AppleSpawnSystem(BaseSystem):
     def _get_desired_apple_count(self, world: World) -> int:
         """Get the desired number of apples from AppleConfig component.
 
+        In TELEPORT mode, always spawn 2 apples instead of 1.
+
         Args:
             world: ECS world
 
         Returns:
-            Desired apple count, or 1 if no config found
+            Desired apple count: 2 for TELEPORT mode, config value for others (default 1)
         """
+        # Check if we're in TELEPORT mode - if so, always maintain 2 apples
+        game_states = world.registry.query_by_component("game_state")
+        if game_states:
+            game_state_entity = list(game_states.values())[0]
+            if (
+                hasattr(game_state_entity, "game_state")
+                and game_state_entity.game_state.game_mode == GAME_MODE_TELEPORT
+            ):
+                return 2
+
         # Query for entities with AppleConfig component
         config_entities = world.registry.query_by_component("apple_config")
 
