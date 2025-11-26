@@ -140,7 +140,12 @@ class MenuScene(BaseScene):
         """Called when entering menu."""
         self._selected_index = 0
 
-        # Ensure background music is playing when entering menu
-        # (it might have stopped if coming from game over)
-        if self._settings.get("background_music"):
-            GameAssets.play_background_music(loop=True)
+        music_enabled = self._settings.get("background_music")
+
+        if music_enabled:
+            if not pygame.mixer.music.get_busy():
+                GameAssets.play_background_music(loop=True)
+        else:
+            # If music is off, do not play
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.stop()
