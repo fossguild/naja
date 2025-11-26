@@ -131,6 +131,7 @@ class GameSettings:
             "label": "Hunger",
             "type": "bool",
             "requires_reset": True,
+            "category": "Gameplay",
         },
         {
             "key": "electric_walls",

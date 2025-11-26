@@ -111,6 +111,11 @@ class InputSystem(BaseSystem):
         if not snake:
             return
 
+        # Mark game as started on first input
+        game_state = self._get_game_state(world)
+        if game_state and not game_state.game_started:
+            game_state.game_started = True
+
         # get or create input buffer on the snake entity
         if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
             # fallback: create attribute if prefabs didn't add it

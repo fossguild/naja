@@ -27,7 +27,11 @@ from typing import Any, Optional
 
 from ecs.world import World
 from core.types.color_utils import hex_to_rgb
-from game.game_modes_registry import CLASSIC_MODE_NAME, MOVING_APPLE_MODE_NAME
+from game.game_modes_registry import (
+    CLASSIC_MODE_NAME,
+    MOVING_APPLE_MODE_NAME,
+    CHEESE_MODE_NAME,
+)
 
 
 class GameInitializer:
@@ -142,6 +146,7 @@ class GameInitializer:
 
         current_mode = self._game_mode
         moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
+        cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
 
         class GameStateEntity:
             def __init__(self):
@@ -152,6 +157,7 @@ class GameInitializer:
                     next_scene=None,
                     game_mode=current_mode,
                     moving_apples_enabled=moving_apples_enabled,
+                    cheese_mode_enabled=cheese_mode_enabled,
                 )
 
             def get_type(self):
@@ -206,6 +212,7 @@ class GameInitializer:
             head_color=head_color,
             tail_color=tail_color,
             enable_hunger=bool(self._settings.get("enable_hunger")),
+            cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:
