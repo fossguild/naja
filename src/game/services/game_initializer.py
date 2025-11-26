@@ -27,6 +27,7 @@ from typing import Any, Optional
 
 from ecs.world import World
 from core.types.color_utils import hex_to_rgb
+from game.game_modes_registry import CLASSIC_MODE_NAME, MOVING_APPLE_MODE_NAME
 
 
 class GameInitializer:
@@ -60,6 +61,11 @@ class GameInitializer:
         self._assets = assets
         self._game_over = False
         self._death_reason = ""
+        self._game_mode = CLASSIC_MODE_NAME
+
+    def set_game_mode(self, mode: str) -> None:
+        """Set the game mode that should be applied during initialization."""
+        self._game_mode = mode or CLASSIC_MODE_NAME
 
     def reset_world(self, world: World) -> None:
         """Reset the game world for a new game.
@@ -134,6 +140,9 @@ class GameInitializer:
         """
         from ecs.components.game_state import GameState
 
+        current_mode = self._game_mode
+        moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
+
         class GameStateEntity:
             def __init__(self):
                 self.game_state = GameState(
@@ -141,6 +150,8 @@ class GameInitializer:
                     game_over=False,
                     death_reason="",
                     next_scene=None,
+                    game_mode=current_mode,
+                    moving_apples_enabled=moving_apples_enabled,
                 )
 
             def get_type(self):
@@ -271,12 +282,14 @@ class GameInitializer:
             grid_size: Size of grid cells in pixels
         """
         difficulty = self._settings.get("obstacle_difficulty")
+        dynamic_spawn = self._settings.get("dynamic_spawn_obstacles")
         if difficulty and difficulty != "None":
             from ecs.prefabs.obstacle_field import create_obstacles
 
             _ = create_obstacles(
                 world=world,
                 difficulty=difficulty,
+                dynamic_spawn=dynamic_spawn,
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )

@@ -17,13 +17,12 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Gameplay scene that coordinates all ECS systems.
-
 This scene registers and manages all game systems in the correct execution order.
 It acts as the integration point for the ECS architecture, ensuring all systems
 work together harmoniously.
 """
 
-from typing import Optional, Any, List
+from typing import Optional, List
 
 from game.scenes.base_scene import BaseScene
 from game.services.game_initializer import GameInitializer
@@ -33,6 +32,7 @@ from ecs.world import World
 from ecs.systems.base_system import BaseSystem
 from ecs.systems.input import InputSystem
 from ecs.systems.movement import MovementSystem
+from ecs.systems.moving_apple import MovingAppleSystem
 from ecs.systems.collision import CollisionSystem
 from ecs.systems.spawn import SpawnSystem
 from ecs.systems.scoring import ScoringSystem
@@ -45,6 +45,9 @@ from ecs.systems.ui_render import UIRenderSystem
 from ecs.systems.overlay_render import OverlayRenderSystem
 from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
+from game.scenes.game_modes import get_resolved_game_mode
+from game.game_modes_registry import CLASSIC_MODE_NAME
+from game.settings import GameSettings
 
 
 class GameplayScene(BaseScene):
@@ -62,9 +65,10 @@ class GameplayScene(BaseScene):
         width: int,
         height: int,
         world: World,
-        config: Optional[Any] = None,
-        settings: Optional[Any] = None,
-        assets: Optional[Any] = None,
+        config: Optional[object] = None,
+        settings: Optional[GameSettings] = None,
+        assets: Optional[object] = None,
+        scoreboard: Optional[object] = None,
     ):
         """Initialize the gameplay scene.
 
@@ -74,15 +78,17 @@ class GameplayScene(BaseScene):
             width: Scene width
             height: Scene height
             world: ECS world instance
-            config: Game configuration
-            settings: Game settings
-            assets: Game assets (fonts, sounds, etc.)
+            config: Game configuration (GameConfig)
+            settings: Game settings (GameSettings)
+            assets: Game assets (GameAssets - fonts, sounds, etc.)
+            scoreboard: Scoreboard for tracking high scores (Scoreboard)
         """
         super().__init__(pygame_adapter, renderer, width, height)
         self._world = world
         self._config = config
         self._settings = settings
         self._assets = assets
+        self._scoreboard = scoreboard
         self._systems: List[BaseSystem] = []
         self._attached = False
         self._board_render_system: Optional[BoardRenderSystem] = None
@@ -95,59 +101,72 @@ class GameplayScene(BaseScene):
         )
         self._audio_service = AudioService(settings=settings)
         self._sfx_queue_service = SfxQueueService()
+        self._current_game_mode = CLASSIC_MODE_NAME
 
     def on_attach(self) -> None:
         """Initialize and register all game systems in execution order.
 
-        Systems 0-7 are game logic (paused when game is paused).
-        Systems 8+ are rendering/audio (always run).
+        Systems 0-8 are game logic (paused when game is paused).
+        Systems 9+ are rendering/audio (always run).
         """
         if self._attached:
             return
 
         self._systems.clear()
 
+        # Create scoring system first so collision system can use it
+        scoring_system = ScoringSystem(
+            scoreboard=self._scoreboard,
+            settings=self._settings,
+            gamemode=self._current_game_mode,
+        )
+
         # game logic systems (indices 0-7, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
+        from ecs.systems.autoplay import AutoplaySystem
 
         self._systems.extend(
             [
                 InputSystem(
-                    self._pygame_adapter, self._settings
+                    self._pygame_adapter, self._settings, self._current_game_mode
                 ),  # 0: read user input and update velocity/game state
+                AutoplaySystem(
+                    self._current_game_mode, self._settings
+                ),  # 1: calculate next move in autoplay mode
                 MovementSystem(
                     self._get_electric_walls
-                ),  # 1: update entity positions based on velocity
+                ),  # 2: update entity positions based on velocity
+                MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
-                    self._settings, self._audio_service
-                ),  # 2: detect collisions (wall, self-bite, obstacles, apples)
-                AppleSpawnSystem(1000),  # 3: maintain correct number of apples on board
+                    self._settings, self._audio_service, scoring_system
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
+                AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
                 SpawnSystem(
                     1000, (255, 0, 0), None
-                ),  # 4: create new entities at valid positions
-                ScoringSystem(),  # 5: track score and high score
+                ),  # 6: create new entities at valid positions
+                scoring_system,  # 7: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 6: generate obstacles with connectivity guarantees
+                ),  # 8: generate obstacles with connectivity guarantees
                 SettingsApplySystem(
                     self._settings, self._config, self._assets
-                ),  # 7: apply runtime settings changes (colors, difficulty, etc)
+                ),  # 9: apply runtime settings changes (colors, difficulty, etc)
             ]
         )
 
-        # rendering and audio systems (indices 8+, always run even when paused)
+        # rendering and audio systems (indices 10+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 8: calculate smooth positions for rendering
+                ),  # 10: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 9: play sounds and music
+                ),  # 11: play sounds and music
             ]
         )
 
-        # render systems (10-13: draw board, entities, snake, UI)
+        # render systems (11-14: draw board, entities, snake, UI)
         if self._renderer:
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
@@ -191,9 +210,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-7) but keep input (0) and rendering (8+) running
+        # pause game logic systems (1-9) but keep input (0) and rendering (10+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 7
+        GAME_LOGIC_END = 9
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)
@@ -225,6 +244,9 @@ class GameplayScene(BaseScene):
     def on_enter(self) -> None:
         """Called when entering gameplay scene."""
         self.set_next_scene(None)
+        resolved_mode = get_resolved_game_mode()
+        self._current_game_mode = resolved_mode
+        self._game_initializer.set_game_mode(resolved_mode)
         self._game_initializer.reset_world(self._world)
         self._audio_service.play_music("assets/sound/Slither_Sprint.mp3")
         self.on_attach()

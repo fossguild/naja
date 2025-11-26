@@ -165,71 +165,116 @@ class OverlayRenderSystem(BaseSystem):
     def _draw_settings_items(
         self, surface_width: int, surface_height: int, selected_index: int
     ) -> None:
-        """Draw individual settings items."""
+        """Draw individual settings items with categorized layout."""
         font_path = "assets/font/GetVoIP-Grotesque.ttf"
 
-        # spacing and scroll parameters
-        row_h = int(surface_height * 0.06)
-        visible_rows = int(surface_height * 0.70 // row_h)
-        top_index = max(0, selected_index - visible_rows + 3)
-        padding_y = int(surface_height * 0.22)
+        # Layout parameters
+        row_h = int(surface_height * 0.055)
+        category_h = int(surface_height * 0.07)
+        padding_y = int(surface_height * 0.20)
+        left_margin = int(surface_width * 0.15)
+        category_indent = int(surface_width * 0.05)
 
-        # get in-game adjustable settings
+        # Calculate scroll offset
+        item_height_avg = row_h
+        scroll_offset = max(0, (selected_index - 3) * item_height_avg)
+
+        # Get in-game adjustable settings
         menu_fields = self._settings.get_in_game_menu_fields()
         return_to_menu_index = len(menu_fields)
 
-        item_font_size = int(surface_width / 30)
+        # Calculate available height for content
+        content_start_y = padding_y
+        content_end_y = int(surface_height * 0.88)
+
+        # Fonts
+        item_font_size = int(surface_width / 32)
+        category_font_size = int(surface_width / 32)
         try:
             item_font = pygame.font.Font(font_path, item_font_size)
+            category_font = pygame.font.Font(font_path, category_font_size)
         except Exception:
             item_font = pygame.font.Font(None, item_font_size)
+            category_font = pygame.font.Font(None, category_font_size)
 
-        # draw settings items
-        for draw_i, field_i in enumerate(range(top_index, len(menu_fields))):
-            if draw_i >= visible_rows:
-                break
-            f = menu_fields[field_i]
-            val = self._settings.get(f["key"])
+        current_y = padding_y - scroll_offset
+        current_category = None
 
-            # calculate current grid size for display
-            current_grid_size = 20  # default fallback
-            if self._config:
-                desired_cells = max(10, int(self._settings.get("cells_per_side")))
-                current_grid_size = self._config.get_optimal_grid_size(desired_cells)
+        # Draw settings grouped by category
+        for field_i, f in enumerate(menu_fields):
+            # Draw category header if this is a new category
+            if f.get("category") != current_category:
+                current_category = f.get("category", "Other")
 
-            formatted_val = self._settings.format_setting_value(
-                f,
-                val,
-                surface_width,
-                current_grid_size,
-            )
+                # Add spacing before category (except first)
+                if field_i > 0:
+                    current_y += int(surface_height * 0.03)
 
-            # render text with highlighting for selected item
-            text_color = (
-                Color.from_hex(constants.SCORE_COLOR).to_tuple()
-                if field_i == selected_index
-                else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
-            )
-            text = item_font.render(f"{f['label']}: {formatted_val}", True, text_color)
-            rect = text.get_rect()
-            rect.left = int(surface_width * 0.10)
-            rect.top = padding_y + draw_i * row_h
-            self._renderer.blit(text, rect)
+                # Draw category header only if visible
+                if content_start_y - category_h <= current_y <= content_end_y:
+                    category_text = category_font.render(
+                        f"─── {current_category} ───",
+                        True,
+                        (180, 180, 180),
+                    )
+                    category_rect = category_text.get_rect()
+                    category_rect.left = left_margin - category_indent
+                    category_rect.top = current_y
+                    self._renderer.blit(category_text, category_rect)
 
-        # draw "Return to Menu" option
-        return_draw_i = len(menu_fields) - top_index
-        if 0 <= return_draw_i < visible_rows:
+                current_y += category_h
+
+            # Draw setting field only if visible
+            if content_start_y - row_h <= current_y <= content_end_y:
+                val = self._settings.get(f["key"])
+
+                # Calculate current grid size for display
+                current_grid_size = 20
+                if self._config:
+                    desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                    current_grid_size = self._config.get_optimal_grid_size(
+                        desired_cells
+                    )
+
+                formatted_val = self._settings.format_setting_value(
+                    f,
+                    val,
+                    surface_width,
+                    current_grid_size,
+                )
+
+                # Highlight selected item
+                text_color = (
+                    Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                    if field_i == selected_index
+                    else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                )
+                text = item_font.render(
+                    f"{f['label']}: {formatted_val}", True, text_color
+                )
+                rect = text.get_rect()
+                rect.left = left_margin
+                rect.top = current_y
+                self._renderer.blit(text, rect)
+
+            current_y += row_h
+
+        # Draw "Return to Menu" option
+        current_y += int(surface_height * 0.04)
+
+        # Only draw if visible
+        if content_start_y - row_h <= current_y <= content_end_y:
             text_color = (
                 Color.from_hex(constants.SCORE_COLOR).to_tuple()
                 if selected_index == return_to_menu_index
-                else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                else (200, 100, 100)
             )
-            separator_top = padding_y + return_draw_i * row_h
-            # add some spacing before the option
-            return_text = item_font.render("Return to Main Menu", True, text_color)
+            return_text = item_font.render(
+                "──  Return to Main Menu  ──", True, text_color
+            )
             rect = return_text.get_rect()
-            rect.left = int(surface_width * 0.10)
-            rect.top = separator_top + int(row_h * 0.5)  # add spacing
+            rect.left = left_margin - category_indent
+            rect.top = current_y
             self._renderer.blit(return_text, rect)
 
     def _draw_settings_hint(self, surface_width: int, surface_height: int) -> None:

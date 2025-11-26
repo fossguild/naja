@@ -5,6 +5,7 @@ before runtime and never changed
 """
 
 import random
+import platformdirs
 
 
 HEAD_COLOR = "#00aa00"  # Color of the snake's head.
@@ -17,8 +18,27 @@ GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 
+# Game over screen colors
+GAME_OVER_MESSAGE_COLOR = (128, 128, 128)  # Gray for game over message
+GAME_OVER_HIGHLIGHT_COLOR = (200, 200, 200)  # Lighter gray for score display
+GAME_OVER_NEW_SCORE_COLOR = (
+    255,
+    215,
+    0,
+)  # Gold color for highlighting new score in list
+GAME_OVER_HIGH_SCORE_COLOR = (255, 69, 0)  # Red-orange for "NEW HIGH SCORE!" message
+GAME_OVER_TIMESTAMP_COLOR = (80, 80, 80)  # Dark gray for timestamps
+GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR = (180, 160, 0)  # Gold-ish for new score timestamp
+
 WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
+
+# Application data directory constants
+APP_NAME = "naja"  # Application name for data directory
+APP_AUTHOR = "fossguild"  # Organization/author name for data directory
+USER_DATA_DIR = platformdirs.user_data_dir(
+    APP_NAME, APP_AUTHOR
+)  # Platform-specific user data directory
 
 # Difficulty percentages for obstacle count
 DIFFICULTY_PERCENTAGES = {
@@ -28,6 +48,19 @@ DIFFICULTY_PERCENTAGES = {
     "Hard": 0.10,
     "Impossible": 0.15,
 }
+"""
+Coefficient applied to the difficulty obstacle percentages to calculate
+the maximum number of obstacles in dynamic spawn modes, defining a saturation point.
+The value is chosen so that, at maximum difficulty, the board can reach up to 33.0%.
+"""
+DYNAMIC_SPAWN_OBSTACLES_SATURATION_COEFFICIENT = 3.3
+
+"""
+Coefficient applied to the difficulty obstacle percentages to calculate
+the initial number of obstacles in dynamic spawn modes. The value is chosen
+so that the initial number is 3/4 of the initial value in static modes.
+"""
+DYNAMIC_SPAWN_OBSTACLES_INITIAL_COEFFICIENT = 0.75
 
 # Color palettes for snake customization
 SNAKE_COLOR_PALETTES = [
@@ -51,6 +84,8 @@ SNAKE_COLOR_PALETTES = [
     {"head": "#dc143c", "tail": "#ff6b6b", "name": "Red"},
     # Forest
     {"head": "#228b22", "tail": "#32cd32", "name": "Forest"},
+    # Obsidian
+    {"head": "#3d2b4f", "tail": "#17171a", "name": "Obsidian"},
 ]
 
 

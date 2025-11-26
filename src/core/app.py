@@ -24,6 +24,7 @@ depending on old_code.
 """
 
 import sys
+from typing import Optional
 
 from ecs.world import World
 from ecs.board import Board
@@ -32,6 +33,7 @@ from ecs.prefabs.apple import create_apple
 from ecs.prefabs.obstacle_field import create_obstacles
 from game.scenes.scene_manager import SceneManager
 from game.scenes.menu import MenuScene
+from game.scenes.game_modes import GameModesScene
 from game.scenes.gameplay import GameplayScene
 from game.scenes.game_over import GameOverScene
 from game.scenes.settings import SettingsScene
@@ -42,6 +44,7 @@ from game.settings import GameSettings
 from game.services.assets import GameAssets
 from game.constants import WINDOW_TITLE
 from core.rendering.pygame_surface_renderer import PygameSurfaceRenderer
+from game.scoreboard import Scoreboard
 
 
 class ECSGameApp:
@@ -50,18 +53,19 @@ class ECSGameApp:
     This version uses pure ECS architecture with GameplayScene and systems.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ECS game application."""
-        self.pygame_adapter = None
-        self.config = None
-        self.settings = None
-        self.assets = None
-        self.world = None
-        self.scene_manager = None
-        self.clock = None
-        self.renderer = None
-        self.running = False
+        self.pygame_adapter: Optional[PygameIOAdapter] = None
+        self.config: Optional[GameConfig] = None
+        self.settings: Optional[GameSettings] = None
+        self.assets: Optional[GameAssets] = None
+        self.world: Optional[World] = None
+        self.scene_manager: Optional[SceneManager] = None
+        self.clock: Optional[GameClock] = None
+        self.renderer: Optional[PygameSurfaceRenderer] = None
+        self.running: bool = False
         self.surface = None
+        self.scoreboard: Optional[Scoreboard] = None
 
     def initialize(self) -> None:
         """Initialize all game systems and resources."""
@@ -77,6 +81,8 @@ class ECSGameApp:
         self.settings = GameSettings(
             self.config.initial_width, self.config.initial_grid_size
         )
+
+        self.scoreboard = Scoreboard.load()
 
         # create game window
         self.surface = self.pygame_adapter.set_mode(
@@ -133,6 +139,17 @@ class ECSGameApp:
         )
         self.scene_manager.register_scene("menu", menu_scene)
 
+        # Game modes scene
+        game_modes_scene = GameModesScene(
+            pygame_adapter=self.pygame_adapter,
+            renderer=self.renderer.view(),
+            width=self.config.initial_width,
+            height=self.config.initial_height,
+            assets=self.assets,
+            settings=self.settings,
+        )
+        self.scene_manager.register_scene("game_modes", game_modes_scene)
+
         # Settings scene
         settings_scene = SettingsScene(
             pygame_adapter=self.pygame_adapter,
@@ -155,6 +172,7 @@ class ECSGameApp:
             config=self.config,
             settings=self.settings,
             assets=self.assets,
+            scoreboard=self.scoreboard,
         )
         self.scene_manager.register_scene("gameplay", gameplay_scene)
 
@@ -166,6 +184,8 @@ class ECSGameApp:
             height=self.config.initial_height,
             assets=self.assets,
             settings=self.settings,
+            scoreboard=self.scoreboard,
+            world=self.world,
         )
         self.scene_manager.register_scene("game_over", game_over_scene)
 
@@ -195,31 +215,17 @@ class ECSGameApp:
 
         # create obstacles based on difficulty
         difficulty = self.settings.get("obstacle_difficulty")
+        # define dynamic obstacle according to settings
+        dynamic_spawn = self.settings.get("dynamic_spawn_obstacles")
 
         if difficulty and difficulty != "None":
             _ = create_obstacles(
                 world=self.world,
                 difficulty=difficulty,
+                dynamic_spawn=dynamic_spawn,
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )
-
-    def _calculate_obstacle_count(self) -> int:
-        """Calculate number of obstacles based on difficulty setting."""
-        difficulty = self.settings.get("obstacle_difficulty")
-
-        # difficulty percentages
-        percentages = {
-            "None": 0.0,
-            "Easy": 0.04,
-            "Medium": 0.06,
-            "Hard": 0.10,
-            "Impossible": 0.15,
-        }
-
-        percentage = percentages.get(difficulty, 0.0)
-        total_cells = self.world.board.width * self.world.board.height
-        return int(total_cells * percentage)
 
     def run(self) -> None:
         """Run the main game loop."""

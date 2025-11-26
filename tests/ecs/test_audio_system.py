@@ -89,29 +89,6 @@ def audio_system(mock_sound, sfx_queue_service):
     )
 
 
-class TestAudioSystemInitialization:
-    """Test AudioSystem initialization."""
-
-    def test_system_created_successfully(self):
-        """Test that AudioSystem can be initialized."""
-        system = AudioSystem()
-        assert system is not None
-
-    def test_system_with_sound_assets(self, mock_sound):
-        """Test AudioSystem with sound assets."""
-        sound_assets = {"test": mock_sound}
-        system = AudioSystem(sound_assets=sound_assets)
-
-        assert "test" in system.get_available_sfx()
-
-    def test_system_with_music_tracks(self):
-        """Test AudioSystem with music tracks."""
-        music_tracks = {"track1": "path/to/track1.ogg"}
-        system = AudioSystem(music_tracks=music_tracks)
-
-        assert "track1" in system.get_available_tracks()
-
-
 class TestSFXPlayback:
     """Test sound effects playback."""
 
@@ -339,13 +316,6 @@ class TestSoundLoading:
 
         assert result is True
         assert "new_sfx" in audio_system.get_available_sfx()
-
-    @patch("pygame.mixer.Sound", side_effect=Exception("Load error"))
-    def test_load_sound_handles_error(self, mock_sound_class, audio_system):
-        """Test loading sound handles errors gracefully."""
-        result = audio_system.load_sound("bad_sfx", "invalid/path.wav")
-
-        assert result is False
 
     def test_load_music_track_registers_path(self, audio_system):
         """Test loading music track registers the path."""

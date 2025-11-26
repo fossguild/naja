@@ -59,6 +59,8 @@ class SettingsScene(BaseScene):
         self._settings = settings
         self._config = config
         self._selected_index = 0
+        # total menu items = settings fields + "Reset to Default" button
+        self._total_menu_items = len(self._settings.MENU_FIELDS) + 1
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update settings logic.
@@ -70,10 +72,12 @@ class SettingsScene(BaseScene):
             Next scene name or None
         """
         # Update key holding state (this handles continuous changes)
-        if self._settings.update_key_hold():
-            # A value was updated by key holding
-            current_field = self._settings.MENU_FIELDS[self._selected_index]
-            self._apply_audio_setting_if_changed(current_field["key"])
+        # Only update if not on "Reset to Default" button
+        if self._selected_index < len(self._settings.MENU_FIELDS):
+            if self._settings.update_key_hold():
+                # A value was updated by key holding
+                current_field = self._settings.MENU_FIELDS[self._selected_index]
+                self._apply_audio_setting_if_changed(current_field["key"])
 
         # Handle input
         for event in self._pygame_adapter.get_events():
@@ -82,34 +86,51 @@ class SettingsScene(BaseScene):
                 exit()
 
             elif event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                if event.key == pygame.K_ESCAPE:
                     # Stop any ongoing key hold when leaving
                     self._settings.stop_key_hold()
                     return "menu"  # back to menu
+                elif event.key == pygame.K_RETURN:
+                    # Check if "Reset to Default" is selected
+                    if self._selected_index == len(self._settings.MENU_FIELDS):
+                        self._settings.reset_to_defaults()
+                        self._settings.save_settings()
+                        # Stay in settings to show the reset took effect
+                    else:
+                        # Regular return to menu
+                        self._settings.stop_key_hold()
+                        return "menu"
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
-                    self._selected_index = (self._selected_index + 1) % len(
-                        self._settings.MENU_FIELDS
-                    )
+                    self._selected_index = (
+                        self._selected_index + 1
+                    ) % self._total_menu_items
                 elif event.key in (pygame.K_UP, pygame.K_w):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
-                    self._selected_index = (self._selected_index - 1) % len(
-                        self._settings.MENU_FIELDS
-                    )
+                    self._selected_index = (
+                        self._selected_index - 1
+                    ) % self._total_menu_items
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
-                    # Start holding left
-                    current_field = self._settings.MENU_FIELDS[self._selected_index]
-                    self._settings.start_key_hold(current_field, -1)
-                    # Apply audio settings immediately
-                    self._apply_audio_setting_if_changed(current_field["key"])
+                    # Only handle left/right on settings fields, not on "Reset to Default"
+                    if self._selected_index < len(self._settings.MENU_FIELDS):
+                        # Start holding left
+                        current_field = self._settings.MENU_FIELDS[self._selected_index]
+                        self._settings.start_key_hold(current_field, -1)
+                        # Apply audio settings immediately
+                        self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                    # Start holding right
-                    current_field = self._settings.MENU_FIELDS[self._selected_index]
-                    self._settings.start_key_hold(current_field, +1)
-                    # Apply audio settings immediately
-                    self._apply_audio_setting_if_changed(current_field["key"])
+                    # Only handle left/right on settings fields, not on "Reset to Default"
+                    if self._selected_index < len(self._settings.MENU_FIELDS):
+                        # Start holding right
+                        current_field = self._settings.MENU_FIELDS[self._selected_index]
+                        self._settings.start_key_hold(current_field, +1)
+                        # Apply audio settings immediately
+                        self._apply_audio_setting_if_changed(current_field["key"])
+                elif event.key == pygame.K_c:
+                    # Randomize snake colors
+                    self._settings.randomize_snake_colors()
 
             elif event.type == pygame.KEYUP:
                 # Stop holding when any left/right key is released
@@ -138,7 +159,7 @@ class SettingsScene(BaseScene):
                 pygame.mixer.pause()
 
     def render(self) -> None:
-        """Render the settings screen."""
+        """Render the settings screen with categorized layout."""
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
 
@@ -149,42 +170,98 @@ class SettingsScene(BaseScene):
         title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
         self._renderer.blit(title, title_rect)
 
-        # Spacing and scroll parameters
-        row_h = int(self._height * 0.06)
-        visible_rows = int(self._height * 0.70 // row_h)
-        top_index = max(0, self._selected_index - visible_rows + 3)
-        padding_y = int(self._height * 0.22)
+        # Layout parameters
+        row_h = int(self._height * 0.055)
+        category_h = int(self._height * 0.07)
+        padding_y = int(self._height * 0.20)
+        left_margin = int(self._width * 0.15)
+        category_indent = int(self._width * 0.05)
 
-        # Draw visible rows
-        for draw_i, field_i in enumerate(
-            range(top_index, len(self._settings.MENU_FIELDS))
-        ):
-            if draw_i >= visible_rows:
-                break
-            f = self._settings.MENU_FIELDS[field_i]
-            val = self._settings.get(f["key"])
+        # Calculate available height for content
+        content_start_y = padding_y
+        content_end_y = int(self._height * 0.88)
 
-            # Calculate current grid size for display
-            current_grid_size = 20  # default fallback
-            if self._config:
-                desired_cells = max(10, int(self._settings.get("cells_per_side")))
-                current_grid_size = self._config.get_optimal_grid_size(desired_cells)
+        # Calculate scroll offset to keep selected item visible
+        item_height_avg = row_h
+        scroll_offset = max(0, (self._selected_index - 3) * item_height_avg)
 
-            formatted_val = self._settings.format_setting_value(
-                f,
-                val,
-                self._width,
-                current_grid_size,
+        current_y = padding_y - scroll_offset
+        current_category = None
+
+        # Draw settings grouped by category
+        for field_i, f in enumerate(self._settings.MENU_FIELDS):
+            # Draw category header if this is a new category
+            if f.get("category") != current_category:
+                current_category = f.get("category", "Other")
+
+                # Add spacing before category (except first)
+                if field_i > 0:
+                    current_y += int(self._height * 0.03)
+
+                # Draw category header only if visible
+                if content_start_y - category_h <= current_y <= content_end_y:
+                    category_text = self._assets.render_custom(
+                        f"─── {current_category} ───",
+                        (180, 180, 180),
+                        int(self._width / 32),
+                    )
+                    category_rect = category_text.get_rect()
+                    category_rect.left = left_margin - category_indent
+                    category_rect.top = current_y
+                    self._renderer.blit(category_text, category_rect)
+
+                current_y += category_h
+
+            # Draw setting field only if visible
+            if content_start_y - row_h <= current_y <= content_end_y:
+                val = self._settings.get(f["key"])
+
+                # Calculate current grid size for display
+                current_grid_size = 20
+                if self._config:
+                    desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                    current_grid_size = self._config.get_optimal_grid_size(
+                        desired_cells
+                    )
+
+                formatted_val = self._settings.format_setting_value(
+                    f,
+                    val,
+                    self._width,
+                    current_grid_size,
+                )
+
+                # Highlight selected item
+                color = (
+                    SCORE_COLOR if field_i == self._selected_index else MESSAGE_COLOR
+                )
+                text = self._assets.render_custom(
+                    f"{f['label']}: {formatted_val}",
+                    color,
+                    int(self._width / 32),
+                )
+                rect = text.get_rect()
+                rect.left = left_margin
+                rect.top = current_y
+                self._renderer.blit(text, rect)
+
+            current_y += row_h
+
+        # Draw "Reset to Default" button
+        current_y += int(self._height * 0.04)
+        reset_index = len(self._settings.MENU_FIELDS)
+
+        # Only draw if visible
+        if content_start_y - row_h <= current_y <= content_end_y:
+            reset_text = self._assets.render_custom(
+                "──  Reset to Default  ──",
+                SCORE_COLOR if self._selected_index == reset_index else (200, 100, 100),
+                int(self._width / 32),
             )
-            text = self._assets.render_custom(
-                f"{f['label']}: {formatted_val}",
-                SCORE_COLOR if field_i == self._selected_index else MESSAGE_COLOR,
-                int(self._width / 30),
-            )
-            rect = text.get_rect()
-            rect.left = int(self._width * 0.10)
-            rect.top = padding_y + draw_i * row_h
-            self._renderer.blit(text, rect)
+            reset_rect = reset_text.get_rect()
+            reset_rect.left = left_margin - category_indent
+            reset_rect.top = current_y
+            self._renderer.blit(reset_text, reset_rect)
 
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"

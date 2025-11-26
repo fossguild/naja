@@ -17,4 +17,16 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Game tests module."""
+"""Component that stores autonomous apple movement state."""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class MovingApple:
+    """Movement data for apples that are allowed to roam around the board."""
+
+    dx: int
+    dy: int
+    time_accumulator_ms: float = 0.0
+    current_speed: float = 0.0  # cells per second, adjusted slowly toward target

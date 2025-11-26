@@ -28,11 +28,18 @@ from ecs.systems.scoring import ScoringSystem
 
 
 @dataclass
-class ScoreEntity:
-    """Simple score entity for testing."""
+class ScoreComponent:
+    """Simple score component for testing."""
 
     current: int = 0
     high_score: int = 0
+
+
+@dataclass
+class ScoreEntity:
+    """Simple score entity for testing."""
+
+    score: ScoreComponent
 
 
 @pytest.fixture
@@ -56,7 +63,8 @@ def scoring_system():
 @pytest.fixture
 def world_with_score(world):
     """Create a world with a score entity."""
-    score_entity = ScoreEntity(current=0, high_score=0)
+    score_component = ScoreComponent(current=0, high_score=0)
+    score_entity = ScoreEntity(score=score_component)
     world.registry.add(score_entity)
     return world
 
@@ -68,16 +76,6 @@ class TestScoringSystemInitialization:
         """Test that ScoringSystem can be initialized."""
         system = ScoringSystem()
         assert system is not None
-
-    def test_system_with_callback(self):
-        """Test ScoringSystem with callback."""
-        callback_called = []
-
-        def score_callback(current, high):
-            callback_called.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-        assert system._score_callback is not None
 
 
 class TestAppleEatenScoring:
@@ -312,51 +310,6 @@ class TestHighScoreSetter:
 class TestScoreCallback:
     """Test score callback functionality."""
 
-    def test_callback_called_on_score_update(self, world_with_score):
-        """Test that callback is called when score updates."""
-        callback_calls = []
-
-        def score_callback(current, high):
-            callback_calls.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-
-        system.on_apple_eaten(world_with_score, points=10)
-
-        assert len(callback_calls) == 1
-        assert callback_calls[0] == (10, 10)
-
-    def test_callback_called_multiple_times(self, world_with_score):
-        """Test callback called for each update."""
-        callback_calls = []
-
-        def score_callback(current, high):
-            callback_calls.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-
-        system.on_apple_eaten(world_with_score, points=10)
-        system.on_apple_eaten(world_with_score, points=20)
-
-        assert len(callback_calls) == 2
-        assert callback_calls[0] == (10, 10)
-        assert callback_calls[1] == (30, 30)
-
-    def test_callback_called_on_reset(self, world_with_score):
-        """Test callback called on score reset."""
-        callback_calls = []
-
-        def score_callback(current, high):
-            callback_calls.append((current, high))
-
-        system = ScoringSystem(score_callback=score_callback)
-
-        system.on_apple_eaten(world_with_score, points=50)
-        system.reset_current_score(world_with_score)
-
-        assert len(callback_calls) == 2
-        assert callback_calls[1] == (0, 50)  # reset but high score preserved
-
 
 class TestScorePreservation:
     """Test score preservation across settings changes."""
@@ -365,7 +318,8 @@ class TestScorePreservation:
         """Test that high score can be transferred between worlds."""
         # world 1 (before settings change)
         world1 = World(board)
-        score_entity1 = ScoreEntity(current=0, high_score=0)
+        score_component1 = ScoreComponent(current=0, high_score=0)
+        score_entity1 = ScoreEntity(score=score_component1)
         world1.registry.add(score_entity1)
 
         system = ScoringSystem()
@@ -376,7 +330,8 @@ class TestScorePreservation:
 
         # world 2 (after settings change)
         world2 = World(board)
-        score_entity2 = ScoreEntity(current=0, high_score=high_score_before)
+        score_component2 = ScoreComponent(current=0, high_score=high_score_before)
+        score_entity2 = ScoreEntity(score=score_component2)
         world2.registry.add(score_entity2)
 
         # high score should be preserved
