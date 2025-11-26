@@ -167,7 +167,7 @@ class GameInitializer:
         game_state_entity = GameStateEntity()
         world.registry.add(game_state_entity)
 
-        # Auto-start for Autoplay mode (AI-controlled, no user input)
+        # Auto-start for Autoplay mode (no user input)
         if current_mode == AUTOPLAY_MODE_NAME:
             game_state_entity.game_state.game_started = True
 
