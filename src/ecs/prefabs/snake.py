@@ -37,6 +37,7 @@ def create_snake(
     initial_speed: float = 4.0,
     head_color: Optional[tuple[int, int, int]] = None,
     tail_color: Optional[tuple[int, int, int]] = None,
+    cheese_mode: bool = False,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -46,6 +47,7 @@ def create_snake(
         initial_speed: Initial movement speed in cells per second
         head_color: RGB color for snake head (default: green)
         tail_color: RGB color for snake tail (default: light green)
+        cheese_mode: Whether Cheese Mode is enabled (affects initial size)
 
     Returns:
         int: Entity ID of created snake
@@ -67,11 +69,26 @@ def create_snake(
     start_x = world.board.width // 2
     start_y = world.board.height // 2
 
+    # Initialize body based on game mode
+    if cheese_mode:
+        # Cheese Mode: Start with size 3 (head + 2 segments)
+        # All segments stacked at tail position (one cell to the left of head)
+        tail_x = start_x - 1
+        initial_segments = [
+            Position(x=tail_x, y=start_y, prev_x=tail_x, prev_y=start_y),
+            Position(x=tail_x, y=start_y, prev_x=tail_x, prev_y=start_y),
+        ]
+        initial_size = 3
+    else:
+        # Classic Mode: Start with no segments
+        initial_segments = []
+        initial_size = 1
+
     # create snake entity with all required components
     snake = Snake(
         position=Position(x=start_x, y=start_y, prev_x=start_x, prev_y=start_y),
         velocity=Velocity(dx=1, dy=0, speed=initial_speed),
-        body=SnakeBody(segments=[], size=1, alive=True),
+        body=SnakeBody(segments=initial_segments, size=initial_size, alive=True),
         interpolation=Interpolation(alpha=0.0, wrapped_axis="none"),
         renderable=Renderable(
             shape="square",

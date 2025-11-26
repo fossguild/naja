@@ -119,6 +119,7 @@ class SnakeRenderSystem(BaseSystem):
             grid_width,
             grid_height,
             tail_color,
+            world,
         )
 
         # Draw head with interpolation
@@ -183,6 +184,7 @@ class SnakeRenderSystem(BaseSystem):
         grid_width: int,
         grid_height: int,
         color: tuple,
+        world: World = None,
     ) -> None:
         """Draw the snake tail with smooth interpolation for each segment.
 
@@ -194,12 +196,13 @@ class SnakeRenderSystem(BaseSystem):
             grid_width: Total grid width in pixels
             grid_height: Total grid height in pixels
             color: Tail color as (r, g, b) tuple
+            world: Optional world for checking game mode
         """
         if not body.segments:
             return
 
         # Draw each tail segment with interpolation
-        for segment in body.segments:
+        for i, segment in enumerate(body.segments):
             draw_x, draw_y = self._calculate_interpolated_position(
                 segment.x * cell_size,
                 segment.y * cell_size,
@@ -218,6 +221,8 @@ class SnakeRenderSystem(BaseSystem):
                 cell_size,
                 cell_size,
             )
+
+            # All segments in the array are solid (holes are just empty cells)
             self._renderer.draw_rect(color, segment_rect, 0)
 
             # Draw wraparound duplicate
