@@ -34,6 +34,7 @@ from ecs.components.color_scheme import ColorScheme
 from core.rendering.pygame_surface_renderer import RenderEnqueue
 from core.types.color import Color
 from game import constants
+from game.constants import get_rainbow_color
 
 
 class SnakeRenderSystem(BaseSystem):
@@ -99,11 +100,22 @@ class SnakeRenderSystem(BaseSystem):
         grid_height = world.board.height * cell_size
 
         # Get colors from renderable or use constants as fallback
+        # Check if rainbow mode is enabled (secondary_color with special marker)
+        is_rainbow = False
         if renderable and hasattr(renderable, "color"):
             head_color = renderable.color.to_tuple()
             # Use secondary color for tail if available, otherwise derive from head or use constant
             if hasattr(renderable, "secondary_color") and renderable.secondary_color:
-                tail_color = renderable.secondary_color.to_tuple()
+                # Check for rainbow mode marker (secondary color is pure green #00FF00 equivalent)
+                # Rainbow mode uses a special marker in the secondary_color
+                sec_color = renderable.secondary_color.to_tuple()
+                # Rainbow marker: check if it's the special rainbow marker color
+                if sec_color == (0, 0, 0):
+                    # This is rainbow mode - marked by black secondary color
+                    is_rainbow = True
+                    tail_color = sec_color  # Will be overridden per-segment
+                else:
+                    tail_color = sec_color
             else:
                 tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()
         else:
@@ -120,9 +132,12 @@ class SnakeRenderSystem(BaseSystem):
             grid_height,
             tail_color,
             world,
+            is_rainbow,
         )
 
-        # Draw head with interpolation
+        # Draw head with interpolation (rainbow head uses first rainbow color)
+        if is_rainbow:
+            head_color = Color.from_hex(get_rainbow_color(0)).to_tuple()
         self._draw_snake_head(
             position, interpolation, cell_size, grid_width, grid_height, head_color
         )
@@ -185,6 +200,7 @@ class SnakeRenderSystem(BaseSystem):
         grid_height: int,
         color: tuple,
         world: World = None,
+        is_rainbow: bool = False,
     ) -> None:
         """Draw the snake tail with smooth interpolation for each segment.
 
@@ -197,6 +213,7 @@ class SnakeRenderSystem(BaseSystem):
             grid_height: Total grid height in pixels
             color: Tail color as (r, g, b) tuple
             world: Optional world for checking game mode
+            is_rainbow: Whether to use rainbow coloring for each segment
         """
         if not body.segments:
             return
@@ -222,8 +239,14 @@ class SnakeRenderSystem(BaseSystem):
                 cell_size,
             )
 
+            # Determine segment color (rainbow cycles through colors, +1 because head is index 0)
+            if is_rainbow:
+                segment_color = Color.from_hex(get_rainbow_color(i + 1)).to_tuple()
+            else:
+                segment_color = color
+
             # All segments in the array are solid (holes are just empty cells)
-            self._renderer.draw_rect(color, segment_rect, 0)
+            self._renderer.draw_rect(segment_color, segment_rect, 0)
 
             # Draw wraparound duplicate
             if interpolation.wrapped_axis != "none":
@@ -234,7 +257,7 @@ class SnakeRenderSystem(BaseSystem):
                     grid_width,
                     grid_height,
                     interpolation.wrapped_axis,
-                    color,
+                    segment_color,
                 )
 
     def _calculate_interpolated_position(

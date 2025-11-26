@@ -203,7 +203,12 @@ class GameInitializer:
 
         # convert hex colors to RGB tuples
         head_color = hex_to_rgb(head_color_hex)
-        tail_color = hex_to_rgb(tail_color_hex)
+        # Check for rainbow mode (special marker in tail color)
+        if tail_color_hex == "#rainbow":
+            # Rainbow mode: use black (0,0,0) as marker for render system
+            tail_color = (0, 0, 0)
+        else:
+            tail_color = hex_to_rgb(tail_color_hex)
 
         _ = create_snake(
             world=world,

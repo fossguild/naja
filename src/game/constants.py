@@ -86,7 +86,32 @@ SNAKE_COLOR_PALETTES = [
     {"head": "#228b22", "tail": "#32cd32", "name": "Forest"},
     # Obsidian
     {"head": "#3d2b4f", "tail": "#17171a", "name": "Obsidian"},
+    # Rainbow - special palette that cycles through rainbow colors
+    {"head": "#ff0000", "tail": "#rainbow", "name": "Rainbow"},
 ]
+
+# Rainbow colors for the Rainbow skin (ROYGBIV spectrum)
+RAINBOW_COLORS = [
+    "#ff0000",  # Red
+    "#ff7f00",  # Orange
+    "#ffff00",  # Yellow
+    "#00ff00",  # Green
+    "#0000ff",  # Blue
+    "#4b0082",  # Indigo
+    "#9400d3",  # Violet
+]
+
+
+def get_rainbow_color(index: int) -> str:
+    """Get a rainbow color by index, cycling through the spectrum.
+
+    Args:
+        index: Segment index (0 = head, 1+ = body segments)
+
+    Returns:
+        Hex color string for the segment
+    """
+    return RAINBOW_COLORS[index % len(RAINBOW_COLORS)]
 
 
 def get_random_snake_colors():
