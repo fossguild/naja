@@ -157,7 +157,7 @@ class CollisionSystem(BaseSystem):
             prev_y = getattr(seg, "prev_y", y)
             coords.append((x, y, prev_x, prev_y))
 
-        # Inverte a cadeia
+        # Reverse
         coords.reverse()
 
         # apply to the head
