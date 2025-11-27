@@ -150,13 +150,10 @@ class GameModesScene(BaseScene):
                         self._settings.save_settings()
 
                     elif self._selected_index == 1:  # Random
-                        # por enquanto, só reseta para defaults;
-                        # no futuro você pode randomizar outras coisas aqui
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
 
                     elif self._selected_index == 2:  # Head-Tail Swap mode
-                        # começa dos defaults; efeito de troca é aplicado no modo durante o jogo
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
 
