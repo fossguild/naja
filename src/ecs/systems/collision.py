@@ -130,6 +130,77 @@ class CollisionSystem(BaseSystem):
             return snake
         return None
 
+    def _swap_head_and_tail(self, snake) -> None:
+        """Swap snake head with tail by reversing the body chain.
+
+        This helper is called when the snake eats an apple.
+        It moves the head to the old tail position and reverses
+        the order of the body segments, so the snake continues
+        a coherent path from the other end.
+        """
+
+        if not hasattr(snake, "position") or not hasattr(snake, "body"):
+            return
+
+        position = snake.position
+        body = snake.body
+
+        if not body.segments:
+            return
+        chain = [position] + body.segments
+
+        coords = []
+        for seg in chain:
+            x = getattr(seg, "x", None)
+            y = getattr(seg, "y", None)
+            prev_x = getattr(seg, "prev_x", x)
+            prev_y = getattr(seg, "prev_y", y)
+            coords.append((x, y, prev_x, prev_y))
+
+        # Reverse
+        coords.reverse()
+
+        # apply to the head
+        head_x, head_y, head_prev_x, head_prev_y = coords[0]
+        position.x = head_x
+        position.y = head_y
+        position.prev_x = head_prev_x
+        position.prev_y = head_prev_y
+
+        # apply to the body (segments)
+        for seg, (x, y, prev_x, prev_y) in zip(body.segments, coords[1:]):
+            seg.x = x
+            seg.y = y
+            seg.prev_x = prev_x
+            seg.prev_y = prev_y
+
+        if hasattr(snake, "velocity") and body.segments:
+            first = body.segments[0]
+            dx = position.x - first.x
+            dy = position.y - first.y
+
+            # normalize
+            if dx > 0:
+                snake.velocity.dx = 1
+                snake.velocity.dy = 0
+            elif dx < 0:
+                snake.velocity.dx = -1
+                snake.velocity.dy = 0
+            elif dy > 0:
+                snake.velocity.dx = 0
+                snake.velocity.dy = 1
+            elif dy < 0:
+                snake.velocity.dx = 0
+                snake.velocity.dy = -1
+
+        # clean buffer
+        if (
+            hasattr(snake, "input_buffer")
+            and snake.input_buffer
+            and snake.input_buffer.moves
+        ):
+            snake.input_buffer.moves.clear()
+
     def _get_game_state(self, world: World):
         """Get the GameState component from world.
 
@@ -333,6 +404,9 @@ class CollisionSystem(BaseSystem):
                             # Classic/other modes: +1 immediate growth
                             snake.body.size += 1
 
+                        if self._should_swap_head_and_tail(world):
+                            self._swap_head_and_tail(snake)
+
                     # increment score using scoring system
                     if self._scoring_system:
                         # Get points from apple's edible component (default to 1)
@@ -445,3 +519,15 @@ class CollisionSystem(BaseSystem):
             game_state.final_score = current_score  # Store score in GameState
 
         print(f"GAME OVER: {reason}")
+
+    def _should_swap_head_and_tail(self, world: World) -> bool:
+        """Determine if apple effects should swap the snake head and tail."""
+        game_state = self._get_game_state(world)
+        if game_state and getattr(game_state, "swap_head_tail_on_apple", False):
+            return True
+
+        return (
+            self._settings
+            and hasattr(self._settings, "get")
+            and self._settings.get("swap_head_tail_on_apple")
+        )

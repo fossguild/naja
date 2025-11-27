@@ -30,6 +30,7 @@ from core.types.color_utils import hex_to_rgb
 from game.game_modes_registry import (
     CLASSIC_MODE_NAME,
     MOVING_APPLE_MODE_NAME,
+    HEAD_TAIL_SWITCH_NAME,
     CHEESE_MODE_NAME,
 )
 
@@ -146,6 +147,11 @@ class GameInitializer:
 
         current_mode = self._game_mode
         moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
+        swap_head_tail_enabled = current_mode == HEAD_TAIL_SWITCH_NAME or (
+            self._settings
+            and hasattr(self._settings, "get")
+            and self._settings.get("swap_head_tail_on_apple")
+        )
         cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
 
         class GameStateEntity:
@@ -157,6 +163,7 @@ class GameInitializer:
                     next_scene=None,
                     game_mode=current_mode,
                     moving_apples_enabled=moving_apples_enabled,
+                    swap_head_tail_on_apple=swap_head_tail_enabled,
                     cheese_mode_enabled=cheese_mode_enabled,
                 )
 

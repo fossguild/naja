@@ -46,6 +46,7 @@ class GameState:
     obstacles: List[Tuple[int, int]] = field(default_factory=list)
     game_mode: str = "Classic Snake Game"
     moving_apples_enabled: bool = False
+    swap_head_tail_on_apple: bool = False
     cheese_mode_enabled: bool = False
     game_started: bool = False  # Set to True after first input
     final_score: int = 0  # score at time of death

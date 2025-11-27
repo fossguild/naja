@@ -23,6 +23,7 @@ GameModeType = str
 
 CLASSIC_MODE_NAME = "Classic Snake Game"
 MOVING_APPLE_MODE_NAME = "Moving Apple"
+HEAD_TAIL_SWITCH_NAME = "Head-Tail Swap"
 CHEESE_MODE_NAME = "Cheese Mode"
 AUTOPLAY_MODE_NAME = "AutoPlay"
 GAME_MODE_TELEPORT = "Teleport"
@@ -35,6 +36,10 @@ ACTUAL_GAME_MODES = [
     {
         "name": MOVING_APPLE_MODE_NAME,
         "description": "Apples drift slowly around the board, forcing constant pursuit.",
+    },
+    {
+        "name": HEAD_TAIL_SWITCH_NAME,
+        "description": "State toggle when the snake consumes an apple.",
     },
     {
         "name": CHEESE_MODE_NAME,

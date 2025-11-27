@@ -148,6 +148,15 @@ class GameModesScene(BaseScene):
                     ):  # Classic mode intentionally resets custom tweaks
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
+
+                    elif self._selected_index == 1:  # Random
+                        self._settings.reset_to_defaults()
+                        self._settings.save_settings()
+
+                    elif self._selected_index == 2:  # Head-Tail Swap mode
+                        self._settings.reset_to_defaults()
+                        self._settings.save_settings()
+
                     # go back to main menu
                     return "menu"
                 elif event.key == pygame.K_ESCAPE:
