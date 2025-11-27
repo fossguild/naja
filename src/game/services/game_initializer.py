@@ -32,6 +32,7 @@ from game.game_modes_registry import (
     MOVING_APPLE_MODE_NAME,
     HEAD_TAIL_SWITCH_NAME,
     CHEESE_MODE_NAME,
+    AUTOPLAY_MODE_NAME,
 )
 
 
@@ -172,6 +173,10 @@ class GameInitializer:
 
         game_state_entity = GameStateEntity()
         world.registry.add(game_state_entity)
+
+        # Auto-start for Autoplay mode (no user input)
+        if current_mode == AUTOPLAY_MODE_NAME:
+            game_state_entity.game_state.game_started = True
 
     def _create_color_scheme(self, world: World) -> None:
         """Create ColorScheme entity for rendering systems.
