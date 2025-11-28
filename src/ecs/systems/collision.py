@@ -37,6 +37,7 @@ from ecs.systems.scoring import ScoringSystem
 from game.settings import GameSettings
 from game.services.audio_service import AudioService
 from game.game_modes_registry import GAME_MODE_TELEPORT
+from game.services.game_over_service import GameOverService
 
 
 class CollisionSystem(BaseSystem):
@@ -69,6 +70,7 @@ class CollisionSystem(BaseSystem):
         settings: Optional[GameSettings] = None,
         audio_service: Optional[AudioService] = None,
         scoring_system: Optional[ScoringSystem] = None,
+        game_over_service: Optional[GameOverService] = None,
     ):
         """Initialize the CollisionSystem.
 
@@ -80,6 +82,7 @@ class CollisionSystem(BaseSystem):
         self._settings = settings
         self._audio_service = audio_service
         self._scoring_system = scoring_system
+        self._game_over_service = game_over_service
 
     def update(self, world: World) -> None:
         """Check for all collision types in priority order.
@@ -95,20 +98,17 @@ class CollisionSystem(BaseSystem):
         """
         # Check wall collision first (highest priority)
         if self._check_wall_collision(world):
-            print("☠️  DEATH CAUSE: Wall collision")
-            self._handle_death(world, "wall")
+            self._handle_death(world, "Wall collision")
             return
 
         # Check self-bite collision
         if self._check_self_bite(world):
-            print("☠️  DEATH CAUSE: Self-bite collision")
-            self._handle_death(world, "self-bite")
+            self._handle_death(world, "Self-bite collision")
             return
 
         # Check obstacle collision
         if self._check_obstacle_collision(world):
-            print("☠️  DEATH CAUSE: Obstacle collision")
-            self._handle_death(world, "obstacle")
+            self._handle_death(world, "Obstacle collision")
             return
 
         # Check apple collision (doesn't kill)
@@ -508,39 +508,12 @@ class CollisionSystem(BaseSystem):
     def _handle_death(self, world: World, reason: str) -> None:
         """Handle snake death.
 
-        Modifies GameState component and plays death audio.
-        Delegates score saving to the ScoringSystem.
-
-        Args:
-            world: ECS world
-            reason: Death reason message (e.g., "wall", "self-bite", "obstacle")
+        Delegates to GameOverService.
         """
-        # Get current score and save to scoreboard via scoring system
-        current_score = 0
-        if self._scoring_system:
-            current_score = self._scoring_system.get_current_score(world)
-            # Delegate scoreboard management to scoring system
-            self._scoring_system.save_score_to_scoreboard(world)
-
-        # kill the snake
-        snake = self._get_snake_entity(world)
-        if snake and hasattr(snake, "body"):
-            snake.body.alive = False
-
-        # play death sound and music
-        if self._audio_service:
-            self._audio_service.play_sound("assets/sound/gameover.wav")
-            self._audio_service.play_music("assets/sound/death_song.mp3")
-
-        # update game state
-        game_state = self._get_game_state(world)
-        if game_state:
-            game_state.game_over = True
-            game_state.death_reason = reason
-            game_state.next_scene = "game_over"
-            game_state.final_score = current_score  # Store score in GameState
-
-        print(f"GAME OVER: {reason}")
+        if self._game_over_service:
+            self._game_over_service.handle_death(world, reason)
+        else:
+            print(f"☠️ DEATH CAUSE: {reason} (Service missing)")
 
     def _should_swap_head_and_tail(self, world: World) -> bool:
         """Determine if apple effects should swap the snake head and tail."""
