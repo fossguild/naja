@@ -441,6 +441,28 @@ class CollisionSystem(BaseSystem):
 
                         snake.velocity.speed = new_speed
 
+                    # reset hunger timer when apple is eaten (if enabled)
+                    if self._settings and bool(self._settings.get("enable_hunger")):
+                        hunger_entities = world.registry.query_by_component("hunger")
+                        if hunger_entities:
+                            he = list(hunger_entities.values())[0]
+                            if hasattr(he, "hunger"):
+                                # Recompute hunger max_time from current snake velocity
+                                snake_for_hunger = self._get_snake_entity(world)
+                                try:
+                                    if (
+                                        snake_for_hunger
+                                        and hasattr(snake_for_hunger, "velocity")
+                                        and snake_for_hunger.velocity.speed > 0
+                                    ):
+                                        he.hunger.max_time = 50.0 / float(
+                                            snake_for_hunger.velocity.speed
+                                        )
+                                except Exception:
+                                    pass
+                                # reset current time to (possibly updated) max
+                                he.hunger.current_time = he.hunger.max_time
+
                     # Special handling for TELEPORT mode
                     if game_state and game_state.game_mode == GAME_MODE_TELEPORT:
                         # Find another active apple on the board

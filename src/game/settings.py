@@ -43,6 +43,7 @@ class GameSettings:
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
+        "enable_hunger": False,
     }
 
     # Declarative menu field definitions organized by category
@@ -121,6 +122,13 @@ class GameSettings:
         {
             "key": "dynamic_spawn_obstacles",
             "label": "Dynamic spawn obstacles",
+            "type": "bool",
+            "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "enable_hunger",
+            "label": "Hunger",
             "type": "bool",
             "requires_reset": True,
             "category": "Gameplay",

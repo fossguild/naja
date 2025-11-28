@@ -28,7 +28,9 @@ from ecs.components.snake_body import SnakeBody
 from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
 from ecs.components.input_buffer import InputBuffer
+from ecs.components.hunger import Hunger
 from core.types.color import Color
+from game import constants
 
 
 def create_snake(
@@ -37,6 +39,7 @@ def create_snake(
     initial_speed: float = 4.0,
     head_color: Optional[tuple[int, int, int]] = None,
     tail_color: Optional[tuple[int, int, int]] = None,
+    enable_hunger: bool = False,
     cheese_mode: bool = False,
 ) -> int:
     """Create a snake entity with all required components.
@@ -47,6 +50,7 @@ def create_snake(
         initial_speed: Initial movement speed in cells per second
         head_color: RGB color for snake head (default: green)
         tail_color: RGB color for snake tail (default: light green)
+        enable_hunger: Whether to enable hunger mechanic for the snake (default: False)
         cheese_mode: Whether Cheese Mode is enabled (affects initial size)
 
     Returns:
@@ -89,6 +93,14 @@ def create_snake(
         position=Position(x=start_x, y=start_y, prev_x=start_x, prev_y=start_y),
         velocity=Velocity(dx=1, dy=0, speed=initial_speed),
         body=SnakeBody(segments=initial_segments, size=initial_size, alive=True),
+        hunger=(
+            Hunger(
+                current_time=constants.HUNGER_MAX_TIME,
+                max_time=constants.HUNGER_MAX_TIME,
+            )
+            if enable_hunger
+            else Hunger(current_time=0.0, max_time=0.0)
+        ),
         interpolation=Interpolation(alpha=0.0, wrapped_axis="none"),
         renderable=Renderable(
             shape="square",
