@@ -49,6 +49,7 @@ from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME
 from ecs.systems.hunger import HungerSystem
 from game.settings import GameSettings
+from game.services.game_over_service import GameOverService
 
 
 class GameplayScene(BaseScene):
@@ -122,6 +123,11 @@ class GameplayScene(BaseScene):
             gamemode=self._current_game_mode,
         )
 
+        # Create GameOverService
+        game_over_service = GameOverService(
+            audio_service=self._audio_service, scoring_system=scoring_system
+        )
+
         # game logic systems (indices 0-7, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
         from ecs.systems.autoplay import AutoplaySystem
@@ -139,7 +145,10 @@ class GameplayScene(BaseScene):
                 ),  # 2: update entity positions based on velocity
                 MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
-                    self._settings, self._audio_service, scoring_system
+                    self._settings,
+                    self._audio_service,
+                    scoring_system,
+                    game_over_service,
                 ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
                 AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
                 SpawnSystem(
@@ -148,7 +157,7 @@ class GameplayScene(BaseScene):
                 ScoringSystem(),  # 7: track score and high score
                 # 8: conditionally enable HungerSystem based on game settings
                 *(
-                    [HungerSystem(self._audio_service)]
+                    [HungerSystem(game_over_service=game_over_service)]
                     if self._settings and bool(self._settings.get("enable_hunger"))
                     else []
                 ),

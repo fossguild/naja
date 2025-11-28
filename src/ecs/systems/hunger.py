@@ -23,11 +23,12 @@ This system manages the hunger countdown timer and handles death by starvation.
 When hunger reaches 0, the snake dies and the game ends.
 """
 
-from typing import Optional, Any
+from typing import Optional
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
 from ecs.entities.entity import EntityType
+from game.services.game_over_service import GameOverService
 
 
 class HungerSystem(BaseSystem):
@@ -47,13 +48,13 @@ class HungerSystem(BaseSystem):
     Hunger reset is triggered externally (e.g., by CollisionSystem on apple eaten).
     """
 
-    def __init__(self, audio_service: Optional[Any] = None):
+    def __init__(self, game_over_service: Optional[GameOverService] = None):
         """Initialize the HungerSystem.
 
         Args:
-            audio_service: Optional audio service for playing death sounds
+            game_over_service: Service for handling death logic
         """
-        self._audio_service = audio_service
+        self._game_over_service = game_over_service
 
     def update(self, world: World) -> None:
         """Decrement hunger timer and check for starvation.
@@ -195,26 +196,9 @@ class HungerSystem(BaseSystem):
     def _handle_starvation(self, world: World) -> None:
         """Handle snake death by starvation.
 
-        Modifies GameState component and plays death audio.
-
-        Args:
-            world: ECS world
+        Delegates to GameOverService.
         """
-        # Kill the snake
-        snake = self._get_snake_entity(world)
-        if snake and hasattr(snake, "body"):
-            snake.body.alive = False
-
-        # Play death sound and music
-        if self._audio_service:
-            self._audio_service.play_sound("assets/sound/gameover.wav")
-            self._audio_service.play_music("assets/sound/death_song.mp3")
-
-        # Update game state
-        game_state = self._get_game_state(world)
-        if game_state:
-            game_state.game_over = True
-            game_state.death_reason = "starvation"
-            game_state.next_scene = "game_over"
-
-        print("☠️  DEATH CAUSE: Starvation")
+        if self._game_over_service:
+            self._game_over_service.handle_death(world, "Starvation")
+        else:
+            print("☠️ DEATH CAUSE: Starvation (Service missing)")
