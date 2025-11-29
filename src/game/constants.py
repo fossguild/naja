@@ -41,12 +41,12 @@ GAME_OVER_HIGH_SCORE_COLOR = (255, 69, 0)  # Red-orange for "NEW HIGH SCORE!" me
 GAME_OVER_TIMESTAMP_COLOR = (80, 80, 80)  # Dark gray for timestamps
 GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR = (180, 160, 0)  # Gold-ish for new score timestamp
 #
-#WINDOW_TITLE = "KobraPy"  # Window title.
+WINDOW_TITLE = "Naja"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
 HUNGER_MAX_TIME = 10.0  # Maximum hunger time in seconds before starvation death.
 
 # Application data directory constants
-APP_NAME = "naja"  # Application name for data directory
+APP_NAME = "Naja"  # Application name for data directory
 APP_AUTHOR = "fossguild"  # Organization/author name for data directory
 USER_DATA_DIR = platformdirs.user_data_dir(
     APP_NAME, APP_AUTHOR
