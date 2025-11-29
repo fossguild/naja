@@ -52,15 +52,18 @@ class InputSystem(BaseSystem):
         self,
         pygame_adapter: Optional[Any] = None,
         settings: Optional[Any] = None,
+        game_mode: str = "Classic Snake Game",
     ):
         """Initialize the InputSystem.
 
         Args:
             pygame_adapter: Pygame IO adapter for reading events
             settings: Game settings for palette randomization
+            game_mode: Current game mode
         """
         self._pygame_adapter = pygame_adapter
         self._settings = settings
+        self._game_mode = game_mode
 
     def update(self, world: World) -> None:
         """Process input events and modify ECS components.
@@ -108,6 +111,11 @@ class InputSystem(BaseSystem):
         if not snake:
             return
 
+        # Mark game as started on first input
+        game_state = self._get_game_state(world)
+        if game_state and not game_state.game_started:
+            game_state.game_started = True
+
         # get or create input buffer on the snake entity
         if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
             # fallback: create attribute if prefabs didn't add it
@@ -150,16 +158,20 @@ class InputSystem(BaseSystem):
         current_dx, current_dy = self._get_current_direction(world)
 
         # movement keys - modify velocity directly with 180° turn prevention
-        if key in (pygame.K_DOWN, pygame.K_s):
-            self._buffer_direction(world, 0, 1)
-        elif key in (pygame.K_UP, pygame.K_w):
-            self._buffer_direction(world, 0, -1)
-        elif key in (pygame.K_RIGHT, pygame.K_d):
-            self._buffer_direction(world, 1, 0)
-        elif key in (pygame.K_LEFT, pygame.K_a):
-            self._buffer_direction(world, -1, 0)
+        from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+        if self._game_mode != AUTOPLAY_MODE_NAME:
+            if key in (pygame.K_DOWN, pygame.K_s):
+                self._buffer_direction(world, 0, 1)
+            elif key in (pygame.K_UP, pygame.K_w):
+                self._buffer_direction(world, 0, -1)
+            elif key in (pygame.K_RIGHT, pygame.K_d):
+                self._buffer_direction(world, 1, 0)
+            elif key in (pygame.K_LEFT, pygame.K_a):
+                self._buffer_direction(world, -1, 0)
+
         # control keys
-        elif key == pygame.K_q:
+        if key == pygame.K_q:
             self._handle_quit(world)
         elif key == pygame.K_p:
             self._handle_pause(world)

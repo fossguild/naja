@@ -5,6 +5,7 @@ before runtime and never changed
 """
 
 import random
+import platformdirs
 
 
 HEAD_COLOR = "#00aa00"  # Color of the snake's head.
@@ -12,7 +13,7 @@ DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
 OBSTACLE_COLOR = "#666666"  # Color of the obstacles.
 APPLE_COLOR = "#aa0000"  # Color of the apple.
-SCORE_COLOR = "#ffffff"  # Color of the scoreboard and text of menu items.
+#SCORE_COLOR = "#ffffff"  # Color of the scoreboard and text of menu items.#
 
 # Color of the ground, also used as a general-purpose background.
 ARENA_PRIMARY_COLOR = "#202020"
@@ -22,9 +23,34 @@ ARENA_SECONDARY_COLOR = "#2c2c2c"
 MESSAGE_COLOR = "#808080"
 # Color of the grid, also used for footer hint text.
 GRID_COLOR = "#3c3c3b"
+#ARENA_COLOR = "#202020"  # Color of the ground.
+#GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
+SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
+MESSAGE_COLOR = "#808080"  # Color of the game-over message.
+HUNGER_COLOR = "#ffaa00"  # Color of the hunger bar (orange/yellow).
 
-WINDOW_TITLE = "KobraPy"  # Window title.
+# Game over screen colors
+GAME_OVER_MESSAGE_COLOR = (128, 128, 128)  # Gray for game over message
+GAME_OVER_HIGHLIGHT_COLOR = (200, 200, 200)  # Lighter gray for score display
+GAME_OVER_NEW_SCORE_COLOR = (
+    255,
+    215,
+    0,
+)  # Gold color for highlighting new score in list
+GAME_OVER_HIGH_SCORE_COLOR = (255, 69, 0)  # Red-orange for "NEW HIGH SCORE!" message
+GAME_OVER_TIMESTAMP_COLOR = (80, 80, 80)  # Dark gray for timestamps
+GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR = (180, 160, 0)  # Gold-ish for new score timestamp
+#
+#WINDOW_TITLE = "KobraPy"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
+HUNGER_MAX_TIME = 10.0  # Maximum hunger time in seconds before starvation death.
+
+# Application data directory constants
+APP_NAME = "naja"  # Application name for data directory
+APP_AUTHOR = "fossguild"  # Organization/author name for data directory
+USER_DATA_DIR = platformdirs.user_data_dir(
+    APP_NAME, APP_AUTHOR
+)  # Platform-specific user data directory
 
 # Difficulty percentages for obstacle count
 DIFFICULTY_PERCENTAGES = {
@@ -70,7 +96,34 @@ SNAKE_COLOR_PALETTES = [
     {"head": "#dc143c", "tail": "#ff6b6b", "name": "Red"},
     # Forest
     {"head": "#228b22", "tail": "#32cd32", "name": "Forest"},
+    # Obsidian
+    {"head": "#3d2b4f", "tail": "#17171a", "name": "Obsidian"},
+    # Rainbow - special palette that cycles through rainbow colors
+    {"head": "#ff0000", "tail": "#rainbow", "name": "Rainbow"},
 ]
+
+# Rainbow colors for the Rainbow skin (ROYGBIV spectrum)
+RAINBOW_COLORS = [
+    "#ff0000",  # Red
+    "#ff7f00",  # Orange
+    "#ffff00",  # Yellow
+    "#00ff00",  # Green
+    "#0000ff",  # Blue
+    "#4b0082",  # Indigo
+    "#9400d3",  # Violet
+]
+
+
+def get_rainbow_color(index: int) -> str:
+    """Get a rainbow color by index, cycling through the spectrum.
+
+    Args:
+        index: Segment index (0 = head, 1+ = body segments)
+
+    Returns:
+        Hex color string for the segment
+    """
+    return RAINBOW_COLORS[index % len(RAINBOW_COLORS)]
 
 
 def get_random_snake_colors():

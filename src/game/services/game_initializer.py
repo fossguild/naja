@@ -27,7 +27,13 @@ from typing import Any, Optional
 
 from ecs.world import World
 from core.types.color_utils import hex_to_rgb
-from game.game_modes_registry import CLASSIC_MODE_NAME, MOVING_APPLE_MODE_NAME
+from game.game_modes_registry import (
+    CLASSIC_MODE_NAME,
+    MOVING_APPLE_MODE_NAME,
+    HEAD_TAIL_SWITCH_NAME,
+    CHEESE_MODE_NAME,
+    AUTOPLAY_MODE_NAME,
+)
 
 
 class GameInitializer:
@@ -142,6 +148,12 @@ class GameInitializer:
 
         current_mode = self._game_mode
         moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
+        swap_head_tail_enabled = current_mode == HEAD_TAIL_SWITCH_NAME or (
+            self._settings
+            and hasattr(self._settings, "get")
+            and self._settings.get("swap_head_tail_on_apple")
+        )
+        cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
 
         class GameStateEntity:
             def __init__(self):
@@ -152,6 +164,8 @@ class GameInitializer:
                     next_scene=None,
                     game_mode=current_mode,
                     moving_apples_enabled=moving_apples_enabled,
+                    swap_head_tail_on_apple=swap_head_tail_enabled,
+                    cheese_mode_enabled=cheese_mode_enabled,
                 )
 
             def get_type(self):
@@ -159,6 +173,10 @@ class GameInitializer:
 
         game_state_entity = GameStateEntity()
         world.registry.add(game_state_entity)
+
+        # Auto-start for Autoplay mode (no user input)
+        if current_mode == AUTOPLAY_MODE_NAME:
+            game_state_entity.game_state.game_started = True
 
     def _create_color_scheme(self, world: World) -> None:
         """Create ColorScheme entity for rendering systems.
@@ -197,7 +215,12 @@ class GameInitializer:
 
         # convert hex colors to RGB tuples
         head_color = hex_to_rgb(head_color_hex)
-        tail_color = hex_to_rgb(tail_color_hex)
+        # Check for rainbow mode (special marker in tail color)
+        if tail_color_hex == "#rainbow":
+            # Rainbow mode: use black (0,0,0) as marker for render system
+            tail_color = (0, 0, 0)
+        else:
+            tail_color = hex_to_rgb(tail_color_hex)
 
         _ = create_snake(
             world=world,
@@ -205,6 +228,8 @@ class GameInitializer:
             initial_speed=float(self._settings.get("initial_speed")),
             head_color=head_color,
             tail_color=tail_color,
+            enable_hunger=bool(self._settings.get("enable_hunger")),
+            cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:

@@ -17,13 +17,12 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Gameplay scene that coordinates all ECS systems.
-
 This scene registers and manages all game systems in the correct execution order.
 It acts as the integration point for the ECS architecture, ensuring all systems
 work together harmoniously.
 """
 
-from typing import Optional, Any, List
+from typing import Optional, List
 
 from game.scenes.base_scene import BaseScene
 from game.services.game_initializer import GameInitializer
@@ -48,6 +47,9 @@ from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME
+from ecs.systems.hunger import HungerSystem
+from game.settings import GameSettings
+from game.services.game_over_service import GameOverService
 
 
 class GameplayScene(BaseScene):
@@ -65,9 +67,10 @@ class GameplayScene(BaseScene):
         width: int,
         height: int,
         world: World,
-        config: Optional[Any] = None,
-        settings: Optional[Any] = None,
-        assets: Optional[Any] = None,
+        config: Optional[object] = None,
+        settings: Optional[GameSettings] = None,
+        assets: Optional[object] = None,
+        scoreboard: Optional[object] = None,
     ):
         """Initialize the gameplay scene.
 
@@ -77,15 +80,17 @@ class GameplayScene(BaseScene):
             width: Scene width
             height: Scene height
             world: ECS world instance
-            config: Game configuration
-            settings: Game settings
-            assets: Game assets (fonts, sounds, etc.)
+            config: Game configuration (GameConfig)
+            settings: Game settings (GameSettings)
+            assets: Game assets (GameAssets - fonts, sounds, etc.)
+            scoreboard: Scoreboard for tracking high scores (Scoreboard)
         """
         super().__init__(pygame_adapter, renderer, width, height)
         self._world = world
         self._config = config
         self._settings = settings
         self._assets = assets
+        self._scoreboard = scoreboard
         self._systems: List[BaseSystem] = []
         self._attached = False
         self._board_render_system: Optional[BoardRenderSystem] = None
@@ -111,44 +116,70 @@ class GameplayScene(BaseScene):
 
         self._systems.clear()
 
+        # Create scoring system first so collision system can use it
+        scoring_system = ScoringSystem(
+            scoreboard=self._scoreboard,
+            settings=self._settings,
+            gamemode=self._current_game_mode,
+        )
+
+        # Create GameOverService
+        game_over_service = GameOverService(
+            audio_service=self._audio_service, scoring_system=scoring_system
+        )
+
         # game logic systems (indices 0-7, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
+        from ecs.systems.autoplay import AutoplaySystem
 
         self._systems.extend(
             [
                 InputSystem(
-                    self._pygame_adapter, self._settings
+                    self._pygame_adapter, self._settings, self._current_game_mode
                 ),  # 0: read user input and update velocity/game state
+                AutoplaySystem(
+                    self._current_game_mode, self._settings
+                ),  # 1: calculate next move in autoplay mode
                 MovementSystem(
                     self._get_electric_walls
-                ),  # 1: update entity positions based on velocity
-                MovingAppleSystem(),  # 2: move apples in modes that allow it
+                ),  # 2: update entity positions based on velocity
+                MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
-                    self._settings, self._audio_service
-                ),  # 3: detect collisions (wall, self-bite, obstacles, apples)
-                AppleSpawnSystem(1000),  # 4: maintain correct number of apples on board
+                    self._settings,
+                    self._audio_service,
+                    scoring_system,
+                    game_over_service,
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
+                AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
                 SpawnSystem(
                     1000, (255, 0, 0), None
-                ),  # 5: create new entities at valid positions
-                ScoringSystem(),  # 6: track score and high score
+                ),  # 6: create new entities at valid positions
+                ScoringSystem(),  # 7: track score and high score
+                # 8: conditionally enable HungerSystem based on game settings
+                *(
+                    [HungerSystem(game_over_service=game_over_service)]
+                    if self._settings and bool(self._settings.get("enable_hunger"))
+                    else []
+                ),
+                scoring_system,  # 7: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 7: generate obstacles with connectivity guarantees
+                ),  # 9: generate obstacles with connectivity guarantees
                 SettingsApplySystem(
                     self._settings, self._config, self._assets
-                ),  # 8: apply runtime settings changes (colors, difficulty, etc)
+                ),  # 10: apply runtime settings changes (colors, difficulty, etc)
             ]
         )
 
-        # rendering and audio systems (indices 9+, always run even when paused)
+        # rendering and audio systems (indices 10+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 9: calculate smooth positions for rendering
+                ),  # 10: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 10: play sounds and music
+                ),  # 11: play sounds and music
             ]
         )
 
@@ -196,9 +227,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-8) but keep input (0) and rendering (9+) running
+        # pause game logic systems (1-9) but keep input (0) and rendering (10+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 8
+        GAME_LOGIC_END = 9
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)

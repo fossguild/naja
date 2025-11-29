@@ -214,7 +214,12 @@ class SettingsApplySystem(BaseSystem):
         from core.types.color import Color
 
         head_color = Color.from_hex(head_color_hex)
-        tail_color = Color.from_hex(tail_color_hex)
+        # Check for rainbow mode (special marker in tail color)
+        if tail_color_hex == "#rainbow":
+            # Rainbow mode: use black (0,0,0) as marker for render system
+            tail_color = Color(0, 0, 0)
+        else:
+            tail_color = Color.from_hex(tail_color_hex)
 
         # find the snake entity and update its renderable colors
         snakes = world.registry.query_by_type(EntityType.SNAKE)

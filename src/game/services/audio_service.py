@@ -82,16 +82,18 @@ class AudioService:
         Returns:
             True if music was started, False otherwise
         """
-        # Check if background music is enabled
-        if not self._settings or not self._settings.get("background_music"):
-            return False
 
         try:
             # only reload if this track is not already the current track
             # this prevents resetting the track when transitioning between screens
             if AudioService._current_music_track != music_path:
                 pygame.mixer.music.load(music_path)
+
+                # make sure the music is loaded
+                # so that it can be unpaused later if needed
                 pygame.mixer.music.play(-1 if loop else 0)
+                if not self._settings or not self._settings.get("background_music"):
+                    pygame.mixer.music.pause()
                 AudioService._current_music_track = music_path
             return True
         except Exception:

@@ -17,26 +17,24 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Snake body component."""
+"""Hunger component."""
 
 from dataclasses import dataclass, field
 
-from ecs.components.position import Position
-
 
 @dataclass
-class SnakeBody:
-    """Snake body segments and growth state.
+class Hunger:
+    """Hunger/starvation timer for the snake.
 
-    Stores the history of segment positions and pending growth.
-    Head position is stored in the entity's Position component.
-    Used by: Snake
+    The snake must eat apples before hunger reaches 0 or it dies.
+    Eating an apple resets the hunger timer to max_time.
+
+    Attributes:
+        current_time: Current hunger timer value in seconds (counts down)
+        max_time: Maximum hunger time before starvation death (default: 10.0 seconds)
+
+    Used by: Snake entity (singleton pattern for now)
     """
 
-    segments: list[Position] = field(default_factory=list)
-    size: int = 1  # Guards the size of the snake
-    alive: bool = True
-    pending_growth: int = 0  # For multi-segment growth (e.g., Cheese mode +2)
-    previous_head_positions: list[Position] = field(
-        default_factory=list
-    )  # For Cheese mode history-based reconstruction
+    current_time: float = field(default=10.0)
+    max_time: float = field(default=10.0)

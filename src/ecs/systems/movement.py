@@ -97,6 +97,13 @@ class MovementSystem(BaseSystem):
             if not body.alive:
                 continue
 
+            # Check if game has started (wait for first input)
+            game_state_entities = world.registry.query_by_component("game_state")
+            if game_state_entities:
+                entity = next(iter(game_state_entities.values()))
+                if hasattr(entity, "game_state") and not entity.game_state.game_started:
+                    continue  # Don't move until player makes first input
+
             # only move if velocity is non-zero
             if velocity.dx == 0 and velocity.dy == 0:
                 continue
@@ -104,69 +111,6 @@ class MovementSystem(BaseSystem):
             # Store previous position for smooth interpolation
             position.prev_x = position.x
             position.prev_y = position.y
-
-            # Update all segment positions to follow the one ahead
-            # Work backwards to avoid overwriting positions we still need
-            # This creates the "caterpillar" following effect
-
-            # Save the old positions before shifting
-            if body.segments:
-                # Shift all segments backward (each takes the position ahead)
-                for i in range(len(body.segments) - 1, 0, -1):
-                    # Save where this segment currently is (for prev)
-                    old_x = body.segments[i].x
-                    old_y = body.segments[i].y
-
-                    # Move this segment to where the segment ahead is
-                    body.segments[i].x = body.segments[i - 1].x
-                    body.segments[i].y = body.segments[i - 1].y
-
-                    # Set prev to where it was before moving
-                    body.segments[i].prev_x = old_x
-                    body.segments[i].prev_y = old_y
-
-                # First segment follows the head
-                old_x = body.segments[0].x
-                old_y = body.segments[0].y
-                body.segments[0].x = position.x  # Head's OLD position
-                body.segments[0].y = position.y
-                body.segments[0].prev_x = old_x
-                body.segments[0].prev_y = old_y
-
-            # Maintain correct number of segments based on body size
-            desired_tail_len = max(0, body.size - 1)
-
-            # Add or remove segments as needed
-            if len(body.segments) > desired_tail_len:
-                # Snake shrunk - remove excess segments from the end
-                body.segments = body.segments[:desired_tail_len]
-            elif len(body.segments) < desired_tail_len:
-                # Snake grew - add new segments at the end
-                if body.segments:
-                    # Add segments at the last segment's PREVIOUS position
-                    # This allows them to interpolate smoothly as they follow the tail
-                    last_segment = body.segments[-1]
-                    for _ in range(desired_tail_len - len(body.segments)):
-                        # New segment starts at last segment's previous position
-                        # and will interpolate to the last segment's current position
-                        new_seg = Position(
-                            x=last_segment.prev_x,  # Start at prev position
-                            y=last_segment.prev_y,
-                            prev_x=last_segment.prev_x,  # No interpolation on first frame
-                            prev_y=last_segment.prev_y,
-                        )
-                        body.segments.append(new_seg)
-                        # Update reference for next segment (if adding multiple)
-                        last_segment = new_seg
-                else:
-                    # First segment - create at head's position
-                    new_seg = Position(
-                        x=position.x,
-                        y=position.y,
-                        prev_x=position.x,
-                        prev_y=position.y,
-                    )
-                    body.segments.append(new_seg)
 
             # Check if there's a buffered direction to apply
             if hasattr(snake, "input_buffer") and snake.input_buffer.moves:
@@ -192,6 +136,134 @@ class MovementSystem(BaseSystem):
 
             position.x = new_x
             position.y = new_y
+
+            # Check if Cheese mode is enabled
+            game_state_entities = world.registry.query_by_component("game_state")
+            cheese_mode = False
+            if game_state_entities:
+                entity = next(iter(game_state_entities.values()))
+                if hasattr(entity, "game_state"):
+                    cheese_mode = entity.game_state.cheese_mode_enabled
+
+            if cheese_mode:
+                # ===== CHEESE MODE: Stationary segments =====
+                # Segments only appear every OTHER move
+                # This creates gaps (holes) and the jumping effect
+
+                # Track if this is an odd or even move using history length
+                move_number = len(body.previous_head_positions)
+
+                # Record this move in history
+                body.previous_head_positions.insert(
+                    0,
+                    Position(
+                        x=position.prev_x,
+                        y=position.prev_y,
+                        prev_x=position.prev_x,
+                        prev_y=position.prev_y,
+                    ),
+                )
+
+                # Only add a segment every OTHER move (on even move numbers)
+                # move_number starts at 0, so: 0, 2, 4, 6... = even = add segment
+                should_add_segment = move_number % 2 == 0
+
+                # Handle growth
+                is_growing = hasattr(body, "pending_growth") and body.pending_growth > 0
+                if is_growing:
+                    body.pending_growth -= 1
+                    # Don't remove tail when growing
+
+                if should_add_segment:
+                    # Create new STATIONARY segment at head's previous position
+                    new_segment = Position(
+                        x=position.prev_x,
+                        y=position.prev_y,
+                        prev_x=position.prev_x,
+                        prev_y=position.prev_y,
+                    )
+                    body.segments.insert(0, new_segment)
+
+                    # Remove oldest segment UNLESS we're growing
+                    if not is_growing:
+                        if len(body.segments) > 0:
+                            body.segments.pop()
+
+                # Track actual size (head + segments)
+                body.size = len(body.segments) + 1
+
+            else:
+                # ===== CLASSIC MODE: Segment-following logic =====
+                # Keep original implementation for Classic and other modes
+
+                # Update all segment positions to follow the one ahead
+                # Work backwards to avoid overwriting positions we still need
+                # This creates the "caterpillar" following effect
+
+                # Save the old positions before shifting
+                if body.segments:
+                    # Shift all segments backward (each takes the position ahead)
+                    for i in range(len(body.segments) - 1, 0, -1):
+                        # Save where this segment currently is (for prev)
+                        old_x = body.segments[i].x
+                        old_y = body.segments[i].y
+
+                        # Move this segment to where the segment ahead is
+                        body.segments[i].x = body.segments[i - 1].x
+                        body.segments[i].y = body.segments[i - 1].y
+
+                        # Set prev to where it was before moving
+                        body.segments[i].prev_x = old_x
+                        body.segments[i].prev_y = old_y
+
+                    # First segment follows the head
+                    old_x = body.segments[0].x
+                    old_y = body.segments[0].y
+                    body.segments[0].x = position.prev_x  # Head's OLD position
+                    body.segments[0].y = position.prev_y
+                    body.segments[0].prev_x = old_x
+                    body.segments[0].prev_y = old_y
+
+                # Process pending growth (for Cheese mode +2 mechanic)
+                # Transfer one pending growth to actual size per frame for smooth growth
+                if hasattr(body, "pending_growth") and body.pending_growth > 0:
+                    body.size += 1
+                    body.pending_growth -= 1
+
+                # Maintain correct number of segments based on body size
+                desired_tail_len = max(0, body.size - 1)
+
+                # Add or remove segments as needed
+                if len(body.segments) > desired_tail_len:
+                    # Snake shrunk - remove excess segments from the end
+                    body.segments = body.segments[:desired_tail_len]
+                elif len(body.segments) < desired_tail_len:
+                    # Snake grew - add new segments at the end
+                    if body.segments:
+                        # Add segments at the last segment's PREVIOUS position
+                        # This allows them to interpolate smoothly as they follow the tail
+                        last_segment = body.segments[-1]
+                        for _ in range(desired_tail_len - len(body.segments)):
+                            # New segment starts at last segment's previous position
+                            # and will interpolate to the last segment's current position
+                            new_seg = Position(
+                                x=last_segment.prev_x,  # Start at prev position
+                                y=last_segment.prev_y,
+                                prev_x=last_segment.prev_x,  # No interpolation on first frame
+                                prev_y=last_segment.prev_y,
+                            )
+                            body.segments.append(new_seg)
+                            # Update reference for next segment (if adding multiple)
+                            last_segment = new_seg
+                    else:
+                        # First segment - create at head's position
+                        new_seg = Position(
+                            x=position.prev_x,
+                            y=position.prev_y,
+                            prev_x=position.prev_x,
+                            prev_y=position.prev_y,
+                        )
+                        body.segments.append(new_seg)
 
             # Reset interpolation alpha to 0.0 for smooth animation from old to new position
             if hasattr(snake, "interpolation"):

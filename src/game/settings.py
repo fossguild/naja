@@ -20,10 +20,11 @@
 """Dynamic game settings and menu configuration."""
 
 import time
-import platformdirs
+from types import FunctionType
+from typing import Any
 import os
 import json
-from .constants import SNAKE_COLOR_PALETTES
+from .constants import SNAKE_COLOR_PALETTES, USER_DATA_DIR
 
 
 class GameSettings:
@@ -41,19 +42,28 @@ class GameSettings:
         "dynamic_spawn_obstacles": False,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
+        "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
+        "enable_hunger": False,
     }
 
-    # Declarative menu field definitions
+    # Declarative menu field definitions organized by category
     MENU_FIELDS = [
+        # Audio category
         {
-            "key": "cells_per_side",
-            "label": "Cells per side",
-            "type": "int",
-            "min": 10,
-            "max": 60,
-            "step": 1,
-            "requires_reset": True,
+            "key": "background_music",
+            "label": "Background music",
+            "type": "bool",
+            "requires_reset": False,
+            "category": "Audio",
         },
+        {
+            "key": "sound_effects",
+            "label": "Sound effects",
+            "type": "bool",
+            "requires_reset": False,
+            "category": "Audio",
+        },
+        # Gameplay category
         {
             "key": "initial_speed",
             "label": "Initial speed",
@@ -62,6 +72,7 @@ class GameSettings:
             "max": 40.0,
             "step": 0.5,
             "requires_reset": True,
+            "category": "Gameplay",
         },
         {
             "key": "max_speed",
@@ -71,6 +82,28 @@ class GameSettings:
             "max": 60.0,
             "step": 1.0,
             "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "speed_increase_rate",
+            "label": "Speed increase per apple",
+            "type": "select",
+            "options": [
+                "5%",
+                "10%",
+            ],
+            "requires_reset": False,
+            "category": "Gameplay",
+        },
+        {
+            "key": "number_of_apples",
+            "label": "Apples",
+            "type": "int",
+            "min": 1,
+            "max": 30,
+            "step": 1,
+            "requires_reset": True,
+            "category": "Gameplay",
         },
         {
             "key": "obstacle_difficulty",
@@ -84,48 +117,52 @@ class GameSettings:
                 "Impossible",
             ],
             "requires_reset": True,
-        },
-        {
-            "key": "number_of_apples",
-            "label": "Apples",
-            "type": "int",
-            "min": 1,
-            "max": 30,
-            "step": 1,
-            "requires_reset": True,
-        },
-        {
-            "key": "background_music",
-            "label": "Background Music",
-            "type": "bool",
-            "requires_reset": False,
-        },
-        {
-            "key": "sound_effects",
-            "label": "Sound Effects",
-            "type": "bool",
-            "requires_reset": False,
+            "category": "Gameplay",
         },
         {
             "key": "dynamic_spawn_obstacles",
-            "label": "Dynamic Spawn Obstacles",
+            "label": "Dynamic spawn obstacles",
             "type": "bool",
             "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "enable_hunger",
+            "label": "Hunger",
+            "type": "bool",
+            "requires_reset": True,
+            "category": "Gameplay",
         },
         {
             "key": "electric_walls",
             "label": "Electric walls",
             "type": "bool",
             "requires_reset": True,
+            "category": "Gameplay",
+        },
+        # Display category
+        {
+            "key": "cells_per_side",
+            "label": "Board size",
+            "type": "int",
+            "min": 10,
+            "max": 60,
+            "step": 1,
+            "requires_reset": True,
+            "category": "Display",
         },
         {
             "key": "snake_color_palette",
-            "label": "Snake Color",
+            "label": "Snake color",
             "type": "select",
             "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
             "requires_reset": False,
+            "category": "Display",
         },
     ]
+
+    # Category order for display
+    CATEGORIES = ["Audio", "Gameplay", "Display"]
 
     # Key repeat settings
     KEY_REPEAT_INITIAL_DELAY = 0.4  # Initial delay before repeat starts (seconds)
@@ -165,7 +202,7 @@ class GameSettings:
     def load_settings(self) -> None:
         """Load settings from the user data directory, or initialize as default."""
 
-        self.data_dir = platformdirs.user_data_dir("naja", "fossguild")
+        self.data_dir = USER_DATA_DIR
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
         if not os.access(self.data_dir, os.W_OK):
@@ -187,14 +224,15 @@ class GameSettings:
         """Save current settings to the user data directory."""
 
         if not hasattr(self, "data_dir"):
-            self.data_dir = platformdirs.user_data_dir("naja", "fossguild")
+            self.data_dir = USER_DATA_DIR
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
         with open(os.path.join(self.data_dir, "settings.json"), "w") as f:
             json.dump(self.settings, f, indent=4)
             print("Settings saved to file.")
 
-    def save_on_exit(func) -> None:
+    @staticmethod
+    def save_on_exit(func) -> FunctionType:
         """Save settings after function returns, this should be used as a decorator."""
 
         def save_on_exit(self, *args, **kwargs):
@@ -472,3 +510,10 @@ class GameSettings:
             for field in self.MENU_FIELDS
             if not field.get("requires_reset", False)
         ]
+
+    def scoreboard_settings(self) -> dict[str, Any]:
+        relevant_settings = {v["key"] for v in self.MENU_FIELDS if v["requires_reset"]}
+        filtered_settings = {
+            k: v for k, v in self.settings.items() if k in relevant_settings
+        }
+        return filtered_settings
