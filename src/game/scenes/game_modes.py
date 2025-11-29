@@ -84,8 +84,7 @@ def get_display_mode_name() -> str:
         Display name showing what will be played
     """
     if _selected_game_mode == RANDOM_MODE_INDEX:
-        available = ", ".join(mode["name"] for mode in ACTUAL_GAME_MODES)
-        return f"Random ({available})"
+        return "Random Mode"
     elif _selected_game_mode < len(ACTUAL_GAME_MODES):
         return ACTUAL_GAME_MODES[_selected_game_mode]["name"]
     return CLASSIC_MODE_NAME
@@ -166,7 +165,7 @@ class GameModesScene(BaseScene):
         return None
 
     def render(self) -> None:
-        """Render the game modes menu."""
+        """Render the game modes menu with proper spacing like settings."""
         # Clear screen
         self._renderer.fill(ARENA_COLOR)
 
@@ -174,48 +173,70 @@ class GameModesScene(BaseScene):
         title = self._assets.render_custom(
             "Game Modes", MESSAGE_COLOR, int(self._width / 12)
         )
-        title_rect = title.get_rect(center=(self._width / 2, self._height / 6))
+        title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
         self._renderer.blit(title, title_rect)
 
-        # Layout parameters - no scroll needed for few items
-        item_spacing = self._height * 0.10
-        base_y = self._height * 0.35
+        # Layout parameters with scrolling
+        row_h = int(self._height * 0.10)
+        padding_y = int(self._height * 0.25)
 
-        # Draw menu items (no scrolling for few items)
+        # Define content boundaries
+        content_start_y = padding_y
+        content_end_y = int(self._height * 0.88)
+
+        # Calculate if all items fit without scrolling
+        # Total height needed = number of items * row height
+        total_items_height = len(self._menu_items) * row_h
+        available_height = content_end_y - padding_y
+
+        # Only scroll if items don't fit
+        if total_items_height > available_height:
+            scroll_offset = max(0, (self._selected_index - 2) * row_h)
+        else:
+            scroll_offset = 0
+
+        current_y = padding_y - scroll_offset
+
+        # Draw menu items with scrolling
         for i, item in enumerate(self._menu_items):
-            item_y = base_y + i * item_spacing
+            # Only draw if in visible range
+            if content_start_y <= current_y <= content_end_y:
+                color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
 
-            color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
+                # add arrow indicator if this mode is selected (confirmed)
+                display_text = item
+                if i == get_selected_game_mode():
+                    display_text = f">> {item} <<"
 
-            # add arrow indicator if this mode is selected (confirmed)
-            display_text = item
-            if i == get_selected_game_mode():
-                display_text = f">> {item} <<"
+                # Use consistent font size, centered 
+                text = self._assets.render_custom(
+                    display_text, color, int(self._width / 25)
+                )
+                rect = text.get_rect(center=(self._width / 2, current_y))
+                self._renderer.blit(text, rect)
 
-            # Use smaller font size
-            text = self._assets.render_custom(
-                display_text, color, int(self._width / 28)
-            )
-            rect = text.get_rect(center=(self._width / 2, item_y))
-            self._renderer.blit(text, rect)
+                # Draw description for currently navigated mode (centered)
+                if i == self._selected_index:
+                    description = self._get_description_for_index(i)
+                    if description:
+                        desc_y = current_y + int(self._height * 0.04)
+                        if content_start_y <= desc_y <= content_end_y:
+                            desc_text = self._assets.render_custom(
+                                description, (120, 120, 120), int(self._width / 40)
+                            )
+                            desc_rect = desc_text.get_rect(
+                                center=(self._width / 2, desc_y)
+                            )
+                            self._renderer.blit(desc_text, desc_rect)
 
-            # Draw description for currently navigated mode (closer to the mode name)
-            if i == self._selected_index:
-                description = self._get_description_for_index(i)
-                if description:
-                    desc_y = item_y + self._height * 0.035
-                    desc_text = self._assets.render_custom(
-                        description, (120, 120, 120), int(self._width / 50)
-                    )
-                    desc_rect = desc_text.get_rect(center=(self._width / 2, desc_y))
-                    self._renderer.blit(desc_text, desc_rect)
+            current_y += row_h
 
-        # Draw back instruction (always at the bottom)
-        back_text = self._assets.render_custom(
-            "Press ESC to go back", MESSAGE_COLOR, int(self._width / 40)
+        # Draw hint footer (always at fixed bottom position)
+        hint_text = self._assets.render_custom(
+            "Press ESC to go back", MESSAGE_COLOR, int(self._width / 50)
         )
-        back_rect = back_text.get_rect(center=(self._width / 2, self._height * 0.92))
-        self._renderer.blit(back_text, back_rect)
+        hint_rect = hint_text.get_rect(center=(self._width / 2, self._height * 0.95))
+        self._renderer.blit(hint_text, hint_rect)
 
     def on_enter(self) -> None:
         """Called when entering game modes menu."""
