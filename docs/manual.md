@@ -39,6 +39,10 @@ challenge is to steer the snake using the keyboard to help it eat apples that
 appear in random positions. Once consumed, apples disappear and respawn
 elsewhere.
 
+Be careful! The arena borders are electrified and will kill the snake if
+touched. Moreover, the snake is poisonous to itself—it dies if its head crosses
+its own tail.
+
 The score is the number of apples eaten before the snake dies and the game ends.
 The goal is to collect as many apples as possible. Besides, at each playthrough, the game will save the player's best score.
 
@@ -48,7 +52,7 @@ Controls
 ------------------------------
 
 ### Gameplay Controls
-  * `arrow keys or WASD`: moves up, down, left, right the snake and the menu options
+  * `arrow keys or WASD`: move up, down, left, right the snake and the menu options
   * `Q`: quit to main menu
   * `P`: pause the game
   * `ESC or M`: open in-game settings (adjust audio and colors without exiting)
