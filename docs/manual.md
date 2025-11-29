@@ -44,15 +44,15 @@ touched. Moreover, the snake is poisonous to itself—it dies if its head crosse
 its own tail.
 
 The score is the number of apples eaten before the snake dies and the game ends.
-The goal is to collect as many apples as possible.
+The goal is to collect as many apples as possible. Besides, at each playthrough, the game will save the player's best score.
 
-But there’s a catch: the snake lengthens each time it eats an apple.
+But there’s a catch: the snake lengthens each time it eats an apple, and so does its speed.
 
 Controls
 ------------------------------
 
 ### Gameplay Controls
-  * `arrow keys or WASD`: move the snake up, down, left, right
+  * `arrow keys or WASD`: move up, down, left, right the snake and the menu options
   * `Q`: quit to main menu
   * `P`: pause the game
   * `ESC or M`: open in-game settings (adjust audio and colors without exiting)
@@ -61,8 +61,26 @@ Controls
 
 ### In-Game Settings Menu
 When you press `ESC` or `M` during gameplay, you can adjust:
+
+#### Audio
+
   * Background Music (on/off)
   * Sound Effects (on/off)
+
+#### Gameplay
+
+  * Initial speed: (1.0 - 19.5)
+  * Max speed: (4.0 - 60.0)
+  * Speed increase per apple: (5% / 10%)
+  * Apples: (1 - 30)
+  * Obstacles: (None - Easy - Medium - Impossible)
+  * Dynamic spawn obstacles: (off/on)
+  * Hunger: (on/off)
+  * Electric walls: (on/off)
+
+#### Display
+
+  * Board size: (9x9 - 59x59)
   * Snake Color (choose from available palettes)
   * Return to Main Menu (quit current game)
 
@@ -72,6 +90,17 @@ Note: Settings that require a game reset (like grid size, speed, obstacles) are 
 
 ### Game Over
 When the game ends, press any key to restart or 'q' to quit.
+
+Game modes
+------------------------------
+
+* **Classic Snake Game:** Follows the explanation above.
+* **Movin apple:** Apples start to drift around the arena, creating a fun pursuit.
+* **Head-Tail Swap:** The position of the tail and the snake's head, as their directions, toggle at each apple consumed.
+* **Cheese Mode:** Now the snake's body has holes, making a Labyrinth of your growth.
+* **AutoPlay:** The snake plays itself, while the player can watch and relax!
+* **Teleport:** Each apple has a pair, when the snake eats one of them it will teleport to the other.
+* **Random:** For the ones who can't decide which mode will be the funniest!
 
 Getting Started
 ------------------------------
