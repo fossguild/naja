@@ -90,13 +90,10 @@ class ScoringSystem(BaseSystem):
 
     def _get_score_entity(self, world):
         """Return the single score entity, or None if it doesn't exist."""
-        score_entities = world.registry.query_by_component("current")
-
-        if not score_entities:
-            return None
-
-        score_entity_id = list(score_entities.keys())[0]
-        return world.registry.get(score_entity_id)
+        for entity in world.registry.get_all().values():
+            if hasattr(entity, "score"):
+                return entity
+        return None
 
     def on_apple_eaten(self, world: World, points: int) -> None:
         """Handle apple eaten event and update score.
@@ -185,9 +182,7 @@ class ScoringSystem(BaseSystem):
         if score_entity is None:
             return 0
 
-        return score_entity.high_score
-
-
+        return score_entity.score.high_score
 
     def set_high_score(self, world: World, high_score: int) -> None:
         """Set high score explicitly.
