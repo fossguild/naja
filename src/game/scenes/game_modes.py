@@ -208,7 +208,7 @@ class GameModesScene(BaseScene):
                 if i == get_selected_game_mode():
                     display_text = f">> {item} <<"
 
-                # Use consistent font size, centered 
+                # Use consistent font size, centered
                 text = self._assets.render_custom(
                     display_text, color, int(self._width / 25)
                 )
