@@ -385,3 +385,44 @@ class TestIntegration:
         # can still use apple eaten (though in real game, only one method is used)
         scoring_system.on_apple_eaten(world_with_score, points=5)
         assert scoring_system.get_current_score(world_with_score) == 15
+
+    class TestScoreEntityHelperBehavior:
+        """Tests that verify scoring still works correctly after refactoring."""
+
+        def test_apple_eaten_updates_score(self, world_with_score, scoring_system):
+            """Eating apple increases the current score."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            assert scoring_system.get_current_score(world_with_score) == 10
+
+        def test_snake_length_overwrites_score(self, world_with_score, scoring_system):
+            """Score updates based on snake tail length."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.update_score_from_snake_length(
+                world_with_score, snake_tail_length=5
+            )
+            assert scoring_system.get_current_score(world_with_score) == 5
+
+        def test_high_score_remains_highest(self, world_with_score, scoring_system):
+            """High score is preserved when score is overwritten."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.update_score_from_snake_length(
+                world_with_score, snake_tail_length=5
+            )
+            assert scoring_system.get_high_score(world_with_score) == 10
+
+        def test_reset_clears_current_only(self, world_with_score, scoring_system):
+            """Reset sets current score to zero but keeps high score."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.reset_current_score(world_with_score)
+            assert scoring_system.get_current_score(world_with_score) == 0
+            assert scoring_system.get_high_score(world_with_score) == 10
+
+        def test_get_scores_returns_correct_tuple(
+            self, world_with_score, scoring_system
+        ):
+            """get_scores returns (current, high)."""
+            scoring_system.on_apple_eaten(world_with_score, points=10)
+            scoring_system.reset_current_score(world_with_score)
+            current, high = scoring_system.get_scores(world_with_score)
+            assert current == 0
+            assert high == 10

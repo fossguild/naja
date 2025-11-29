@@ -88,6 +88,13 @@ class ScoringSystem(BaseSystem):
         # No periodic behavior needed
         pass
 
+    def _get_score_entity(self, world):
+        """Return the single score entity, or None if it doesn't exist."""
+        for entity in world.registry.get_all().values():
+            if hasattr(entity, "score"):
+                return entity
+        return None
+
     def on_apple_eaten(self, world: World, points: int) -> None:
         """Handle apple eaten event and update score.
 
@@ -95,18 +102,9 @@ class ScoringSystem(BaseSystem):
             world: ECS world
             points: Points to add to score
         """
-        # find score entity (should be singleton)
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
-            # no score entity exists, cannot update
-            return
-
-        # get first score entity (singleton pattern)
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if not hasattr(score_entity, "score"):
+        # get score entity (singleton pattern)
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return
 
         # update current score
@@ -127,16 +125,9 @@ class ScoringSystem(BaseSystem):
             world: ECS world
             snake_tail_length: Current snake tail length
         """
-        # find score entity
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
-            return
-
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if not hasattr(score_entity, "score"):
+        # get score entity
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return
 
         # update current score to match snake length
@@ -155,16 +146,9 @@ class ScoringSystem(BaseSystem):
         Args:
             world: ECS world
         """
-        # find score entity
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
-            return
-
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if not hasattr(score_entity, "score"):
+        # get score entity
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return
 
         # reset current score to 0
@@ -179,18 +163,11 @@ class ScoringSystem(BaseSystem):
         Returns:
             Current score, or 0 if no score entity exists
         """
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return 0
 
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if hasattr(score_entity, "score"):
-            return score_entity.score.current
-
-        return 0
+        return score_entity.score.current
 
     def get_high_score(self, world: World) -> int:
         """Get high score.
@@ -201,18 +178,11 @@ class ScoringSystem(BaseSystem):
         Returns:
             High score, or 0 if no score entity exists
         """
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return 0
 
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if hasattr(score_entity, "score"):
-            return score_entity.score.high_score
-
-        return 0
+        return score_entity.score.high_score
 
     def set_high_score(self, world: World, high_score: int) -> None:
         """Set high score explicitly.
@@ -223,16 +193,11 @@ class ScoringSystem(BaseSystem):
             world: ECS world
             high_score: High score value to set
         """
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return
 
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if hasattr(score_entity, "score"):
-            score_entity.score.high_score = high_score
+        score_entity.score.high_score = high_score
 
     def save_score_to_scoreboard(self, world: World) -> bool:
         """Save current score to scoreboard.
@@ -273,17 +238,9 @@ class ScoringSystem(BaseSystem):
         Returns:
             Tuple of (current_score, high_score)
         """
-        score_entities = world.registry.query_by_component("score")
-
-        if not score_entities:
+        # get score entity
+        score_entity = self._get_score_entity(world)
+        if score_entity is None:
             return (0, 0)
 
-        score_entity_id = list(score_entities.keys())[0]
-        score_entity = world.registry.get(score_entity_id)
-
-        if hasattr(score_entity, "score"):
-            current = score_entity.score.current
-            high = score_entity.score.high_score
-            return (current, high)
-
-        return (0, 0)
+        return (score_entity.score.current, score_entity.score.high_score)
