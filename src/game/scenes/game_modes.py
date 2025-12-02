@@ -276,8 +276,7 @@ class GameModesScene(BaseScene):
         return None
 
     def _wrap_text(self, text: str, max_width: int, font_size: int) -> list[str]:
-        """Wrap text to fit within max_width.
-        """
+        """Wrap text to fit within max_width."""
         import pygame
 
         font_path = "assets/font/GetVoIP-Grotesque.ttf"
