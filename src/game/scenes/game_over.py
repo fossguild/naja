@@ -173,11 +173,18 @@ class GameOverScene(BaseScene):
             # Display top scores for current settings
             if self._scoreboard and self._settings:
                 y_offset += 100  # Increased spacing before high scores section
-                highscores_title = small_font.render(
-                    f"Top {MAX_SCOREBOARD_ENTRIES} Scores (Current Settings):",
-                    True,
-                    message_color,
-                )
+
+                # Use shorter text if width is too small
+                title_text = f"Top {MAX_SCOREBOARD_ENTRIES} Scores (Current Settings):"
+                highscores_title = small_font.render(title_text, True, message_color)
+
+                # If text doesn't fit, use shorter version
+                if highscores_title.get_width() > self._width * 0.95:
+                    title_text = f"Top {MAX_SCOREBOARD_ENTRIES} Scores:"
+                    highscores_title = small_font.render(
+                        title_text, True, message_color
+                    )
+
                 highscores_rect = highscores_title.get_rect(
                     center=(self._width // 2, y_offset)
                 )
@@ -257,11 +264,21 @@ class GameOverScene(BaseScene):
 
             # "Press Enter/Space to restart • Q to menu" text at bottom
             restart_text = small_font.render(
-                "Press Enter/Space to play again • Q to menu", True, message_color
+                "Press Enter/Space to play again  •  Q to menu", True, message_color
             )
             restart_rect = restart_text.get_rect(
                 center=(self._width // 2, self._height - 50)
             )
+
+            # If text doesn't fit, make it shorter
+            if restart_rect.width > self._width * 0.95:
+                restart_text = small_font.render(
+                    "Enter/Space: play  •  Q: menu", True, message_color
+                )
+                restart_rect = restart_text.get_rect(
+                    center=(self._width // 2, self._height - 50)
+                )
+
             self._renderer.blit(restart_text, restart_rect)
 
         except Exception as e:

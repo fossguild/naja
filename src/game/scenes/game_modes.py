@@ -215,19 +215,27 @@ class GameModesScene(BaseScene):
                 rect = text.get_rect(center=(self._width / 2, current_y))
                 self._renderer.blit(text, rect)
 
-                # Draw description for currently navigated mode (centered)
+                # Draw description for currently navigated mode (centered, wrapped)
                 if i == self._selected_index:
                     description = self._get_description_for_index(i)
                     if description:
                         desc_y = current_y + int(self._height * 0.04)
                         if content_start_y <= desc_y <= content_end_y:
-                            desc_text = self._assets.render_custom(
-                                description, (120, 120, 120), int(self._width / 40)
+                            # Wrap text to fit screen width (85% of screen)
+                            wrapped_lines = self._wrap_text(
+                                description,
+                                int(self._width * 0.85),
+                                int(self._width / 50),
                             )
-                            desc_rect = desc_text.get_rect(
-                                center=(self._width / 2, desc_y)
-                            )
-                            self._renderer.blit(desc_text, desc_rect)
+                            for line_i, line in enumerate(wrapped_lines):
+                                line_y = desc_y + line_i * int(self._height * 0.025)
+                                desc_text = self._assets.render_custom(
+                                    line, (120, 120, 120), int(self._width / 50)
+                                )
+                                desc_rect = desc_text.get_rect(
+                                    center=(self._width / 2, line_y)
+                                )
+                                self._renderer.blit(desc_text, desc_rect)
 
             current_y += row_h
 
@@ -266,3 +274,42 @@ class GameModesScene(BaseScene):
         elif index == RANDOM_MODE_INDEX:
             return "Randomly selects one of the unlocked game modes."
         return None
+
+    def _wrap_text(self, text: str, max_width: int, font_size: int) -> list[str]:
+        """Wrap text to fit within max_width."""
+        import pygame
+
+        font_path = "assets/font/GetVoIP-Grotesque.ttf"
+        try:
+            font = pygame.font.Font(font_path, font_size)
+        except Exception:
+            font = pygame.font.Font(None, font_size)
+
+        # If text fits in one line, return as is
+        test_surface = font.render(text, True, (255, 255, 255))
+        if test_surface.get_width() <= max_width:
+            return [text]
+
+        # Split text into words and wrap
+        words = text.split()
+        lines = []
+        current_line = []
+
+        for word in words:
+            test_line = " ".join(current_line + [word])
+            test_surface = font.render(test_line, True, (255, 255, 255))
+
+            if test_surface.get_width() <= max_width:
+                current_line.append(word)
+            else:
+                if current_line:
+                    lines.append(" ".join(current_line))
+                    current_line = [word]
+                else:
+                    # Single word is too long, add it anyway
+                    lines.append(word)
+
+        if current_line:
+            lines.append(" ".join(current_line))
+
+        return lines
