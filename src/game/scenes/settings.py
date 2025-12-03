@@ -27,7 +27,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COLOR
+from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COLOR
 
 
 class SettingsScene(BaseScene):
@@ -161,7 +161,7 @@ class SettingsScene(BaseScene):
     def render(self) -> None:
         """Render the settings screen with categorized layout."""
         # Clear screen
-        self._renderer.fill(ARENA_COLOR)
+        self._renderer.fill(ARENA_PRIMARY_COLOR)
 
         # Draw title
         title = self._assets.render_custom(

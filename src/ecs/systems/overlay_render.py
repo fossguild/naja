@@ -66,7 +66,7 @@ class OverlayRenderSystem(BaseSystem):
             # create semi-transparent overlay
             overlay = pygame.Surface((surface_width, surface_height))
             overlay.set_alpha(128)  # 50% transparent
-            overlay.fill(Color.from_hex(constants.ARENA_COLOR).to_tuple())
+            overlay.fill(Color.from_hex(constants.ARENA_PRIMARY_COLOR).to_tuple())
             self._renderer.blit(overlay, (0, 0))
 
             # render "PAUSED" text
@@ -129,7 +129,7 @@ class OverlayRenderSystem(BaseSystem):
             # create semi-transparent overlay
             overlay = pygame.Surface((surface_width, surface_height))
             overlay.set_alpha(200)  # more opaque than pause
-            overlay.fill(Color.from_hex(constants.ARENA_COLOR).to_tuple())
+            overlay.fill(Color.from_hex(constants.ARENA_PRIMARY_COLOR).to_tuple())
             self._renderer.blit(overlay, (0, 0))
 
             # draw title

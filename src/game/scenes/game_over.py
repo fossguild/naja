@@ -29,7 +29,7 @@ from datetime import datetime
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.constants import (
-    ARENA_COLOR,
+    ARENA_PRIMARY_COLOR,
     GAME_OVER_MESSAGE_COLOR,
     GAME_OVER_HIGHLIGHT_COLOR,
     GAME_OVER_NEW_SCORE_COLOR,
@@ -112,7 +112,7 @@ class GameOverScene(BaseScene):
     def render(self) -> None:
         """Render the game over screen."""
         # Clear screen with arena color
-        self._renderer.fill(ARENA_COLOR)
+        self._renderer.fill(ARENA_PRIMARY_COLOR)
 
         # Draw game over text and scores
         try:
