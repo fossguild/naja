@@ -167,6 +167,17 @@ class MenuScene(BaseScene):
                     AudioService._current_music_track = "assets/sound/menu.mp3"
             except Exception:
                 pass
+        else:
+            try:
+                import pygame
+
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.stop()
+                    from game.services.assets import GameAssets
+
+                    GameAssets._current_music_track = None
+            except Exception:
+                pass
 
     def _get_selected_mode_text(self) -> str:
         """Get text for currently selected game mode.
