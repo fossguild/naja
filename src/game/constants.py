@@ -13,7 +13,7 @@ DEAD_HEAD_COLOR = "#4b0082"  # Color of the dead snake's head.
 TAIL_COLOR = "#00ff00"  # Color of the snake's tail.
 OBSTACLE_COLOR = "#666666"  # Color of the obstacles.
 APPLE_COLOR = "#aa0000"  # Color of the apple.
-#SCORE_COLOR = "#ffffff"  # Color of the scoreboard and text of menu items.#
+# SCORE_COLOR = "#ffffff"  # Color of the scoreboard and text of menu items.#
 
 # Color of the ground, also used as a general-purpose background.
 ARENA_PRIMARY_COLOR = "#202020"
@@ -23,8 +23,8 @@ ARENA_SECONDARY_COLOR = "#2c2c2c"
 MESSAGE_COLOR = "#808080"
 # Color of the grid, also used for footer hint text.
 GRID_COLOR = "#3c3c3b"
-#ARENA_COLOR = "#202020"  # Color of the ground.
-#GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
+# ARENA_COLOR = "#202020"  # Color of the ground.
+# GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
 MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 HUNGER_COLOR = "#ffaa00"  # Color of the hunger bar (orange/yellow).
