@@ -596,3 +596,71 @@ class AutoplaySystem(BaseSystem):
             dy = -1 if dy > 0 else 1
 
         return (dx, dy)
+
+    def _should_take_shortcut(
+        self,
+        snake,
+        apple_pos: Tuple[int, int],
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+    ) -> bool:
+        """Decide whether to take a shortcut to apple or follow Hamiltonian cycle.
+
+        Takes shortcuts only when:
+        1. Apple is close by (worth the deviation)
+        2. Shortcut path exists and is safe
+        3. Eating the apple won't trap the snake
+
+        Args:
+            snake: Snake entity
+            apple_pos: Position of the apple
+            obstacles: Current obstacles
+            width: Board width
+            height: Board height
+            electric_walls: Whether walls are deadly
+
+        Returns:
+            True if shortcut is safe and beneficial, False to follow cycle
+        """
+        current_pos = (snake.position.x, snake.position.y)
+
+        # Calculate distance to apple
+        distance = abs(apple_pos[0] - current_pos[0]) + abs(
+            apple_pos[1] - current_pos[1]
+        )
+
+        # Only consider shortcuts for nearby apples (within reasonable distance)
+        # More flexible than cycle for close apples, but not worth the risk for far ones
+        max_shortcut_distance = max(width, height) // 2
+        if distance > max_shortcut_distance:
+            return False  # Too far, stick to cycle
+
+        # Check if there's a path to the apple
+        current_direction = (snake.velocity.dx, snake.velocity.dy)
+        path_to_apple = self._bfs(
+            current_pos,
+            apple_pos,
+            obstacles,
+            width,
+            height,
+            electric_walls,
+            current_direction,
+        )
+
+        if not path_to_apple:
+            return False  # No path, stick to cycle
+
+        # Use the deep lookahead safety check
+        # This ensures we won't get trapped after eating the apple
+        apple_safe = self._is_apple_safe(
+            apple_pos,
+            snake,
+            obstacles,
+            width,
+            height,
+            electric_walls,
+        )
+
+        return apple_safe  # Take shortcut only if apple is safe
