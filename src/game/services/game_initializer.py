@@ -33,6 +33,7 @@ from game.game_modes_registry import (
     HEAD_TAIL_SWITCH_NAME,
     CHEESE_MODE_NAME,
     AUTOPLAY_MODE_NAME,
+    BOX_MODE_NAME,
 )
 
 
@@ -130,6 +131,10 @@ class GameInitializer:
 
         # create obstacles based on difficulty
         self._create_obstacles(world, grid_size)
+
+        # create box and hole for Box Mode
+        if self._game_mode == BOX_MODE_NAME:
+            self._create_box_and_hole(world, grid_size)
 
         # create score entity
         self._create_score_entity(world)
@@ -318,6 +323,70 @@ class GameInitializer:
                 grid_size=grid_size,
                 random_seed=None,  # use true randomness
             )
+
+    def _create_box_and_hole(self, world: World, grid_size: int) -> None:
+        """Create a box and hole for Box Mode.
+        """
+        from ecs.prefabs.box import create_box
+        from ecs.prefabs.hole import create_hole
+        from ecs.entities.entity import EntityType
+
+        # get occupied positions (snake, apples, obstacles)
+        occupied_positions = set()
+        
+        # snake positions
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "position"):
+                occupied_positions.add((snake.position.x, snake.position.y))
+                if hasattr(snake, "body"):
+                    for segment in snake.body.segments:
+                        occupied_positions.add((segment.x, segment.y))
+        
+        # apple positions
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        for _, apple in apples.items():
+            if hasattr(apple, "position"):
+                occupied_positions.add((apple.position.x, apple.position.y))
+        
+        # obstacle positions
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                occupied_positions.add((obstacle.position.x, obstacle.position.y))
+
+        # find valid position for box
+        box_x, box_y = None, None
+        attempts = 0
+        max_attempts = 1000
+        while attempts < max_attempts:
+            x = random.randint(0, world.board.width - 1)
+            y = random.randint(0, world.board.height - 1)
+            
+            if (x, y) not in occupied_positions:
+                box_x, box_y = x, y
+                occupied_positions.add((x, y))
+                break
+            
+            attempts += 1
+
+        # find valid position for hole (different from box)
+        hole_x, hole_y = None, None
+        attempts = 0
+        while attempts < max_attempts:
+            x = random.randint(0, world.board.width - 1)
+            y = random.randint(0, world.board.height - 1)
+            
+            if (x, y) not in occupied_positions:
+                hole_x, hole_y = x, y
+                break
+            
+            attempts += 1
+
+        # create box and hole if valid positions found
+        if box_x is not None and hole_x is not None:
+            create_box(world, x=box_x, y=box_y, grid_size=grid_size)
+            create_hole(world, x=hole_x, y=hole_y, grid_size=grid_size)
 
     def _create_score_entity(self, world: World) -> None:
         """Create score entity to track apples eaten.
