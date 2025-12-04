@@ -56,7 +56,7 @@ def create_hole(
     """
     # default color if not specified
     if color is None:
-        color = (50, 50, 50)  # dark gray
+        color = (0, 0, 0)  # black
 
     # create hole entity with required components
     hole = Hole(
@@ -72,4 +72,3 @@ def create_hole(
     # register entity with world and return ID
     entity_id = world.registry.add(hole)
     return entity_id
-
