@@ -57,7 +57,7 @@ class UIRenderSystem(BaseSystem):
         self._settings = settings
 
     def draw_score(self, world: World, surface_width: int, surface_height: int) -> None:
-        """Draw score counter horizontally centered near the top, semi-transparent.
+        """Draw score with apple icon in top-left corner.
 
         Args:
             world: Game world to query score
@@ -77,8 +77,18 @@ class UIRenderSystem(BaseSystem):
         current_score = score_entity.score.current
 
         try:
-            # large font size
-            font_size = int(surface_width / 8)
+            # load apple icon
+            icon_size = int(surface_width / 20)
+            padding = int(surface_width * 0.02)
+
+            try:
+                apple_icon = pygame.image.load("assets/sprites/tabler_apple-filled.png")
+                apple_icon = pygame.transform.scale(apple_icon, (icon_size, icon_size))
+            except Exception:
+                apple_icon = None
+
+            # font for score number
+            font_size = int(surface_width / 15)
             font_path = "assets/font/GetVoIP-Grotesque.ttf"
 
             try:
@@ -87,32 +97,34 @@ class UIRenderSystem(BaseSystem):
                 score_font = pygame.font.Font(None, font_size)
 
             # get color from constants
-            score_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+            score_color = Color.from_hex(constants.SCORE_COLOR).to_tuple()
 
             # render score text
             score_text = score_font.render(str(current_score), True, score_color)
 
-            # make it translucent (~75% opaque)
-            score_text.set_alpha(192)
+            # position in top-left corner
+            if apple_icon:
+                self._renderer.blit(apple_icon, (padding, padding))
+                score_rect = score_text.get_rect()
+                score_rect.midleft = (
+                    padding + icon_size + 10,
+                    padding + icon_size // 2,
+                )
+            else:
+                score_rect = score_text.get_rect()
+                score_rect.topleft = (padding, padding)
 
-            # horizontal center; vertically near the top with margin
-            top_margin = getattr(
-                world.board, "cell_size", max(10, surface_height // 20)
-            )
-            score_rect = score_text.get_rect()
-            score_rect.midtop = (surface_width // 2, top_margin)
-
-            # blit to main surface
+            # blit score text
             self._renderer.blit(score_text, score_rect)
 
         except Exception:
-            # silently fail if font loading or rendering fails
+            # silently fail if icon loading or rendering fails
             pass
 
     def draw_speed_bar(
         self, world: World, surface_width: int, surface_height: int
     ) -> None:
-        """Draw a horizontal bar showing the snake's current speed.
+        """Draw speed bar with lightning icon in top-center.
 
         Args:
             world: World containing entities
@@ -140,11 +152,10 @@ class UIRenderSystem(BaseSystem):
                 break
 
         # geometry
-        padding_x = int(surface_width * 0.02)
-        padding_y = int(surface_height * 0.02)
-        bar_width = int(surface_width * 0.25)
-        bar_height = int(surface_height * 0.02)
-        gap = 6
+        padding = int(surface_width * 0.02)
+        icon_size = int(surface_width / 30)
+        bar_width = int(surface_width * 0.20)
+        bar_height = int(surface_height * 0.015)
 
         # colors - bar changes from green (slow) to red (fast)
         if max_speed > min_speed:
@@ -152,20 +163,31 @@ class UIRenderSystem(BaseSystem):
         else:
             ratio = 0.0
         ratio = max(0.0, min(ratio, 1.0))
-        # bar color changes from green (slow) to red (fast) - calculated dynamically
-        bar_color = (
-            int(255 * ratio),
-            int(255 * (1 - ratio)),
-            0,
-        )
-        border_color = Color.from_hex(constants.GRID_COLOR).to_tuple()
-        text_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
 
-        # bar position
-        bar_x = padding_x
-        bar_y = padding_y
+        bar_color = (255, 255, 255)  # white fill
+        border_color = (100, 100, 100)  # gray border
+        text_color = Color.from_hex(constants.SCORE_COLOR).to_tuple()
 
-        # create temporary surface for the speed bar
+        # load lightning icon
+        try:
+            bolt_icon = pygame.image.load("assets/sprites/tabler_bolt-filled.png")
+            bolt_icon = pygame.transform.scale(bolt_icon, (icon_size, icon_size))
+        except Exception:
+            bolt_icon = None
+
+        # center position
+        center_x = surface_width // 2
+
+        # draw lightning icon
+        if bolt_icon:
+            icon_x = center_x - bar_width // 2 - icon_size - 10
+            self._renderer.blit(bolt_icon, (icon_x, padding))
+
+        # draw speed bar
+        bar_x = center_x - bar_width // 2
+        bar_y = padding + (icon_size - bar_height) // 2
+
+        # create temporary surface for the speed bar with border
         bar_surface = pygame.Surface((bar_width, bar_height))
         bar_surface.fill(border_color)
 
@@ -178,7 +200,7 @@ class UIRenderSystem(BaseSystem):
         # blit bar to screen
         self._renderer.blit(bar_surface, (bar_x, bar_y))
 
-        # draw text label below
+        # draw "Speed: X.X" text to the right of the bar
         label_text = f"Speed: {current_speed:.1f}"
         font_size = int(surface_width / 50)
         font_path = "assets/font/GetVoIP-Grotesque.ttf"
@@ -190,10 +212,106 @@ class UIRenderSystem(BaseSystem):
 
         label_surf = font.render(label_text, True, text_color)
         label_rect = label_surf.get_rect()
-        label_rect.midtop = (bar_x + bar_width // 2, bar_y + bar_height + gap)
+        label_rect.midleft = (bar_x + bar_width + 10, padding + icon_size // 2)
 
         # blit label
         self._renderer.blit(label_surf, label_rect)
+
+    def draw_high_score(
+        self, world: World, surface_width: int, surface_height: int
+    ) -> None:
+        """Draw high score with trophy icon in top-right corner.
+
+        Args:
+            world: Game world to query score
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        # query score component from world
+        score_entities = world.registry.query_by_component("score")
+        if not score_entities:
+            return
+
+        # get first score entity
+        score_entity = list(score_entities.values())[0]
+        if not hasattr(score_entity, "score"):
+            return
+
+        high_score = score_entity.score.high_score
+
+        try:
+            # load trophy icon
+            icon_size = int(surface_width / 20)
+            padding = int(surface_width * 0.02)
+
+            try:
+                trophy_icon = pygame.image.load(
+                    "assets/sprites/tabler_trophy-filled.png"
+                )
+                trophy_icon = pygame.transform.scale(
+                    trophy_icon, (icon_size, icon_size)
+                )
+            except Exception:
+                trophy_icon = None
+
+            # font for high score number
+            font_size = int(surface_width / 15)
+            font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+            try:
+                score_font = pygame.font.Font(font_path, font_size)
+            except Exception:
+                score_font = pygame.font.Font(None, font_size)
+
+            # get color from constants
+            score_color = Color.from_hex(constants.SCORE_COLOR).to_tuple()
+
+            # render high score text
+            score_text = score_font.render(str(high_score), True, score_color)
+            score_rect = score_text.get_rect()
+
+            # position in top-right corner (text first, then icon to its left)
+            score_rect.topright = (surface_width - padding, padding)
+
+            if trophy_icon:
+                icon_x = score_rect.left - icon_size - 10
+                self._renderer.blit(trophy_icon, (icon_x, padding))
+
+            # blit score text
+            self._renderer.blit(score_text, score_rect)
+
+        except Exception:
+            # silently fail if icon loading or rendering fails
+            pass
+
+    def draw_return_button(self, surface_width: int, surface_height: int) -> None:
+        """Draw return button with arrow icon in top-right corner (far right).
+
+        Args:
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        try:
+            # load arrow icon
+            icon_size = int(surface_width / 20)
+            padding = int(surface_width * 0.02)
+
+            try:
+                arrow_icon = pygame.image.load(
+                    "assets/sprites/tabler_arrow-back-up.png"
+                )
+                arrow_icon = pygame.transform.scale(arrow_icon, (icon_size, icon_size))
+            except Exception:
+                arrow_icon = None
+
+            # position in top-right corner (far right)
+            if arrow_icon:
+                icon_x = surface_width - padding - icon_size
+                self._renderer.blit(arrow_icon, (icon_x, padding))
+
+        except Exception:
+            # silently fail if icon loading fails
+            pass
 
     def draw_hunger_bar(
         self, world: World, surface_width: int, surface_height: int
@@ -356,14 +474,25 @@ class UIRenderSystem(BaseSystem):
         surface_width = surface.get_width()
         surface_height = surface.get_height()
 
-        # draw UI elements
-        self.draw_score(world, surface_width, surface_height)
-        self.draw_speed_bar(world, surface_width, surface_height)
-        # draw hunger bar only if enabled in settings
+        # draw new border UI elements
+        self.draw_score(
+            world, surface_width, surface_height
+        )  # top-left with apple icon
+        self.draw_high_score(
+            world, surface_width, surface_height
+        )  # top-right with trophy icon
+        self.draw_speed_bar(
+            world, surface_width, surface_height
+        )  # top-center with lightning icon
+        self.draw_return_button(
+            surface_width, surface_height
+        )  # top-right (far right) with arrow icon
+
+        # draw hunger bar only if enabled in settings (keep below for now)
         if self._settings and bool(self._settings.get("enable_hunger")):
             self.draw_hunger_bar(world, surface_width, surface_height)
 
-        # draw music indicator
+        # draw music indicator (keep in bottom-right)
         if self._settings:
             music_on = self._settings.get("background_music")
             self.draw_music_indicator(surface_width, surface_height, music_on)

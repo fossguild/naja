@@ -58,6 +58,23 @@ class SnakeRenderSystem(BaseSystem):
         """
         self._renderer = renderer
 
+    def get_board_offset(self) -> tuple[int, int]:
+        """Get the offset for the game board from screen edge.
+
+        Returns:
+            Tuple of (x_offset, y_offset) in pixels
+        """
+        # Get screen dimensions
+        surface = pygame.display.get_surface()
+        if not surface:
+            return (0, 0)
+
+        surface_height = surface.get_height()
+        # Top offset for UI elements (score, speed bar, etc.)
+        top_offset = int(surface_height * 0.08)
+
+        return (0, top_offset)
+
     def _get_color_scheme(self, world: World) -> ColorScheme:
         """Get ColorScheme component from world entities.
 
@@ -151,7 +168,7 @@ class SnakeRenderSystem(BaseSystem):
         grid_height: int,
         color: tuple,
     ) -> None:
-        """Draw the snake head with smooth interpolation.
+        """Draw the snake head with smooth interpolation and board offset.
 
         Args:
             position: Head position component
@@ -161,6 +178,9 @@ class SnakeRenderSystem(BaseSystem):
             grid_height: Total grid height in pixels
             color: Head color as (r, g, b) tuple
         """
+        # Get board offset
+        offset_x, offset_y = self.get_board_offset()
+
         # Calculate smooth interpolated position
         draw_x, draw_y = self._calculate_interpolated_position(
             position.x * cell_size,
@@ -173,6 +193,10 @@ class SnakeRenderSystem(BaseSystem):
             grid_width,
             grid_height,
         )
+
+        # Apply board offset
+        draw_x += offset_x
+        draw_y += offset_y
 
         # Draw head rectangle at interpolated position
         rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
@@ -202,7 +226,7 @@ class SnakeRenderSystem(BaseSystem):
         world: World = None,
         is_rainbow: bool = False,
     ) -> None:
-        """Draw the snake tail with smooth interpolation for each segment.
+        """Draw the snake tail with smooth interpolation for each segment and board offset.
 
         Args:
             body: Snake body component
@@ -218,6 +242,9 @@ class SnakeRenderSystem(BaseSystem):
         if not body.segments:
             return
 
+        # Get board offset
+        offset_x, offset_y = self.get_board_offset()
+
         # Draw each tail segment with interpolation
         for i, segment in enumerate(body.segments):
             draw_x, draw_y = self._calculate_interpolated_position(
@@ -231,6 +258,10 @@ class SnakeRenderSystem(BaseSystem):
                 grid_width,
                 grid_height,
             )
+
+            # Apply board offset
+            draw_x += offset_x
+            draw_y += offset_y
 
             segment_rect = pygame.Rect(
                 int(draw_x),
