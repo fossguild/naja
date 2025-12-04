@@ -235,6 +235,81 @@ class AutoplaySystem(BaseSystem):
                 self._buffer_direction(snake, dx, dy)
                 return
 
+    def _find_open_spaces(
+        self,
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+    ) -> List[Tuple[int, int]]:
+        """Find all empty cells on the board.
+
+        Args:
+            obstacles: Set of occupied positions
+            width: Board width
+            height: Board height
+
+        Returns:
+            List of empty cell positions
+        """
+        open_spaces = []
+        for y in range(height):
+            for x in range(width):
+                pos = (x, y)
+                if pos not in obstacles:
+                    open_spaces.append(pos)
+        return open_spaces
+
+    def _is_apple_safe(
+        self,
+        apple_pos: Tuple[int, int],
+        snake,
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+    ) -> bool:
+        """Check if eating apple at position leaves an escape route.
+
+        Simulates eating the apple and verifies that the snake can reach
+        open space afterward, preventing trap scenarios.
+
+        Args:
+            apple_pos: Position of the apple
+            snake: Snake entity
+            obstacles: Current obstacles (including snake body)
+            width: Board width
+            height: Board height
+            electric_walls: Whether walls are deadly
+
+        Returns:
+            True if eating apple is safe, False if it would trap the snake
+        """
+        # Simulate snake after eating apple
+        simulated_obstacles = obstacles.copy()
+        simulated_obstacles.add(apple_pos)  # Apple position becomes new body segment
+
+        # Find all open spaces on the board
+        open_spaces = self._find_open_spaces(simulated_obstacles, width, height)
+        if not open_spaces:
+            return False  # No open space exists - board is full (win condition)
+
+        # Check if we can reach ANY open space from apple position
+        # Use dummy direction since we're checking if path exists at all
+        for open_space in open_spaces:
+            escape_path = self._bfs(
+                apple_pos,
+                open_space,
+                simulated_obstacles,
+                width,
+                height,
+                electric_walls,
+                (0, 0),  # Dummy direction - not enforcing 180° prevention
+            )
+            if escape_path:
+                return True  # Found at least one escape route
+
+        return False  # No escape route found - apple is a trap
+
     def _buffer_direction(self, snake, dx: int, dy: int) -> None:
         if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
             from src.ecs.components.input_buffer import InputBuffer
