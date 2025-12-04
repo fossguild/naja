@@ -102,8 +102,9 @@ class UIRenderSystem(BaseSystem):
             # render score text
             score_text = score_font.render(str(current_score), True, score_color)
 
-            # calculate vertical center of border area (top 8% of screen)
-            border_height = int(surface_height * 0.08)
+            # calculate vertical center of border area
+            # use fixed 50px instead of percentage to ensure board fits
+            border_height = min(50, int(surface_height * 0.08))
             center_y = border_height // 2
 
             # position in top-left corner, vertically centered
@@ -176,9 +177,10 @@ class UIRenderSystem(BaseSystem):
         except Exception:
             bolt_icon = None
 
-        # center position horizontally and vertically
-        center_x = surface_width // 2
-        border_height = int(surface_height * 0.08)
+        # center position horizontally (shifted left) and vertically
+        center_x = surface_width // 2 - int(surface_width * 0.05)  # shift 5% left
+        # use fixed 50px instead of percentage to ensure board fits
+        border_height = min(50, int(surface_height * 0.08))
         center_y = border_height // 2
 
         # draw lightning icon, vertically centered
@@ -275,12 +277,13 @@ class UIRenderSystem(BaseSystem):
             score_rect = score_text.get_rect()
 
             # calculate vertical center of border area
-            border_height = int(surface_height * 0.08)
+            # use fixed 50px instead of percentage to ensure board fits
+            border_height = min(50, int(surface_height * 0.08))
             center_y = border_height // 2
 
             # position with more space from right edge for return button
-            # Leave space for return button (icon_size + padding * 2)
-            right_margin = padding + icon_size + padding * 2
+            # Leave space for return button and shift left for better spacing
+            right_margin = padding + icon_size + padding * 2 + int(surface_width * 0.03)
             score_rect.midright = (surface_width - right_margin, center_y)
 
             if trophy_icon:
@@ -316,7 +319,8 @@ class UIRenderSystem(BaseSystem):
                 arrow_icon = None
 
             # calculate vertical center of border area
-            border_height = int(surface_height * 0.08)
+            # use fixed 50px instead of percentage to ensure board fits
+            border_height = min(50, int(surface_height * 0.08))
             center_y = border_height // 2
 
             # position in top-right corner (far right), vertically centered
