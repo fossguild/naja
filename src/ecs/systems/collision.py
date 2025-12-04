@@ -111,6 +111,9 @@ class CollisionSystem(BaseSystem):
             self._handle_death(world, "Obstacle collision")
             return
 
+        # Check box collision and push logic (Box Mode)
+        self._check_box_collision(world)
+
         # Check apple collision (doesn't kill)
         self._check_apple_collision(world)
 
@@ -359,6 +362,114 @@ class CollisionSystem(BaseSystem):
                     return True
 
         return False
+
+    def _check_box_collision(self, world: World) -> None:
+        """Check collision with boxes and push them.
+
+        In Box Mode, when the snake moves into a box, the box is pushed
+        in the direction the snake is moving.
+        """
+        snake = self._get_snake_entity(world)
+        if not snake or not hasattr(snake, "position") or not hasattr(snake, "velocity"):
+            return
+
+        head_x = snake.position.x
+        head_y = snake.position.y
+
+        # query boxes from world
+        from ecs.entities.entity import EntityType
+
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        for entity_id, box in boxes.items():
+            # check if box is at the same position as head
+            if hasattr(box, "position"):
+                if head_x == box.position.x and head_y == box.position.y:
+                    # calculate new box position based on snake's velocity
+                    new_box_x = box.position.x + snake.velocity.dx
+                    new_box_y = box.position.y + snake.velocity.dy
+
+                    # wrap position if electric walls are disabled
+                    electric_walls = (
+                        self._settings.get("electric_walls") if self._settings else True
+                    )
+                    if not electric_walls:
+                        new_box_x = new_box_x % world.board.width
+                        new_box_y = new_box_y % world.board.height
+
+                    # check if new position is valid (not occupied by obstacle or another box)
+                    if self._is_position_valid_for_box(world, new_box_x, new_box_y):
+                        # update box position
+                        box.position.prev_x = box.position.x
+                        box.position.prev_y = box.position.y
+                        box.position.x = new_box_x
+                        box.position.y = new_box_y
+
+                        # check if box is now on a hole
+                        self._check_box_hole_collision(world, entity_id, box)
+
+                    break  # only push one box per frame
+
+    def _is_position_valid_for_box(self, world: World, x: int, y: int) -> bool:
+        """Check if a position is valid for a box to move to.
+
+        A position is invalid if it's occupied by an obstacle or another box.
+        """
+        from ecs.entities.entity import EntityType
+
+        # check obstacles
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                if x == obstacle.position.x and y == obstacle.position.y:
+                    return False
+
+        # check other boxes
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        for _, box in boxes.items():
+            if hasattr(box, "position"):
+                if x == box.position.x and y == box.position.y:
+                    return False
+
+        return True
+
+    def _check_box_hole_collision(self, world: World, box_id: int, box) -> None:
+        """Check if a box has been pushed into a hole.
+
+        When a box reaches a hole, the snake gets the rewards (points and growth)
+        and both the box and hole are removed.
+
+        Args:
+            world: ECS world
+            box_id: Entity ID of the box
+            box: Box entity
+        """
+        from ecs.entities.entity import EntityType
+
+        holes = world.registry.query_by_type(EntityType.HOLE)
+        for hole_id, hole in holes.items():
+            if hasattr(hole, "position") and hasattr(box, "position"):
+                if box.position.x == hole.position.x and box.position.y == hole.position.y:
+                    print(f"BOX IN HOLE: box=({box.position.x},{box.position.y})")
+
+                    # play apple eating sound (reuse for box reward)
+                    if self._audio_service:
+                        self._audio_service.play_sound("assets/sound/eat.flac")
+
+                    # get rewards from box
+                    snake = self._get_snake_entity(world)
+                    if snake and hasattr(snake, "body") and hasattr(box, "box"):
+                        # grow snake
+                        snake.body.size += box.box.growth
+
+                        # increment score
+                        if self._scoring_system:
+                            self._scoring_system.on_apple_eaten(world, box.box.points)
+
+                    # remove box and hole
+                    world.registry.remove(box_id)
+                    world.registry.remove(hole_id)
+
+                    break
 
     def _check_apple_collision(self, world: World) -> None:
         """Check collision with apples and handle eating.
