@@ -370,12 +370,13 @@ class GameInitializer:
             
             attempts += 1
 
-        # find valid position for hole (different from box)
+        # find valid position for hole (different from box, not on borders)
         hole_x, hole_y = None, None
         attempts = 0
         while attempts < max_attempts:
-            x = random.randint(0, world.board.width - 1)
-            y = random.randint(0, world.board.height - 1)
+            # avoid borders - hole must be at least 1 cell away from edges
+            x = random.randint(1, world.board.width - 2)
+            y = random.randint(1, world.board.height - 2)
             
             if (x, y) not in occupied_positions:
                 hole_x, hole_y = x, y
