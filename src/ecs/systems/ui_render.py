@@ -103,8 +103,8 @@ class UIRenderSystem(BaseSystem):
             score_text = score_font.render(str(current_score), True, score_color)
 
             # calculate vertical center of border area
-            # use fixed 50px instead of percentage to ensure board fits
-            border_height = min(50, int(surface_height * 0.08))
+            # use fixed 45px to ensure board fits completely
+            border_height = 45
             center_y = border_height // 2
 
             # position in top-left corner, vertically centered
@@ -177,10 +177,10 @@ class UIRenderSystem(BaseSystem):
         except Exception:
             bolt_icon = None
 
-        # center position horizontally (shifted left) and vertically
-        center_x = surface_width // 2 - int(surface_width * 0.05)  # shift 5% left
-        # use fixed 50px instead of percentage to ensure board fits
-        border_height = min(50, int(surface_height * 0.08))
+        # center position horizontally (shifted more left) and vertically
+        center_x = surface_width // 2 - int(surface_width * 0.08)  # shift 8% left
+        # use fixed 45px to ensure board fits completely
+        border_height = 45
         center_y = border_height // 2
 
         # draw lightning icon, vertically centered
@@ -206,9 +206,9 @@ class UIRenderSystem(BaseSystem):
         # blit bar to screen
         self._renderer.blit(bar_surface, (bar_x, bar_y))
 
-        # draw "Speed: X.X" text to the right of the bar - smaller font
+        # draw "Speed: X.X" text to the right of the bar
         label_text = f"Speed: {current_speed:.1f}"
-        font_size = int(surface_width / 60)
+        font_size = int(surface_width / 50)  # increased from /60
         font_path = "assets/font/GetVoIP-Grotesque.ttf"
 
         try:
@@ -277,13 +277,15 @@ class UIRenderSystem(BaseSystem):
             score_rect = score_text.get_rect()
 
             # calculate vertical center of border area
-            # use fixed 50px instead of percentage to ensure board fits
-            border_height = min(50, int(surface_height * 0.08))
+            # use fixed 45px to ensure board fits completely
+            border_height = 45
             center_y = border_height // 2
 
             # position with more space from right edge for return button
             # Leave space for return button and shift left for better spacing
-            right_margin = padding + icon_size + padding * 2 + int(surface_width * 0.03)
+            right_margin = (
+                padding + icon_size + padding * 2 + int(surface_width * 0.06)
+            )  # increased from 0.03 to 0.06
             score_rect.midright = (surface_width - right_margin, center_y)
 
             if trophy_icon:
@@ -319,8 +321,8 @@ class UIRenderSystem(BaseSystem):
                 arrow_icon = None
 
             # calculate vertical center of border area
-            # use fixed 50px instead of percentage to ensure board fits
-            border_height = min(50, int(surface_height * 0.08))
+            # use fixed 45px to ensure board fits completely
+            border_height = 45
             center_y = border_height // 2
 
             # position in top-right corner (far right), vertically centered

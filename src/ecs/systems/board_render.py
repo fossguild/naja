@@ -103,10 +103,8 @@ class BoardRenderSystem(BaseSystem):
         if not surface:
             return (0, 0)
 
-        surface_height = surface.get_height()
-        # Top offset for UI elements - use fixed 50px instead of percentage
-        # to ensure board always fits on screen
-        top_offset = min(50, int(surface_height * 0.08))
+        # Top offset for UI elements - use fixed 45px to ensure board fits completely
+        top_offset = 45
 
         return (0, top_offset)
 
