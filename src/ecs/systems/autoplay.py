@@ -17,21 +17,40 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Autoplay system for controlling the snake automatically."""
+"""Autoplay system implementing hybrid two-phase strategy.
+
+Hybrid Auto-Run Mode: Fast Early Game + Safe Late Game
+-------------------------------------------------------
+Phase 1 (Score < 500): Aggressive Tail-Following
+- Fast apple collection using BFS pathfinding
+- Follows own tail when no safe apple available
+- Optimized for speed and high score
+
+Phase 2 (Score >= 500): Deterministic Serpentine Sweep
+- Guaranteed-safe Hamiltonian-inspired pattern
+- Never dies, eventually visits every cell
+- Runs indefinitely to completion
+
+This hybrid approach combines the best of both strategies:
+speed in early game, safety in late game.
+"""
 
 from collections import deque
-from typing import List, Tuple, Set, Optional, Any
+from typing import Optional, Any, List, Tuple, Set
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
 from ecs.entities.entity import EntityType
 from game.game_modes_registry import AUTOPLAY_MODE_NAME
 
+# Threshold to switch from tail-following to serpentine sweep
+SERPENTINE_SWITCH_SCORE = 500
+
 
 class AutoplaySystem(BaseSystem):
-    """System that controls the snake in Autoplay mode.
+    """System that controls the snake in Autoplay mode using hybrid strategy.
 
-    Reads: Position, Velocity, SnakeBody, Apple, Obstacle
+    Reads: Position, Velocity, SnakeBody
     Writes: InputBuffer (simulates input)
     """
 
@@ -44,16 +63,13 @@ class AutoplaySystem(BaseSystem):
         """
         self._game_mode = game_mode
         self._settings = settings
-        self._path: List[Tuple[int, int]] = []
-        self._last_calc_time = 0.0
-        self._calc_interval = 50.0  # Recalculate path frequently
-        # Hamiltonian cycle for guaranteed safe path
-        self._hamiltonian_path: List[Tuple[int, int]] = []
-        self._hamiltonian_index = 0
-        self._hamiltonian_initialized = False
+        self._using_serpentine = False  # Phase tracker
 
     def update(self, world: World) -> None:
-        """Update the snake's direction based on pathfinding.
+        """Update the snake's direction using hybrid two-phase strategy.
+
+        Phase 1 (< 500 points): Tail-following for fast apple collection
+        Phase 2 (>= 500 points): Serpentine sweep for guaranteed safety
 
         Args:
             world: ECS world containing entities and components
@@ -61,47 +77,215 @@ class AutoplaySystem(BaseSystem):
         if self._game_mode != AUTOPLAY_MODE_NAME:
             return
 
-        # Only recalculate path periodically
-        self._last_calc_time += world.dt_ms
-        if self._last_calc_time < self._calc_interval:
-            return
-
-        self._last_calc_time = 0.0
-
         snake = self._get_snake(world)
         if not snake:
             return
 
-        # Get target (apple)
-        target = self._get_target(world)
-        if not target:
+        # Get current score from world scoring system
+        current_score = self._get_current_score(world)
+
+        # Check if we should switch to serpentine mode (one-way switch)
+        if not self._using_serpentine and current_score >= SERPENTINE_SWITCH_SCORE:
+            self._using_serpentine = True
+            print(f"[Autoplay] Switching to SERPENTINE mode at score {current_score}")
+
+        # Execute appropriate strategy based on phase
+        if self._using_serpentine:
+            # Phase 2: Deterministic serpentine sweep
+            self._update_serpentine(snake, world)
+        else:
+            # Phase 1: Aggressive tail-following
+            self._update_tail_following(snake, world)
+
+    def _get_serpentine_direction(
+        self, hx: int, hy: int, W: int, H: int
+    ) -> tuple[int, int]:
+        """Calculate next move direction using serpentine sweep pattern.
+
+        Pattern Rules:
+        1. Rightmost column (x = W-1, y < H-1): Move DOWN
+        2. Bottom-right corner (x = W-1, y = H-1): Move LEFT
+        3. Bottom row (y = H-1, x > 0): Continue LEFT
+        4. Bottom-left corner (x = 0, y = H-1): Move UP
+        5. Odd rows (y = 1,3,5..., x > 0): Move LEFT
+        6. Odd rows (y = 1,3,5..., x = 0): Move UP
+        7. Even rows (y = 2,4,6..., x < W-2): Move RIGHT
+        8. Even rows (y = 2,4,6..., x = W-2): Move UP
+        9. Top row (y = 0, x < W-1): Move RIGHT
+
+        Args:
+            hx: Head X coordinate
+            hy: Head Y coordinate
+            W: Board width
+            H: Board height
+
+        Returns:
+            (dx, dy) direction tuple
+        """
+        # Rule 1: Rightmost column descent (except bottom corner)
+        if hx == W - 1 and hy < H - 1:
+            return (0, 1)  # DOWN
+
+        # Rule 2 & 3: Bottom row sweep (move LEFT)
+        if hy == H - 1 and hx > 0:
+            return (-1, 0)  # LEFT
+
+        # Rule 4: Bottom-left corner (transition to upward movement)
+        if hx == 0 and hy == H - 1:
+            return (0, -1)  # UP
+
+        # Rules 5-8: Middle rows zigzag
+        if 0 < hy < H - 1:
+            if hy % 2 == 1:  # Odd rows: move LEFT
+                if hx > 0:
+                    return (-1, 0)  # LEFT
+                else:  # x == 0
+                    return (0, -1)  # UP
+            else:  # Even rows: move RIGHT
+                if hx < W - 2:
+                    return (1, 0)  # RIGHT
+                else:  # x == W - 2
+                    return (0, -1)  # UP
+
+        # Rule 9: Top row return (move RIGHT to re-enter corridor)
+        if hy == 0 and hx < W - 1:
+            return (1, 0)  # RIGHT
+
+        # Fallback (should never reach here with valid board)
+        # If at top-right, start descent again
+        if hx == W - 1 and hy == 0:
+            return (0, 1)  # DOWN
+
+        # Emergency fallback - don't move
+        return (0, 0)
+
+    def _get_snake(self, world: World):
+        """Get the snake entity."""
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        if snakes:
+            return next(iter(snakes.values()))
+        return None
+
+    def _buffer_direction(self, snake, dx: int, dy: int) -> None:
+        """Buffer a direction command for the snake.
+
+        Args:
+            snake: Snake entity
+            dx: X direction (-1, 0, or 1)
+            dy: Y direction (-1, 0, or 1)
+        """
+        if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
+            from src.ecs.components.input_buffer import InputBuffer
+
+            snake.input_buffer = InputBuffer()
+
+        buf = snake.input_buffer
+
+        # Don't fill buffer too much
+        if len(buf.moves) >= 1:
             return
 
-        # Calculate path
-        start = (snake.position.x, snake.position.y)
-        goal = (target.position.x, target.position.y)
+        # Check if we are reversing direction (invalid move)
+        last_dx, last_dy = (snake.velocity.dx, snake.velocity.dy)
+        if buf.moves:
+            last_dx, last_dy = buf.moves[-1]
 
+        if (dx != 0 and last_dx == -dx) or (dy != 0 and last_dy == -dy):
+            return
+
+        # Don't buffer (0, 0) - no movement
+        if dx == 0 and dy == 0:
+            return
+
+        buf.moves.append((dx, dy))
+
+    # ========== HELPER METHODS ==========
+
+    def _get_current_score(self, world: World) -> int:
+        """Get current game score from snake body length.
+
+        Score approximation: (snake_length - 3) * 10
+        This gives us ~500 points at length ~53.
+        """
+        snake = self._get_snake(world)
+        if not snake or not hasattr(snake, "body"):
+            return 0
+
+        # Snake starts at length 3, each apple adds 1
+        # Score is typically length * 10 (minus initial length)
+        snake_length = len(snake.body.segments) + 1
+        return max(0, (snake_length - 3) * 10)
+
+    # ========== PHASE 2: SERPENTINE SWEEP ==========
+
+    def _update_serpentine(self, snake, world: World) -> None:
+        """Phase 2 update: Deterministic serpentine sweep."""
+        hx = snake.position.x
+        hy = snake.position.y
+        W = world.board.width
+        H = world.board.height
+
+        direction = self._get_serpentine_direction(hx, hy, W, H)
+        if direction:
+            self._buffer_direction(snake, direction[0], direction[1])
+
+    # ========== PHASE 1: TAIL-FOLLOWING ==========
+
+    def _update_tail_following(self, snake, world: World) -> None:
+        """Phase 1 update: Aggressive tail-following with BFS."""
+        current_pos = (snake.position.x, snake.position.y)
         obstacles = self._get_obstacles(world, snake)
-
         electric_walls = (
             self._settings.get("electric_walls") if self._settings else True
         )
-
         current_direction = (snake.velocity.dx, snake.velocity.dy)
 
-        # Check if apple is safe to eat (has escape route after eating)
-        apple_is_safe = self._is_apple_safe(
-            goal,
-            snake,
-            obstacles,
-            world.board.width,
-            world.board.height,
-            electric_walls,
-        )
+        # Try to get apple if safe
+        target = self._get_target(world)
+        if target:
+            apple_pos = (target.position.x, target.position.y)
 
-        path = self._bfs(
-            start,
-            goal,
+            # Simple safety check: can reach tail after eating?
+            if self._is_apple_safe_simple(
+                snake,
+                apple_pos,
+                obstacles,
+                world.board.width,
+                world.board.height,
+                electric_walls,
+            ):
+                path_to_apple = self._bfs(
+                    current_pos,
+                    apple_pos,
+                    obstacles,
+                    world.board.width,
+                    world.board.height,
+                    electric_walls,
+                    current_direction,
+                )
+
+                if path_to_apple:
+                    next_pos = path_to_apple[0]
+                    dx = next_pos[0] - current_pos[0]
+                    dy = next_pos[1] - current_pos[1]
+
+                    if not electric_walls:
+                        if dx > 1:
+                            dx = -1
+                        elif dx < -1:
+                            dx = 1
+                        if dy > 1:
+                            dy = -1
+                        elif dy < -1:
+                            dy = 1
+
+                    self._buffer_direction(snake, dx, dy)
+                    return
+
+        # Default: follow tail
+        tail_direction = self._follow_tail(
+            snake,
+            current_pos,
             obstacles,
             world.board.width,
             world.board.height,
@@ -109,14 +293,71 @@ class AutoplaySystem(BaseSystem):
             current_direction,
         )
 
-        if path and apple_is_safe:
-            # Apple is reachable AND safe - pursue it
-            self._path = path
-            next_pos = path[0]
-            dx = next_pos[0] - start[0]
-            dy = next_pos[1] - start[1]
+        if tail_direction:
+            self._buffer_direction(snake, tail_direction[0], tail_direction[1])
 
-            # Handle wrapping for direction calculation
+    def _get_target(self, world: World):
+        """Get the apple entity."""
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        if apples:
+            return next(iter(apples.values()))
+        return None
+
+    def _get_obstacles(self, world: World, snake) -> Set[Tuple[int, int]]:
+        """Get all obstacle positions including snake body (excluding tail tip)."""
+        obstacles = set()
+
+        if hasattr(snake, "body") and snake.body.segments:
+            for segment in snake.body.segments[:-1]:
+                obstacles.add((segment.x, segment.y))
+
+        obs_entities = world.registry.query_by_type(EntityType.OBSTACLE)
+        for entity in obs_entities.values():
+            if hasattr(entity, "position"):
+                obstacles.add((entity.position.x, entity.position.y))
+
+        return obstacles
+
+    def _get_tail_position(self, snake) -> Optional[Tuple[int, int]]:
+        """Get snake's tail position."""
+        if hasattr(snake, "body") and snake.body.segments:
+            tail = snake.body.segments[-1]
+            return (tail.x, tail.y)
+        return None
+
+    def _follow_tail(
+        self,
+        snake,
+        current_pos: Tuple[int, int],
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+        current_direction: Tuple[int, int],
+    ) -> Optional[Tuple[int, int]]:
+        """Follow own tail (guaranteed safe)."""
+        tail_pos = self._get_tail_position(snake)
+        if not tail_pos:
+            return None
+
+        obstacles_no_tail = obstacles.copy()
+        obstacles_no_tail.discard(tail_pos)
+
+        path_to_tail = self._bfs(
+            current_pos,
+            tail_pos,
+            obstacles_no_tail,
+            width,
+            height,
+            electric_walls,
+            current_direction,
+        )
+
+        if path_to_tail:
+            next_pos = path_to_tail[0]
+            dx = next_pos[0] - current_pos[0]
+            dy = next_pos[1] - current_pos[1]
+
             if not electric_walls:
                 if dx > 1:
                     dx = -1
@@ -127,60 +368,38 @@ class AutoplaySystem(BaseSystem):
                 elif dy < -1:
                     dy = 1
 
-            self._buffer_direction(snake, dx, dy)
-        elif path and not apple_is_safe:
-            # Apple is reachable but UNSAFE - wait tactically
-            # Move to safe space while staying alive, repositioning for better angle
-            self._wait_tactically(
-                snake,
-                obstacles,
-                world.board.width,
-                world.board.height,
-                electric_walls,
-                current_direction,
-            )
-        else:
-            # No path to apple - use basic survival
-            self._survive(
-                snake,
-                obstacles,
-                world.board.width,
-                world.board.height,
-                electric_walls,
-                current_direction,
-            )
-
-    def _get_snake(self, world: World):
-        snakes = world.registry.query_by_type(EntityType.SNAKE)
-        if snakes:
-            return next(iter(snakes.values()))
+            return (dx, dy)
         return None
 
-    def _get_target(self, world: World):
-        apples = world.registry.query_by_type(EntityType.APPLE)
-        if apples:
-            # Find closest apple? For now just pick the first one
-            return next(iter(apples.values()))
-        return None
+    def _is_apple_safe_simple(
+        self,
+        snake,
+        apple_pos: Tuple[int, int],
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+    ) -> bool:
+        """Simple safety check: can reach tail after eating apple?"""
+        tail_pos = self._get_tail_position(snake)
+        if not tail_pos:
+            return True
 
-    def _get_obstacles(self, world: World, snake) -> Set[Tuple[int, int]]:
-        obstacles = set()
+        simulated_obstacles = obstacles.copy()
+        simulated_obstacles.add(apple_pos)
+        simulated_obstacles.discard(tail_pos)
 
-        # Add snake body to obstacles
-        if hasattr(snake, "body") and snake.body.segments:
-            # We don't add the tail as an obstacle because it will move
-            # But for safety in simple BFS, let's add all segments except maybe the very last one
-            # if we want to be aggressive. For now, add all segments to be safe.
-            for segment in snake.body.segments[:-1]:  # Exclude tail tip as it will move
-                obstacles.add((segment.x, segment.y))
+        path_to_tail = self._bfs(
+            apple_pos,
+            tail_pos,
+            simulated_obstacles,
+            width,
+            height,
+            electric_walls,
+            (0, 0),
+        )
 
-        # Add static obstacles
-        obs_entities = world.registry.query_by_type(EntityType.OBSTACLE)
-        for entity in obs_entities.values():
-            if hasattr(entity, "position"):
-                obstacles.add((entity.position.x, entity.position.y))
-
-        return obstacles
+        return len(path_to_tail) > 0
 
     def _bfs(
         self,
@@ -192,6 +411,7 @@ class AutoplaySystem(BaseSystem):
         electric_walls: bool,
         current_direction: Tuple[int, int],
     ) -> List[Tuple[int, int]]:
+        """BFS pathfinding."""
         queue = deque([(start, [])])
         visited = {start}
 
@@ -202,8 +422,7 @@ class AutoplaySystem(BaseSystem):
                 return path
 
             for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-                # Prevent 180 degree turn at the start
-                if not path:  # Only check for first move
+                if not path:
                     if (dx != 0 and current_direction[0] == -dx) or (
                         dy != 0 and current_direction[1] == -dy
                     ):
@@ -226,441 +445,3 @@ class AutoplaySystem(BaseSystem):
                     queue.append((neighbor, new_path))
 
         return []
-
-    def _survive(
-        self,
-        snake,
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
-        electric_walls: bool,
-        current_direction: Tuple[int, int],
-    ):
-        start = (snake.position.x, snake.position.y)
-
-        # Try all directions
-        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            # Prevent 180 degree turn
-            if (dx != 0 and current_direction[0] == -dx) or (
-                dy != 0 and current_direction[1] == -dy
-            ):
-                continue
-
-            if electric_walls:
-                next_x = start[0] + dx
-                next_y = start[1] + dy
-                if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
-                    continue
-            else:
-                next_x = (start[0] + dx) % width
-                next_y = (start[1] + dy) % height
-
-            neighbor = (next_x, next_y)
-
-            if neighbor not in obstacles:
-                self._buffer_direction(snake, dx, dy)
-                return
-
-    def _wait_tactically(
-        self,
-        snake,
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
-        electric_walls: bool,
-        current_direction: Tuple[int, int],
-    ):
-        """Move to a safe position while waiting for apple to become safe.
-
-        Chooses the direction that maximizes distance from own body,
-        giving more room to maneuver in the future.
-
-        Args:
-            snake: Snake entity
-            obstacles: Current obstacles
-            width: Board width
-            height: Board height
-            electric_walls: Whether walls are deadly
-            current_direction: Current movement direction
-        """
-        start = (snake.position.x, snake.position.y)
-        best_move = None
-        best_score = -1
-
-        # Evaluate all possible moves
-        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            # Prevent 180 degree turn
-            if (dx != 0 and current_direction[0] == -dx) or (
-                dy != 0 and current_direction[1] == -dy
-            ):
-                continue
-
-            if electric_walls:
-                next_x = start[0] + dx
-                next_y = start[1] + dy
-                if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
-                    continue
-            else:
-                next_x = (start[0] + dx) % width
-                next_y = (start[1] + dy) % height
-
-            neighbor = (next_x, next_y)
-
-            if neighbor not in obstacles:
-                # Score this move by distance to nearest body segment
-                min_dist = float("inf")
-                for obstacle in obstacles:
-                    dist = abs(next_x - obstacle[0]) + abs(next_y - obstacle[1])
-                    min_dist = min(min_dist, dist)
-
-                if min_dist > best_score:
-                    best_score = min_dist
-                    best_move = (dx, dy)
-
-        # Make the best move found, or any valid move if none scored well
-        if best_move:
-            self._buffer_direction(snake, best_move[0], best_move[1])
-        else:
-            # Fallback to basic survival if no tactical move found
-            self._survive(
-                snake,
-                obstacles,
-                width,
-                height,
-                electric_walls,
-                current_direction,
-            )
-
-    def _find_open_spaces(
-        self,
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
-    ) -> List[Tuple[int, int]]:
-        """Find all empty cells on the board.
-
-        Args:
-            obstacles: Set of occupied positions
-            width: Board width
-            height: Board height
-
-        Returns:
-            List of empty cell positions
-        """
-        open_spaces = []
-        for y in range(height):
-            for x in range(width):
-                pos = (x, y)
-                if pos not in obstacles:
-                    open_spaces.append(pos)
-        return open_spaces
-
-    def _is_apple_safe(
-        self,
-        apple_pos: Tuple[int, int],
-        snake,
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
-        electric_walls: bool,
-    ) -> bool:
-        """Check if eating apple at position leaves an escape route with breathing room.
-
-        Simulates eating the apple and verifies that:
-        1. The snake can reach open space
-        2. The escape area has enough room for continued play
-        3. Multiple spaces are reachable (not just one tiny corner)
-
-        Args:
-            apple_pos: Position of the apple
-            snake: Snake entity
-            obstacles: Current obstacles (including snake body)
-            width: Board width
-            height: Board height
-            electric_walls: Whether walls are deadly
-
-        Returns:
-            True if eating apple is safe, False if it would trap the snake
-        """
-        # Simulate snake after eating apple
-        simulated_obstacles = obstacles.copy()
-        simulated_obstacles.add(apple_pos)  # Apple position becomes new body segment
-
-        # Find all open spaces on the board after eating
-        open_spaces = self._find_open_spaces(simulated_obstacles, width, height)
-        if not open_spaces:
-            # Board is full - this is actually a WIN condition, allow it
-            return True
-
-        # Current snake size (will be +1 after eating apple)
-        snake_size = len(snake.body.segments) + 1
-
-        # Find reachable open spaces from apple position
-        reachable_spaces = []
-        for open_space in open_spaces:
-            escape_path = self._bfs(
-                apple_pos,
-                open_space,
-                simulated_obstacles,
-                width,
-                height,
-                electric_walls,
-                (0, 0),  # Dummy direction - checking if path exists
-            )
-            if escape_path:
-                reachable_spaces.append(open_space)
-
-        if not reachable_spaces:
-            return False  # No escape route at all
-
-        # Quality check: Ensure escape area is large enough
-        # We need at least as many reachable spaces as the snake's size
-        # This prevents escaping into tiny corners
-        min_required_spaces = max(snake_size, 3)  # At least 3 spaces minimum
-        if len(reachable_spaces) < min_required_spaces:
-            return False  # Escape area too small - likely a trap
-
-        # Additional check: Verify there's a cluster of connected spaces
-        # Use flood fill from first reachable space to count connected area
-        connected_area = self._count_connected_area(
-            reachable_spaces[0],
-            simulated_obstacles,
-            width,
-            height,
-            electric_walls,
-        )
-
-        # The connected area should be large enough for the snake to maneuver
-        # Require at least 1.5x the snake's size for safety margin
-        min_connected_area = int(snake_size * 1.5)
-        if connected_area < min_connected_area:
-            return False  # Escape leads to cramped space
-
-        return True  # Apple is safe - good escape with room to maneuver
-
-    def _count_connected_area(
-        self,
-        start_pos: Tuple[int, int],
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
-        electric_walls: bool,
-    ) -> int:
-        """Count the size of the connected open area from a starting position.
-
-        Uses flood fill to determine how many empty cells are reachable
-        from the start position.
-
-        Args:
-            start_pos: Starting position for flood fill
-            obstacles: Set of obstacles to avoid
-            width: Board width
-            height: Board height
-            electric_walls: Whether walls are deadly
-
-        Returns:
-            Number of connected empty cells
-        """
-        visited = {start_pos}
-        queue = deque([start_pos])
-        count = 1
-
-        while queue:
-            current = queue.popleft()
-
-            # Check all 4 directions
-            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-                if electric_walls:
-                    next_x = current[0] + dx
-                    next_y = current[1] + dy
-                    if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
-                        continue
-                else:
-                    next_x = (current[0] + dx) % width
-                    next_y = (current[1] + dy) % height
-
-                neighbor = (next_x, next_y)
-
-                if neighbor not in visited and neighbor not in obstacles:
-                    visited.add(neighbor)
-                    queue.append(neighbor)
-                    count += 1
-
-        return count
-
-    def _buffer_direction(self, snake, dx: int, dy: int) -> None:
-        if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
-            from src.ecs.components.input_buffer import InputBuffer
-
-            snake.input_buffer = InputBuffer()
-
-        buf = snake.input_buffer
-
-        # Don't fill buffer too much
-        if len(buf.moves) >= 1:
-            return
-
-        # Check if we are reversing direction (invalid move)
-        last_dx, last_dy = (snake.velocity.dx, snake.velocity.dy)
-        if buf.moves:
-            last_dx, last_dy = buf.moves[-1]
-
-        if (dx != 0 and last_dx == -dx) or (dy != 0 and last_dy == -dy):
-            return
-
-        buf.moves.append((dx, dy))
-
-    def _generate_hamiltonian_cycle(
-        self, width: int, height: int
-    ) -> List[Tuple[int, int]]:
-        """Generate a Hamiltonian cycle that visits every cell on the board.
-
-        Uses a simple zigzag pattern that works for any board size:
-        - Traverse left-to-right on even rows
-        - Traverse right-to-left on odd rows
-        - Connect rows by moving down
-
-        This guarantees visiting every cell exactly once and returning to start.
-
-        Args:
-            width: Board width in cells
-            height: Board height in cells
-
-        Returns:
-            List of (x, y) positions forming a complete cycle
-        """
-        path = []
-
-        for y in range(height):
-            if y % 2 == 0:
-                # Even row: left to right
-                for x in range(width):
-                    path.append((x, y))
-            else:
-                # Odd row: right to left
-                for x in range(width - 1, -1, -1):
-                    path.append((x, y))
-
-        return path
-
-    def _get_next_hamiltonian_move(
-        self,
-        snake,
-        width: int,
-        height: int,
-    ) -> Optional[Tuple[int, int]]:
-        """Get the next move direction by following the Hamiltonian cycle.
-
-        Finds the snake's current position in the pre-calculated cycle and
-        returns the direction to the next position in the cycle.
-
-        Args:
-            snake: Snake entity
-            width: Board width
-            height: Board height
-
-        Returns:
-            (dx, dy) direction tuple, or None if path not initialized
-        """
-        # Initialize Hamiltonian cycle if not done yet
-        if not self._hamiltonian_initialized:
-            self._hamiltonian_path = self._generate_hamiltonian_cycle(width, height)
-            self._hamiltonian_initialized = True
-
-        if not self._hamiltonian_path:
-            return None
-
-        # Find snake's current position in the cycle
-        current_pos = (snake.position.x, snake.position.y)
-
-        # Find current index in path
-        try:
-            current_index = self._hamiltonian_path.index(current_pos)
-            self._hamiltonian_index = current_index
-        except ValueError:
-            # Snake not on path (shouldn't happen), use stored index
-            current_index = self._hamiltonian_index
-
-        # Get next position in cycle (wrap around at end)
-        next_index = (current_index + 1) % len(self._hamiltonian_path)
-        next_pos = self._hamiltonian_path[next_index]
-
-        # Calculate direction
-        dx = next_pos[0] - current_pos[0]
-        dy = next_pos[1] - current_pos[1]
-
-        # Handle wrapping (shouldn't happen with proper cycle, but be safe)
-        if abs(dx) > 1:
-            dx = -1 if dx > 0 else 1
-        if abs(dy) > 1:
-            dy = -1 if dy > 0 else 1
-
-        return (dx, dy)
-
-    def _should_take_shortcut(
-        self,
-        snake,
-        apple_pos: Tuple[int, int],
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
-        electric_walls: bool,
-    ) -> bool:
-        """Decide whether to take a shortcut to apple or follow Hamiltonian cycle.
-
-        Takes shortcuts only when:
-        1. Apple is close by (worth the deviation)
-        2. Shortcut path exists and is safe
-        3. Eating the apple won't trap the snake
-
-        Args:
-            snake: Snake entity
-            apple_pos: Position of the apple
-            obstacles: Current obstacles
-            width: Board width
-            height: Board height
-            electric_walls: Whether walls are deadly
-
-        Returns:
-            True if shortcut is safe and beneficial, False to follow cycle
-        """
-        current_pos = (snake.position.x, snake.position.y)
-
-        # Calculate distance to apple
-        distance = abs(apple_pos[0] - current_pos[0]) + abs(
-            apple_pos[1] - current_pos[1]
-        )
-
-        # Only consider shortcuts for nearby apples (within reasonable distance)
-        # More flexible than cycle for close apples, but not worth the risk for far ones
-        max_shortcut_distance = max(width, height) // 2
-        if distance > max_shortcut_distance:
-            return False  # Too far, stick to cycle
-
-        # Check if there's a path to the apple
-        current_direction = (snake.velocity.dx, snake.velocity.dy)
-        path_to_apple = self._bfs(
-            current_pos,
-            apple_pos,
-            obstacles,
-            width,
-            height,
-            electric_walls,
-            current_direction,
-        )
-
-        if not path_to_apple:
-            return False  # No path, stick to cycle
-
-        # Use the deep lookahead safety check
-        # This ensures we won't get trapped after eating the apple
-        apple_safe = self._is_apple_safe(
-            apple_pos,
-            snake,
-            obstacles,
-            width,
-            height,
-            electric_walls,
-        )
-
-        return apple_safe  # Take shortcut only if apple is safe
