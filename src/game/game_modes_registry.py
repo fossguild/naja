@@ -26,6 +26,7 @@ MOVING_APPLE_MODE_NAME = "Moving Apple"
 HEAD_TAIL_SWITCH_NAME = "Head-Tail Swap"
 CHEESE_MODE_NAME = "Cheese Mode"
 AUTOPLAY_MODE_NAME = "AutoPlay"
+SHRINKING_MODE_NAME = "Shrinking Mode"
 GAME_MODE_TELEPORT = "Teleport"
 
 ACTUAL_GAME_MODES = [
@@ -44,6 +45,10 @@ ACTUAL_GAME_MODES = [
     {
         "name": CHEESE_MODE_NAME,
         "description": "Snake body has holes - pass through them safely, but avoid solid segments!",
+    },
+    {
+        "name": SHRINKING_MODE_NAME,
+        "description": "Snake starts large and shrinks as it eats apples until only the head remains.",
     },
     {
         "name": AUTOPLAY_MODE_NAME,
