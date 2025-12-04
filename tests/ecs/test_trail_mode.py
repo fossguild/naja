@@ -46,7 +46,6 @@ from ecs.entities.entity import EntityType
 from core.types.color import Color
 
 
-
 @pytest.fixture
 def board():
     """Create a 10x10 board for testing."""
@@ -84,7 +83,9 @@ def create_game_state(trail_mode_enabled=False, game_started=True):
         def __init__(self):
             self.game_state = GameState(
                 trail_mode_enabled=trail_mode_enabled,
-                game_mode=("Trail Mode" if trail_mode_enabled else "Classic Snake Game"),
+                game_mode=(
+                    "Trail Mode" if trail_mode_enabled else "Classic Snake Game"
+                ),
                 game_started=game_started,
             )
 
@@ -110,9 +111,7 @@ def create_snake_at(x, y, dx=1, dy=0):
 class TestTrailModeBasics:
     """Test basic Trail Mode functionality."""
 
-    def test_trail_system_creates_no_obstacles_when_disabled(
-        self, world, trail_system
-    ):
+    def test_trail_system_creates_no_obstacles_when_disabled(self, world, trail_system):
         """Test that trail system does nothing when Trail Mode is disabled."""
         # Setup: Classic mode (trail_mode_enabled=False)
         game_state_entity = create_game_state(trail_mode_enabled=False)
@@ -171,7 +170,7 @@ class TestTrailModeBasics:
         # Verify obstacle created at previous position
         obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
         assert len(obstacles) == 1, "One obstacle should be created"
-        
+
         obstacle = list(obstacles.values())[0]
         assert obstacle.position.x == 5
         assert obstacle.position.y == 5

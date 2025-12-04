@@ -57,7 +57,7 @@ class TrailGenerationSystem(BaseSystem):
 
     def __init__(self):
         """Initialize the trail generation system.
-        
+
         Tracks the snake's previous head position to determine where
         to place trail obstacles.
         """
