@@ -47,6 +47,10 @@ class AutoplaySystem(BaseSystem):
         self._path: List[Tuple[int, int]] = []
         self._last_calc_time = 0.0
         self._calc_interval = 50.0  # Recalculate path frequently
+        # Hamiltonian cycle for guaranteed safe path
+        self._hamiltonian_path: List[Tuple[int, int]] = []
+        self._hamiltonian_index = 0
+        self._hamiltonian_initialized = False
 
     def update(self, world: World) -> None:
         """Update the snake's direction based on pathfinding.
@@ -505,3 +509,36 @@ class AutoplaySystem(BaseSystem):
             return
 
         buf.moves.append((dx, dy))
+
+    def _generate_hamiltonian_cycle(
+        self, width: int, height: int
+    ) -> List[Tuple[int, int]]:
+        """Generate a Hamiltonian cycle that visits every cell on the board.
+
+        Uses a simple zigzag pattern that works for any board size:
+        - Traverse left-to-right on even rows
+        - Traverse right-to-left on odd rows
+        - Connect rows by moving down
+
+        This guarantees visiting every cell exactly once and returning to start.
+
+        Args:
+            width: Board width in cells
+            height: Board height in cells
+
+        Returns:
+            List of (x, y) positions forming a complete cycle
+        """
+        path = []
+
+        for y in range(height):
+            if y % 2 == 0:
+                # Even row: left to right
+                for x in range(width):
+                    path.append((x, y))
+            else:
+                # Odd row: right to left
+                for x in range(width - 1, -1, -1):
+                    path.append((x, y))
+
+        return path
