@@ -29,7 +29,7 @@ class TrailObstacleTag:
     Tag-only component with no data fields.
     Differentiates trail obstacles (created during gameplay) from
     static obstacles (created at level start).
-    
+
     Used by: TrailObstacle entities
     Read by: CollisionSystem, rendering systems
     """

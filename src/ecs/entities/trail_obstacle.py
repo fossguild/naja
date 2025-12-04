@@ -34,7 +34,7 @@ class TrailObstacle(Entity):
 
     Trail obstacles are dynamically created as the snake moves,
     marking every position the snake's head passes through.
-    
+
     Components:
     - position: location in grid where trail was left
     - tag: marker to identify as trail obstacle
