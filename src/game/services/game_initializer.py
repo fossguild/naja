@@ -55,6 +55,7 @@ class GameInitializer:
         settings: Optional[Any] = None,
         config: Optional[Any] = None,
         assets: Optional[Any] = None,
+        scoreboard: Optional[Any] = None,
     ):
         """Initialize the game initializer.
 
@@ -62,10 +63,12 @@ class GameInitializer:
             settings: Game settings object (Settings instance)
             config: Game configuration object
             assets: Game assets (for font reloading when window resizes)
+            scoreboard: Scoreboard for loading high scores
         """
         self._settings = settings
         self._config = config
         self._assets = assets
+        self._scoreboard = scoreboard
         self._game_over = False
         self._death_reason = ""
         self._game_mode = CLASSIC_MODE_NAME
@@ -393,22 +396,39 @@ class GameInitializer:
     def _create_score_entity(self, world: World) -> None:
         """Create score entity to track apples eaten.
 
+        Loads high score from scoreboard if available.
+
         Args:
             world: ECS world instance
         """
         from ecs.components.score import Score
 
+        # load high score from scoreboard (same way as game over screen)
+        loaded_high_score = 0
+        if self._scoreboard and self._settings:
+            try:
+                # get sorted scores for current settings and game mode
+                sorted_scores = self._scoreboard.sorted_scores(
+                    self._settings, self._game_mode
+                )
+                # take the first (highest) score if available
+                if sorted_scores:
+                    loaded_high_score = sorted_scores[0]["value"]
+            except Exception:
+                # silently fail if scoreboard is not available
+                pass
+
         # create a simple object to hold the score component
         # we don't use a specific entity type since this is just for UI tracking
         class ScoreEntity:
-            def __init__(self):
-                self.score = Score(current=0, high_score=0)
+            def __init__(self, high_score):
+                self.score = Score(current=0, high_score=high_score)
 
             def get_type(self):
                 """Return a dummy type to satisfy registry interface."""
                 return None  # no specific type for UI entities
 
-        score_entity = ScoreEntity()
+        score_entity = ScoreEntity(loaded_high_score)
         world.registry.add(score_entity)
 
     @property

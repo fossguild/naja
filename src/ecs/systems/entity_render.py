@@ -57,10 +57,26 @@ class EntityRenderSystem(BaseSystem):
         """
         self._renderer = renderer
 
+    def get_board_offset(self) -> tuple[int, int]:
+        """Get the offset for the game board from screen edge.
+
+        Returns:
+            Tuple of (x_offset, y_offset) in pixels
+        """
+        # Get screen dimensions
+        surface = pygame.display.get_surface()
+        if not surface:
+            return (0, 0)
+
+        # Top offset for UI elements - use fixed 45px to ensure board fits completely
+        top_offset = 45
+
+        return (0, top_offset)
+
     def draw_entity(
         self, position: Position, renderable: Renderable, cell_size: int
     ) -> None:
-        """Draw a single entity based on its components.
+        """Draw a single entity based on its components with board offset.
 
         Args:
             position: Position component
@@ -71,9 +87,12 @@ class EntityRenderSystem(BaseSystem):
         if not renderable.visible:
             return
 
-        # Calculate pixel position
-        pixel_x = position.x * cell_size
-        pixel_y = position.y * cell_size
+        # Get board offset
+        offset_x, offset_y = self.get_board_offset()
+
+        # Calculate pixel position with offset
+        pixel_x = offset_x + position.x * cell_size
+        pixel_y = offset_y + position.y * cell_size
 
         # Get color tuple
         color = renderable.get_color_tuple()
