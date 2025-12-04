@@ -123,11 +123,12 @@ class GameInitializer:
         # create snake at center of board
         self._create_snake(world, grid_size)
 
-        # create apple config entity
-        self._create_apple_config(world)
+        # create apple config entity (skip for Box Mode)
+        if self._game_mode != BOX_MODE_NAME:
+            self._create_apple_config(world)
 
-        # create initial apples
-        self._create_initial_apples(world, grid_size)
+            # create initial apples
+            self._create_initial_apples(world, grid_size)
 
         # create obstacles based on difficulty
         self._create_obstacles(world, grid_size)
