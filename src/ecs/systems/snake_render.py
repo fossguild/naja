@@ -69,7 +69,6 @@ class SnakeRenderSystem(BaseSystem):
         if not surface:
             return (0, 0)
 
-        surface_height = surface.get_height()
         # Top offset for UI elements - use fixed 45px to ensure board fits completely
         top_offset = 45
 
