@@ -35,6 +35,7 @@ from game.game_modes_registry import (
     SHRINKING_MODE_NAME,
     AUTOPLAY_MODE_NAME,
     BOX_MODE_NAME,
+    TRAIL_MODE_NAME,
 )
 
 
@@ -180,6 +181,7 @@ class GameInitializer:
             and self._settings.get("swap_head_tail_on_apple")
         )
         cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
+        trail_mode_enabled = current_mode == TRAIL_MODE_NAME
         shrinking_mode_enabled = current_mode == SHRINKING_MODE_NAME
 
         class GameStateEntity:
@@ -193,6 +195,7 @@ class GameInitializer:
                     moving_apples_enabled=moving_apples_enabled,
                     swap_head_tail_on_apple=swap_head_tail_enabled,
                     cheese_mode_enabled=cheese_mode_enabled,
+                    trail_mode_enabled=trail_mode_enabled,
                     shrinking_mode_enabled=shrinking_mode_enabled,
                 )
 
