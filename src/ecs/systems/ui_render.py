@@ -77,9 +77,9 @@ class UIRenderSystem(BaseSystem):
         current_score = score_entity.score.current
 
         try:
-            # load apple icon
-            icon_size = int(surface_width / 20)
-            padding = int(surface_width * 0.02)
+            # load apple icon - smaller size
+            icon_size = int(surface_width / 35)
+            padding = int(surface_width * 0.015)
 
             try:
                 apple_icon = pygame.image.load("assets/sprites/tabler_apple-filled.png")
@@ -87,8 +87,8 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 apple_icon = None
 
-            # font for score number
-            font_size = int(surface_width / 15)
+            # font for score number - smaller size
+            font_size = int(surface_width / 30)
             font_path = "assets/font/GetVoIP-Grotesque.ttf"
 
             try:
@@ -151,11 +151,11 @@ class UIRenderSystem(BaseSystem):
                 current_speed = snake.velocity.speed
                 break
 
-        # geometry
-        padding = int(surface_width * 0.02)
-        icon_size = int(surface_width / 30)
-        bar_width = int(surface_width * 0.20)
-        bar_height = int(surface_height * 0.015)
+        # geometry - smaller sizes
+        padding = int(surface_width * 0.015)
+        icon_size = int(surface_width / 40)
+        bar_width = int(surface_width * 0.15)
+        bar_height = int(surface_height * 0.012)
 
         # colors - bar changes from green (slow) to red (fast)
         if max_speed > min_speed:
@@ -168,7 +168,7 @@ class UIRenderSystem(BaseSystem):
         border_color = (100, 100, 100)  # gray border
         text_color = Color.from_hex(constants.SCORE_COLOR).to_tuple()
 
-        # load lightning icon
+        # load lightning icon - smaller
         try:
             bolt_icon = pygame.image.load("assets/sprites/tabler_bolt-filled.png")
             bolt_icon = pygame.transform.scale(bolt_icon, (icon_size, icon_size))
@@ -180,7 +180,7 @@ class UIRenderSystem(BaseSystem):
 
         # draw lightning icon
         if bolt_icon:
-            icon_x = center_x - bar_width // 2 - icon_size - 10
+            icon_x = center_x - bar_width // 2 - icon_size - 5
             self._renderer.blit(bolt_icon, (icon_x, padding))
 
         # draw speed bar
@@ -200,9 +200,9 @@ class UIRenderSystem(BaseSystem):
         # blit bar to screen
         self._renderer.blit(bar_surface, (bar_x, bar_y))
 
-        # draw "Speed: X.X" text to the right of the bar
+        # draw "Speed: X.X" text to the right of the bar - smaller font
         label_text = f"Speed: {current_speed:.1f}"
-        font_size = int(surface_width / 50)
+        font_size = int(surface_width / 60)
         font_path = "assets/font/GetVoIP-Grotesque.ttf"
 
         try:
@@ -212,7 +212,7 @@ class UIRenderSystem(BaseSystem):
 
         label_surf = font.render(label_text, True, text_color)
         label_rect = label_surf.get_rect()
-        label_rect.midleft = (bar_x + bar_width + 10, padding + icon_size // 2)
+        label_rect.midleft = (bar_x + bar_width + 5, padding + icon_size // 2)
 
         # blit label
         self._renderer.blit(label_surf, label_rect)
@@ -240,9 +240,9 @@ class UIRenderSystem(BaseSystem):
         high_score = score_entity.score.high_score
 
         try:
-            # load trophy icon
-            icon_size = int(surface_width / 20)
-            padding = int(surface_width * 0.02)
+            # load trophy icon - smaller size
+            icon_size = int(surface_width / 35)
+            padding = int(surface_width * 0.015)
 
             try:
                 trophy_icon = pygame.image.load(
@@ -254,8 +254,8 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 trophy_icon = None
 
-            # font for high score number
-            font_size = int(surface_width / 15)
+            # font for high score number - smaller size
+            font_size = int(surface_width / 30)
             font_path = "assets/font/GetVoIP-Grotesque.ttf"
 
             try:
@@ -270,8 +270,10 @@ class UIRenderSystem(BaseSystem):
             score_text = score_font.render(str(high_score), True, score_color)
             score_rect = score_text.get_rect()
 
-            # position in top-right corner (text first, then icon to its left)
-            score_rect.topright = (surface_width - padding, padding)
+            # position with more space from right edge for return button
+            # Leave space for return button (icon_size + padding * 2)
+            right_margin = padding + icon_size + padding * 2
+            score_rect.topright = (surface_width - right_margin, padding)
 
             if trophy_icon:
                 icon_x = score_rect.left - icon_size - 10
@@ -292,9 +294,9 @@ class UIRenderSystem(BaseSystem):
             surface_height: Height of the surface
         """
         try:
-            # load arrow icon
-            icon_size = int(surface_width / 20)
-            padding = int(surface_width * 0.02)
+            # load arrow icon - smaller size
+            icon_size = int(surface_width / 35)
+            padding = int(surface_width * 0.015)
 
             try:
                 arrow_icon = pygame.image.load(
