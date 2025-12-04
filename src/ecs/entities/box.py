@@ -17,36 +17,34 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Abstract Entity base class."""
+"""Box entity for Box Mode."""
 
-from abc import ABC, abstractmethod
-from enum import Enum, auto
+from dataclasses import dataclass
+
+from ecs.entities.entity import Entity, EntityType
+from ecs.components.position import Position
+from ecs.components.box import Box as BoxComponent
+from ecs.components.renderable import Renderable
 
 
-class EntityType(Enum):
-    """Types of entities in the game.
+@dataclass
+class Box(Entity):
+    """Box entity component composition.
 
-    Used for type-specific queries and filtering.
+    Defines the components that make up a box entity:
+    - position: location in grid
+    - box: points and growth properties
+    - renderable: visual appearance
     """
 
-    SNAKE = auto()
-    APPLE = auto()
-    OBSTACLE = auto()
-    BOX = auto()
-    HOLE = auto()
+    position: Position
+    box: BoxComponent
+    renderable: Renderable
 
-
-class Entity(ABC):
-    """Abstract base class for all game entities.
-
-    All entities must implement get_type() to return their EntityType.
-    Entities are composed of components (dataclass fields).
-    """
-
-    @abstractmethod
     def get_type(self) -> EntityType:
         """Get the type of this entity.
 
         Returns:
-            EntityType: Type identifier for this entity
+            EntityType.BOX
         """
+        return EntityType.BOX

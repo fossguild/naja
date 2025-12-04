@@ -111,6 +111,12 @@ class CollisionSystem(BaseSystem):
             self._handle_death(world, "Obstacle collision")
             return
 
+        # Check box collision and push logic (Box Mode)
+        self._check_box_collision(world)
+
+        # Check if any box is on a hole (Box Mode)
+        self._check_all_box_hole_collisions(world)
+
         # Check apple collision (doesn't kill)
         self._check_apple_collision(world)
 
@@ -359,6 +365,286 @@ class CollisionSystem(BaseSystem):
                     return True
 
         return False
+
+    def _check_box_collision(self, world: World) -> None:
+        """Check collision with boxes and push them.
+
+        In Box Mode, when the snake moves into a box, the box is pushed
+        in the direction the snake is moving.
+        """
+        snake = self._get_snake_entity(world)
+        if (
+            not snake
+            or not hasattr(snake, "position")
+            or not hasattr(snake, "velocity")
+        ):
+            return
+
+        head_x = snake.position.x
+        head_y = snake.position.y
+
+        # query boxes from world
+        from ecs.entities.entity import EntityType
+
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        for entity_id, box in boxes.items():
+            # check if box is at the same position as head
+            if hasattr(box, "position"):
+                if head_x == box.position.x and head_y == box.position.y:
+                    # calculate new box position based on snake's velocity
+                    new_box_x = box.position.x + snake.velocity.dx
+                    new_box_y = box.position.y + snake.velocity.dy
+
+                    # check if box would go out of bounds
+                    if (
+                        new_box_x < 0
+                        or new_box_x >= world.board.width
+                        or new_box_y < 0
+                        or new_box_y >= world.board.height
+                    ):
+                        # respawn box at a new random position
+                        self._respawn_box(world, entity_id, box)
+                        break
+
+                    # check if new position is valid (not occupied by obstacle or another box)
+                    if self._is_position_valid_for_box(world, new_box_x, new_box_y):
+                        # update box position
+                        box.position.prev_x = box.position.x
+                        box.position.prev_y = box.position.y
+                        box.position.x = new_box_x
+                        box.position.y = new_box_y
+                    else:
+                        # position is blocked by obstacle or another box, respawn
+                        self._respawn_box(world, entity_id, box)
+
+                    break  # only push one box per frame
+
+    def _is_position_valid_for_box(self, world: World, x: int, y: int) -> bool:
+        """Check if a position is valid for a box to move to.
+
+        A position is invalid if it's occupied by an obstacle or another box.
+        """
+        from ecs.entities.entity import EntityType
+
+        # check obstacles
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                if x == obstacle.position.x and y == obstacle.position.y:
+                    return False
+
+        # check other boxes
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        for _, box in boxes.items():
+            if hasattr(box, "position"):
+                if x == box.position.x and y == box.position.y:
+                    return False
+
+        return True
+
+    def _respawn_box(self, world: World, box_id: int, box) -> None:
+        """Respawn a box at a new random valid position.
+
+        Called when a box is pushed to an invalid location (border or blocked).
+        """
+        from ecs.entities.entity import EntityType
+        import random
+
+        # get all occupied positions
+        occupied_positions = set()
+
+        # snake positions
+        snake = self._get_snake_entity(world)
+        if snake and hasattr(snake, "position"):
+            occupied_positions.add((snake.position.x, snake.position.y))
+            if hasattr(snake, "body"):
+                for segment in snake.body.segments:
+                    occupied_positions.add((segment.x, segment.y))
+
+        # apple positions
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        for _, apple in apples.items():
+            if hasattr(apple, "position"):
+                occupied_positions.add((apple.position.x, apple.position.y))
+
+        # obstacle positions
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                occupied_positions.add((obstacle.position.x, obstacle.position.y))
+
+        # hole positions
+        holes = world.registry.query_by_type(EntityType.HOLE)
+        for _, hole in holes.items():
+            if hasattr(hole, "position"):
+                occupied_positions.add((hole.position.x, hole.position.y))
+
+        # other box positions
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        for other_id, other_box in boxes.items():
+            if other_id != box_id and hasattr(other_box, "position"):
+                occupied_positions.add((other_box.position.x, other_box.position.y))
+
+        # find a new valid position (avoid borders)
+        attempts = 0
+        max_attempts = 1000
+        while attempts < max_attempts:
+            # avoid borders - box must be at least 1 cell away from edges
+            new_x = random.randint(1, world.board.width - 2)
+            new_y = random.randint(1, world.board.height - 2)
+
+            if (new_x, new_y) not in occupied_positions:
+                # update box position
+                box.position.prev_x = box.position.x
+                box.position.prev_y = box.position.y
+                box.position.x = new_x
+                box.position.y = new_y
+                print(f"BOX RESPAWNED: new position=({new_x},{new_y})")
+                return
+
+            attempts += 1
+
+        # if we can't find a valid position after max attempts, just remove the box
+        print("BOX RESPAWN FAILED: removing box")
+        world.registry.remove(box_id)
+
+    def _spawn_new_box_and_hole(self, world: World) -> None:
+        """Spawn new box and hole at random valid positions.
+
+        Called after a box reaches a hole to continue the Box Mode gameplay.
+        """
+        from ecs.entities.entity import EntityType
+        from ecs.prefabs.box import create_box
+        from ecs.prefabs.hole import create_hole
+        import random
+
+        grid_size = world.board.cell_size
+
+        # get all occupied positions
+        occupied_positions = set()
+
+        # snake positions
+        snake = self._get_snake_entity(world)
+        if snake and hasattr(snake, "position"):
+            occupied_positions.add((snake.position.x, snake.position.y))
+            if hasattr(snake, "body"):
+                for segment in snake.body.segments:
+                    occupied_positions.add((segment.x, segment.y))
+
+        # apple positions
+        apples = world.registry.query_by_type(EntityType.APPLE)
+        for _, apple in apples.items():
+            if hasattr(apple, "position"):
+                occupied_positions.add((apple.position.x, apple.position.y))
+
+        # obstacle positions
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                occupied_positions.add((obstacle.position.x, obstacle.position.y))
+
+        # existing box positions
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        for _, box in boxes.items():
+            if hasattr(box, "position"):
+                occupied_positions.add((box.position.x, box.position.y))
+
+        # existing hole positions
+        holes = world.registry.query_by_type(EntityType.HOLE)
+        for _, hole in holes.items():
+            if hasattr(hole, "position"):
+                occupied_positions.add((hole.position.x, hole.position.y))
+
+        # find valid position for box (avoid borders)
+        box_x, box_y = None, None
+        attempts = 0
+        max_attempts = 1000
+        while attempts < max_attempts:
+            # avoid borders - box must be at least 1 cell away from edges
+            x = random.randint(1, world.board.width - 2)
+            y = random.randint(1, world.board.height - 2)
+
+            if (x, y) not in occupied_positions:
+                box_x, box_y = x, y
+                occupied_positions.add((x, y))
+                break
+
+            attempts += 1
+
+        # find valid position for hole (not on borders)
+        hole_x, hole_y = None, None
+        attempts = 0
+        while attempts < max_attempts:
+            # avoid borders - hole must be at least 1 cell away from edges
+            x = random.randint(1, world.board.width - 2)
+            y = random.randint(1, world.board.height - 2)
+
+            if (x, y) not in occupied_positions:
+                hole_x, hole_y = x, y
+                break
+
+            attempts += 1
+
+        # create box and hole if valid positions found
+        if box_x is not None and hole_x is not None:
+            create_box(world, x=box_x, y=box_y, grid_size=grid_size)
+            create_hole(world, x=hole_x, y=hole_y, grid_size=grid_size)
+            print(
+                f"NEW BOX AND HOLE SPAWNED: box=({box_x},{box_y}), hole=({hole_x},{hole_y})"
+            )
+        else:
+            print(
+                "WARNING: Failed to spawn new box and hole - no valid positions found"
+            )
+
+    def _check_all_box_hole_collisions(self, world: World) -> None:
+        """Check all boxes against all holes every frame.
+
+        This ensures box-hole collisions are detected immediately,
+        not just when the snake pushes a box.
+        """
+        from ecs.entities.entity import EntityType
+
+        boxes = world.registry.query_by_type(EntityType.BOX)
+        holes = world.registry.query_by_type(EntityType.HOLE)
+
+        for box_id, box in list(boxes.items()):
+            if not hasattr(box, "position"):
+                continue
+
+            for hole_id, hole in list(holes.items()):
+                if not hasattr(hole, "position"):
+                    continue
+
+                # check if box is on hole
+                if (
+                    box.position.x == hole.position.x
+                    and box.position.y == hole.position.y
+                ):
+                    print(f"BOX IN HOLE: box=({box.position.x},{box.position.y})")
+
+                    # play apple eating sound (reuse for box reward)
+                    if self._audio_service:
+                        self._audio_service.play_sound("assets/sound/eat.flac")
+
+                    # get rewards from box
+                    snake = self._get_snake_entity(world)
+                    if snake and hasattr(snake, "body") and hasattr(box, "box"):
+                        # grow snake
+                        snake.body.size += box.box.growth
+
+                        # increment score
+                        if self._scoring_system:
+                            self._scoring_system.on_apple_eaten(world, box.box.points)
+
+                    # remove old box and hole
+                    world.registry.remove(box_id)
+                    world.registry.remove(hole_id)
+
+                    # spawn new box and hole at random positions
+                    self._spawn_new_box_and_hole(world)
+
+                    return  # only process one match per frame
 
     def _check_apple_collision(self, world: World) -> None:
         """Check collision with apples and handle eating.

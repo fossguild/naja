@@ -17,36 +17,15 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Abstract Entity base class."""
+"""Hole component for Box Mode."""
 
-from abc import ABC, abstractmethod
-from enum import Enum, auto
+from dataclasses import dataclass
 
 
-class EntityType(Enum):
-    """Types of entities in the game.
+@dataclass
+class Hole:
+    """Marker component for hole entities in Box Mode.
 
-    Used for type-specific queries and filtering.
+    Tag-only component with no data fields.
+    Used by: Hole entities in Box Mode
     """
-
-    SNAKE = auto()
-    APPLE = auto()
-    OBSTACLE = auto()
-    BOX = auto()
-    HOLE = auto()
-
-
-class Entity(ABC):
-    """Abstract base class for all game entities.
-
-    All entities must implement get_type() to return their EntityType.
-    Entities are composed of components (dataclass fields).
-    """
-
-    @abstractmethod
-    def get_type(self) -> EntityType:
-        """Get the type of this entity.
-
-        Returns:
-            EntityType: Type identifier for this entity
-        """

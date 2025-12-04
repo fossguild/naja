@@ -46,7 +46,7 @@ from ecs.systems.overlay_render import OverlayRenderSystem
 from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
 from game.scenes.game_modes import get_resolved_game_mode
-from game.game_modes_registry import CLASSIC_MODE_NAME
+from game.game_modes_registry import CLASSIC_MODE_NAME, BOX_MODE_NAME
 from ecs.systems.hunger import HungerSystem
 from game.settings import GameSettings
 from game.services.game_over_service import GameOverService
@@ -132,28 +132,53 @@ class GameplayScene(BaseScene):
         from ecs.systems.apple_spawn import AppleSpawnSystem
         from ecs.systems.autoplay import AutoplaySystem
 
-        self._systems.extend(
+        # build game logic systems list
+        game_logic_systems = [
+            InputSystem(
+                self._pygame_adapter, self._settings, self._current_game_mode
+            ),  # 0: read user input and update velocity/game state
+            AutoplaySystem(
+                self._current_game_mode, self._settings
+            ),  # 1: calculate next move in autoplay mode
+            MovementSystem(
+                self._get_electric_walls
+            ),  # 2: update entity positions based on velocity
+        ]
+
+        # add apple-related systems only if not in Box Mode
+        if self._current_game_mode != BOX_MODE_NAME:
+            game_logic_systems.extend(
+                [
+                    MovingAppleSystem(),  # 3: move apples in modes that allow it
+                ]
+            )
+
+        game_logic_systems.extend(
             [
-                InputSystem(
-                    self._pygame_adapter, self._settings, self._current_game_mode
-                ),  # 0: read user input and update velocity/game state
-                AutoplaySystem(
-                    self._current_game_mode, self._settings
-                ),  # 1: calculate next move in autoplay mode
-                MovementSystem(
-                    self._get_electric_walls
-                ),  # 2: update entity positions based on velocity
-                MovingAppleSystem(),  # 3: move apples in modes that allow it
                 CollisionSystem(
                     self._settings,
                     self._audio_service,
                     scoring_system,
                     game_over_service,
-                ),  # 4: detect collisions (wall, self-bite, obstacles, apples)
-                AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
-                SpawnSystem(
-                    1000, (255, 0, 0), None
-                ),  # 6: create new entities at valid positions
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples, boxes)
+            ]
+        )
+
+        # add apple spawn systems only if not in Box Mode
+        if self._current_game_mode != BOX_MODE_NAME:
+            game_logic_systems.extend(
+                [
+                    AppleSpawnSystem(
+                        1000
+                    ),  # 5: maintain correct number of apples on board
+                    SpawnSystem(
+                        1000, (255, 0, 0), None
+                    ),  # 6: create new entities at valid positions
+                ]
+            )
+
+        game_logic_systems.extend(
+            [
                 ScoringSystem(),  # 7: track score and high score
                 # 8: conditionally enable HungerSystem based on game settings
                 *(
@@ -170,6 +195,8 @@ class GameplayScene(BaseScene):
                 ),  # 10: apply runtime settings changes (colors, difficulty, etc)
             ]
         )
+
+        self._systems.extend(game_logic_systems)
 
         # rendering and audio systems (indices 10+, always run even when paused)
         self._systems.extend(

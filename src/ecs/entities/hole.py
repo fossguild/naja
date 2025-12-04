@@ -17,36 +17,34 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Abstract Entity base class."""
+"""Hole entity for Box Mode."""
 
-from abc import ABC, abstractmethod
-from enum import Enum, auto
+from dataclasses import dataclass
+
+from ecs.entities.entity import Entity, EntityType
+from ecs.components.position import Position
+from ecs.components.hole import Hole as HoleComponent
+from ecs.components.renderable import Renderable
 
 
-class EntityType(Enum):
-    """Types of entities in the game.
+@dataclass
+class Hole(Entity):
+    """Hole entity component composition.
 
-    Used for type-specific queries and filtering.
+    Defines the components that make up a hole entity:
+    - position: location in grid
+    - hole: marker component
+    - renderable: visual appearance
     """
 
-    SNAKE = auto()
-    APPLE = auto()
-    OBSTACLE = auto()
-    BOX = auto()
-    HOLE = auto()
+    position: Position
+    hole: HoleComponent
+    renderable: Renderable
 
-
-class Entity(ABC):
-    """Abstract base class for all game entities.
-
-    All entities must implement get_type() to return their EntityType.
-    Entities are composed of components (dataclass fields).
-    """
-
-    @abstractmethod
     def get_type(self) -> EntityType:
         """Get the type of this entity.
 
         Returns:
-            EntityType: Type identifier for this entity
+            EntityType.HOLE
         """
+        return EntityType.HOLE

@@ -17,36 +17,21 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Abstract Entity base class."""
+"""Box component for Box Mode."""
 
-from abc import ABC, abstractmethod
-from enum import Enum, auto
+from dataclasses import dataclass
 
 
-class EntityType(Enum):
-    """Types of entities in the game.
+@dataclass
+class Box:
+    """Component for box entities that can be pushed by the snake.
 
-    Used for type-specific queries and filtering.
+    Contains:
+    - points: Points earned when box reaches hole
+    - growth: Segments to add to snake when box reaches hole
+
+    Used by: Box entities in Box Mode
     """
 
-    SNAKE = auto()
-    APPLE = auto()
-    OBSTACLE = auto()
-    BOX = auto()
-    HOLE = auto()
-
-
-class Entity(ABC):
-    """Abstract base class for all game entities.
-
-    All entities must implement get_type() to return their EntityType.
-    Entities are composed of components (dataclass fields).
-    """
-
-    @abstractmethod
-    def get_type(self) -> EntityType:
-        """Get the type of this entity.
-
-        Returns:
-            EntityType: Type identifier for this entity
-        """
+    points: int = 10  # points earned when box reaches hole
+    growth: int = 1  # how many segments to add to snake
