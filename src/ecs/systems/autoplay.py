@@ -360,10 +360,12 @@ class AutoplaySystem(BaseSystem):
         height: int,
         electric_walls: bool,
     ) -> bool:
-        """Check if eating apple at position leaves an escape route.
+        """Check if eating apple at position leaves an escape route with breathing room.
 
-        Simulates eating the apple and verifies that the snake can reach
-        open space afterward, preventing trap scenarios.
+        Simulates eating the apple and verifies that:
+        1. The snake can reach open space
+        2. The escape area has enough room for continued play
+        3. Multiple spaces are reachable (not just one tiny corner)
 
         Args:
             apple_pos: Position of the apple
@@ -380,13 +382,17 @@ class AutoplaySystem(BaseSystem):
         simulated_obstacles = obstacles.copy()
         simulated_obstacles.add(apple_pos)  # Apple position becomes new body segment
 
-        # Find all open spaces on the board
+        # Find all open spaces on the board after eating
         open_spaces = self._find_open_spaces(simulated_obstacles, width, height)
         if not open_spaces:
-            return False  # No open space exists - board is full (win condition)
+            # Board is full - this is actually a WIN condition, allow it
+            return True
 
-        # Check if we can reach ANY open space from apple position
-        # Use dummy direction since we're checking if path exists at all
+        # Current snake size (will be +1 after eating apple)
+        snake_size = len(snake.body.segments) + 1
+
+        # Find reachable open spaces from apple position
+        reachable_spaces = []
         for open_space in open_spaces:
             escape_path = self._bfs(
                 apple_pos,
@@ -395,12 +401,88 @@ class AutoplaySystem(BaseSystem):
                 width,
                 height,
                 electric_walls,
-                (0, 0),  # Dummy direction - not enforcing 180° prevention
+                (0, 0),  # Dummy direction - checking if path exists
             )
             if escape_path:
-                return True  # Found at least one escape route
+                reachable_spaces.append(open_space)
 
-        return False  # No escape route found - apple is a trap
+        if not reachable_spaces:
+            return False  # No escape route at all
+
+        # Quality check: Ensure escape area is large enough
+        # We need at least as many reachable spaces as the snake's size
+        # This prevents escaping into tiny corners
+        min_required_spaces = max(snake_size, 3)  # At least 3 spaces minimum
+        if len(reachable_spaces) < min_required_spaces:
+            return False  # Escape area too small - likely a trap
+
+        # Additional check: Verify there's a cluster of connected spaces
+        # Use flood fill from first reachable space to count connected area
+        connected_area = self._count_connected_area(
+            reachable_spaces[0],
+            simulated_obstacles,
+            width,
+            height,
+            electric_walls,
+        )
+
+        # The connected area should be large enough for the snake to maneuver
+        # Require at least 1.5x the snake's size for safety margin
+        min_connected_area = int(snake_size * 1.5)
+        if connected_area < min_connected_area:
+            return False  # Escape leads to cramped space
+
+        return True  # Apple is safe - good escape with room to maneuver
+
+    def _count_connected_area(
+        self,
+        start_pos: Tuple[int, int],
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+    ) -> int:
+        """Count the size of the connected open area from a starting position.
+
+        Uses flood fill to determine how many empty cells are reachable
+        from the start position.
+
+        Args:
+            start_pos: Starting position for flood fill
+            obstacles: Set of obstacles to avoid
+            width: Board width
+            height: Board height
+            electric_walls: Whether walls are deadly
+
+        Returns:
+            Number of connected empty cells
+        """
+        visited = {start_pos}
+        queue = deque([start_pos])
+        count = 1
+
+        while queue:
+            current = queue.popleft()
+
+            # Check all 4 directions
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                if electric_walls:
+                    next_x = current[0] + dx
+                    next_y = current[1] + dy
+                    if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
+                        continue
+                else:
+                    next_x = (current[0] + dx) % width
+                    next_y = (current[1] + dy) % height
+
+                neighbor = (next_x, next_y)
+
+                if neighbor not in visited and neighbor not in obstacles:
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+                    count += 1
+
+        return count
 
     def _buffer_direction(self, snake, dx: int, dy: int) -> None:
         if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
