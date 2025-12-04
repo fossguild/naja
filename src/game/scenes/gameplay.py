@@ -168,7 +168,9 @@ class GameplayScene(BaseScene):
         if self._current_game_mode != BOX_MODE_NAME:
             game_logic_systems.extend(
                 [
-                    AppleSpawnSystem(1000),  # 5: maintain correct number of apples on board
+                    AppleSpawnSystem(
+                        1000
+                    ),  # 5: maintain correct number of apples on board
                     SpawnSystem(
                         1000, (255, 0, 0), None
                     ),  # 6: create new entities at valid positions
