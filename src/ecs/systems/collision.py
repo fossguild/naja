@@ -434,21 +434,6 @@ class CollisionSystem(BaseSystem):
 
                         if self._should_swap_head_and_tail(world):
                             self._swap_head_and_tail(snake)
-                    game_state = self._get_game_state(world)
-                    cheese_mode = (
-                        game_state.cheese_mode_enabled if game_state else False
-                    )
-
-                    if hasattr(snake, "body"):
-                        if cheese_mode:
-                            # Cheese mode: +2 growth via pending_growth
-                            snake.body.pending_growth += 2
-                        else:
-                            # Classic/other modes: +1 immediate growth
-                            snake.body.size += 1
-
-                        if self._should_swap_head_and_tail(world):
-                            self._swap_head_and_tail(snake)
 
                     # increment score using scoring system
                     if self._scoring_system:
