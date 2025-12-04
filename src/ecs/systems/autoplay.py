@@ -542,3 +542,57 @@ class AutoplaySystem(BaseSystem):
                     path.append((x, y))
 
         return path
+
+    def _get_next_hamiltonian_move(
+        self,
+        snake,
+        width: int,
+        height: int,
+    ) -> Optional[Tuple[int, int]]:
+        """Get the next move direction by following the Hamiltonian cycle.
+
+        Finds the snake's current position in the pre-calculated cycle and
+        returns the direction to the next position in the cycle.
+
+        Args:
+            snake: Snake entity
+            width: Board width
+            height: Board height
+
+        Returns:
+            (dx, dy) direction tuple, or None if path not initialized
+        """
+        # Initialize Hamiltonian cycle if not done yet
+        if not self._hamiltonian_initialized:
+            self._hamiltonian_path = self._generate_hamiltonian_cycle(width, height)
+            self._hamiltonian_initialized = True
+
+        if not self._hamiltonian_path:
+            return None
+
+        # Find snake's current position in the cycle
+        current_pos = (snake.position.x, snake.position.y)
+
+        # Find current index in path
+        try:
+            current_index = self._hamiltonian_path.index(current_pos)
+            self._hamiltonian_index = current_index
+        except ValueError:
+            # Snake not on path (shouldn't happen), use stored index
+            current_index = self._hamiltonian_index
+
+        # Get next position in cycle (wrap around at end)
+        next_index = (current_index + 1) % len(self._hamiltonian_path)
+        next_pos = self._hamiltonian_path[next_index]
+
+        # Calculate direction
+        dx = next_pos[0] - current_pos[0]
+        dy = next_pos[1] - current_pos[1]
+
+        # Handle wrapping (shouldn't happen with proper cycle, but be safe)
+        if abs(dx) > 1:
+            dx = -1 if dx > 0 else 1
+        if abs(dy) > 1:
+            dy = -1 if dy > 0 else 1
+
+        return (dx, dy)
