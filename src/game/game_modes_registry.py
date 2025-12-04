@@ -27,6 +27,7 @@ HEAD_TAIL_SWITCH_NAME = "Head-Tail Swap"
 CHEESE_MODE_NAME = "Cheese Mode"
 AUTOPLAY_MODE_NAME = "AutoPlay"
 GAME_MODE_TELEPORT = "Teleport"
+BOX_MODE_NAME = "Box Mode"
 
 ACTUAL_GAME_MODES = [
     {
@@ -53,6 +54,10 @@ ACTUAL_GAME_MODES = [
         "name": GAME_MODE_TELEPORT,
         "description": "Collect an apple to warp to the other one, maintaining your direction.",
     },
+    {
+        "name": BOX_MODE_NAME,
+        "description": "Push boxes into holes to reveal fruits. Earn rewards when box reaches hole!",
+    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -64,6 +69,7 @@ __all__ = [
     "CHEESE_MODE_NAME",
     "AUTOPLAY_MODE_NAME",
     "GAME_MODE_TELEPORT",
+    "BOX_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",
