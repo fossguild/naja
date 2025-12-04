@@ -85,6 +85,16 @@ class AutoplaySystem(BaseSystem):
 
         current_direction = (snake.velocity.dx, snake.velocity.dy)
 
+        # Check if apple is safe to eat (has escape route after eating)
+        apple_is_safe = self._is_apple_safe(
+            goal,
+            snake,
+            obstacles,
+            world.board.width,
+            world.board.height,
+            electric_walls,
+        )
+
         path = self._bfs(
             start,
             goal,
@@ -95,7 +105,8 @@ class AutoplaySystem(BaseSystem):
             current_direction,
         )
 
-        if path:
+        if path and apple_is_safe:
+            # Apple is reachable AND safe - pursue it
             self._path = path
             next_pos = path[0]
             dx = next_pos[0] - start[0]
@@ -113,8 +124,19 @@ class AutoplaySystem(BaseSystem):
                     dy = 1
 
             self._buffer_direction(snake, dx, dy)
+        elif path and not apple_is_safe:
+            # Apple is reachable but UNSAFE - wait tactically
+            # Move to safe space while staying alive, repositioning for better angle
+            self._wait_tactically(
+                snake,
+                obstacles,
+                world.board.width,
+                world.board.height,
+                electric_walls,
+                current_direction,
+            )
         else:
-            # Fallback: try to survive by moving to any valid neighbor
+            # No path to apple - use basic survival
             self._survive(
                 snake,
                 obstacles,
@@ -234,6 +256,76 @@ class AutoplaySystem(BaseSystem):
             if neighbor not in obstacles:
                 self._buffer_direction(snake, dx, dy)
                 return
+
+    def _wait_tactically(
+        self,
+        snake,
+        obstacles: Set[Tuple[int, int]],
+        width: int,
+        height: int,
+        electric_walls: bool,
+        current_direction: Tuple[int, int],
+    ):
+        """Move to a safe position while waiting for apple to become safe.
+
+        Chooses the direction that maximizes distance from own body,
+        giving more room to maneuver in the future.
+
+        Args:
+            snake: Snake entity
+            obstacles: Current obstacles
+            width: Board width
+            height: Board height
+            electric_walls: Whether walls are deadly
+            current_direction: Current movement direction
+        """
+        start = (snake.position.x, snake.position.y)
+        best_move = None
+        best_score = -1
+
+        # Evaluate all possible moves
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            # Prevent 180 degree turn
+            if (dx != 0 and current_direction[0] == -dx) or (
+                dy != 0 and current_direction[1] == -dy
+            ):
+                continue
+
+            if electric_walls:
+                next_x = start[0] + dx
+                next_y = start[1] + dy
+                if next_x < 0 or next_x >= width or next_y < 0 or next_y >= height:
+                    continue
+            else:
+                next_x = (start[0] + dx) % width
+                next_y = (start[1] + dy) % height
+
+            neighbor = (next_x, next_y)
+
+            if neighbor not in obstacles:
+                # Score this move by distance to nearest body segment
+                min_dist = float("inf")
+                for obstacle in obstacles:
+                    dist = abs(next_x - obstacle[0]) + abs(next_y - obstacle[1])
+                    min_dist = min(min_dist, dist)
+
+                if min_dist > best_score:
+                    best_score = min_dist
+                    best_move = (dx, dy)
+
+        # Make the best move found, or any valid move if none scored well
+        if best_move:
+            self._buffer_direction(snake, best_move[0], best_move[1])
+        else:
+            # Fallback to basic survival if no tactical move found
+            self._survive(
+                snake,
+                obstacles,
+                width,
+                height,
+                electric_walls,
+                current_direction,
+            )
 
     def _find_open_spaces(
         self,
