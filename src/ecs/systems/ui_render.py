@@ -102,17 +102,19 @@ class UIRenderSystem(BaseSystem):
             # render score text
             score_text = score_font.render(str(current_score), True, score_color)
 
-            # position in top-left corner
+            # calculate vertical center of border area (top 8% of screen)
+            border_height = int(surface_height * 0.08)
+            center_y = border_height // 2
+
+            # position in top-left corner, vertically centered
             if apple_icon:
-                self._renderer.blit(apple_icon, (padding, padding))
+                icon_y = center_y - icon_size // 2
+                self._renderer.blit(apple_icon, (padding, icon_y))
                 score_rect = score_text.get_rect()
-                score_rect.midleft = (
-                    padding + icon_size + 10,
-                    padding + icon_size // 2,
-                )
+                score_rect.midleft = (padding + icon_size + 10, center_y)
             else:
                 score_rect = score_text.get_rect()
-                score_rect.topleft = (padding, padding)
+                score_rect.midleft = (padding, center_y)
 
             # blit score text
             self._renderer.blit(score_text, score_rect)
@@ -152,7 +154,6 @@ class UIRenderSystem(BaseSystem):
                 break
 
         # geometry - smaller sizes
-        padding = int(surface_width * 0.015)
         icon_size = int(surface_width / 40)
         bar_width = int(surface_width * 0.15)
         bar_height = int(surface_height * 0.012)
@@ -175,17 +176,20 @@ class UIRenderSystem(BaseSystem):
         except Exception:
             bolt_icon = None
 
-        # center position
+        # center position horizontally and vertically
         center_x = surface_width // 2
+        border_height = int(surface_height * 0.08)
+        center_y = border_height // 2
 
-        # draw lightning icon
+        # draw lightning icon, vertically centered
         if bolt_icon:
             icon_x = center_x - bar_width // 2 - icon_size - 5
-            self._renderer.blit(bolt_icon, (icon_x, padding))
+            icon_y = center_y - icon_size // 2
+            self._renderer.blit(bolt_icon, (icon_x, icon_y))
 
-        # draw speed bar
+        # draw speed bar, vertically centered
         bar_x = center_x - bar_width // 2
-        bar_y = padding + (icon_size - bar_height) // 2
+        bar_y = center_y - bar_height // 2
 
         # create temporary surface for the speed bar with border
         bar_surface = pygame.Surface((bar_width, bar_height))
@@ -212,7 +216,7 @@ class UIRenderSystem(BaseSystem):
 
         label_surf = font.render(label_text, True, text_color)
         label_rect = label_surf.get_rect()
-        label_rect.midleft = (bar_x + bar_width + 5, padding + icon_size // 2)
+        label_rect.midleft = (bar_x + bar_width + 5, center_y)
 
         # blit label
         self._renderer.blit(label_surf, label_rect)
@@ -270,14 +274,19 @@ class UIRenderSystem(BaseSystem):
             score_text = score_font.render(str(high_score), True, score_color)
             score_rect = score_text.get_rect()
 
+            # calculate vertical center of border area
+            border_height = int(surface_height * 0.08)
+            center_y = border_height // 2
+
             # position with more space from right edge for return button
             # Leave space for return button (icon_size + padding * 2)
             right_margin = padding + icon_size + padding * 2
-            score_rect.topright = (surface_width - right_margin, padding)
+            score_rect.midright = (surface_width - right_margin, center_y)
 
             if trophy_icon:
                 icon_x = score_rect.left - icon_size - 10
-                self._renderer.blit(trophy_icon, (icon_x, padding))
+                icon_y = center_y - icon_size // 2
+                self._renderer.blit(trophy_icon, (icon_x, icon_y))
 
             # blit score text
             self._renderer.blit(score_text, score_rect)
@@ -306,10 +315,15 @@ class UIRenderSystem(BaseSystem):
             except Exception:
                 arrow_icon = None
 
-            # position in top-right corner (far right)
+            # calculate vertical center of border area
+            border_height = int(surface_height * 0.08)
+            center_y = border_height // 2
+
+            # position in top-right corner (far right), vertically centered
             if arrow_icon:
                 icon_x = surface_width - padding - icon_size
-                self._renderer.blit(arrow_icon, (icon_x, padding))
+                icon_y = center_y - icon_size // 2
+                self._renderer.blit(arrow_icon, (icon_x, icon_y))
 
         except Exception:
             # silently fail if icon loading fails
