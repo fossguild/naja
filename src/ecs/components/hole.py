@@ -29,4 +29,3 @@ class Hole:
     Tag-only component with no data fields.
     Used by: Hole entities in Box Mode
     """
-

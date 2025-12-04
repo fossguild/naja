@@ -48,4 +48,3 @@ class Hole(Entity):
             EntityType.HOLE
         """
         return EntityType.HOLE
-

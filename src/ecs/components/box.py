@@ -35,4 +35,3 @@ class Box:
 
     points: int = 10  # points earned when box reaches hole
     growth: int = 1  # how many segments to add to snake
-

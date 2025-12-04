@@ -76,4 +76,3 @@ def create_box(
     # register entity with world and return ID
     entity_id = world.registry.add(box)
     return entity_id
-

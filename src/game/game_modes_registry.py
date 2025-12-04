@@ -56,7 +56,7 @@ ACTUAL_GAME_MODES = [
     },
     {
         "name": BOX_MODE_NAME,
-        "description": "Push boxes into holes to reveal fruits. Earn rewards when box reaches hole!",
+        "description": "Push boxes into holes to earn points.",
     },
 ]
 

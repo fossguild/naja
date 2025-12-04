@@ -48,4 +48,3 @@ class Box(Entity):
             EntityType.BOX
         """
         return EntityType.BOX
-

@@ -114,6 +114,9 @@ class CollisionSystem(BaseSystem):
         # Check box collision and push logic (Box Mode)
         self._check_box_collision(world)
 
+        # Check if any box is on a hole (Box Mode)
+        self._check_all_box_hole_collisions(world)
+
         # Check apple collision (doesn't kill)
         self._check_apple_collision(world)
 
@@ -410,9 +413,6 @@ class CollisionSystem(BaseSystem):
                         box.position.prev_y = box.position.y
                         box.position.x = new_box_x
                         box.position.y = new_box_y
-
-                        # check if box is now on a hole
-                        self._check_box_hole_collision(world, entity_id, box)
                     else:
                         # position is blocked by obstacle or another box, respawn
                         self._respawn_box(world, entity_id, box)
@@ -555,13 +555,14 @@ class CollisionSystem(BaseSystem):
             if hasattr(hole, "position"):
                 occupied_positions.add((hole.position.x, hole.position.y))
 
-        # find valid position for box
+        # find valid position for box (avoid borders)
         box_x, box_y = None, None
         attempts = 0
         max_attempts = 1000
         while attempts < max_attempts:
-            x = random.randint(0, world.board.width - 1)
-            y = random.randint(0, world.board.height - 1)
+            # avoid borders - box must be at least 1 cell away from edges
+            x = random.randint(1, world.board.width - 2)
+            y = random.randint(1, world.board.height - 2)
 
             if (x, y) not in occupied_positions:
                 box_x, box_y = x, y
@@ -596,22 +597,26 @@ class CollisionSystem(BaseSystem):
                 "WARNING: Failed to spawn new box and hole - no valid positions found"
             )
 
-    def _check_box_hole_collision(self, world: World, box_id: int, box) -> None:
-        """Check if a box has been pushed into a hole.
+    def _check_all_box_hole_collisions(self, world: World) -> None:
+        """Check all boxes against all holes every frame.
 
-        When a box reaches a hole, the snake gets the rewards (points and growth)
-        and both the box and hole are respawned at new positions.
-
-        Args:
-            world: ECS world
-            box_id: Entity ID of the box
-            box: Box entity
+        This ensures box-hole collisions are detected immediately,
+        not just when the snake pushes a box.
         """
         from ecs.entities.entity import EntityType
 
+        boxes = world.registry.query_by_type(EntityType.BOX)
         holes = world.registry.query_by_type(EntityType.HOLE)
-        for hole_id, hole in holes.items():
-            if hasattr(hole, "position") and hasattr(box, "position"):
+
+        for box_id, box in list(boxes.items()):
+            if not hasattr(box, "position"):
+                continue
+
+            for hole_id, hole in list(holes.items()):
+                if not hasattr(hole, "position"):
+                    continue
+
+                # check if box is on hole
                 if (
                     box.position.x == hole.position.x
                     and box.position.y == hole.position.y
@@ -639,7 +644,7 @@ class CollisionSystem(BaseSystem):
                     # spawn new box and hole at random positions
                     self._spawn_new_box_and_hole(world)
 
-                    break
+                    return  # only process one match per frame
 
     def _check_apple_collision(self, world: World) -> None:
         """Check collision with apples and handle eating.
