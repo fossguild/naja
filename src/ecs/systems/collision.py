@@ -370,7 +370,11 @@ class CollisionSystem(BaseSystem):
         in the direction the snake is moving.
         """
         snake = self._get_snake_entity(world)
-        if not snake or not hasattr(snake, "position") or not hasattr(snake, "velocity"):
+        if (
+            not snake
+            or not hasattr(snake, "position")
+            or not hasattr(snake, "velocity")
+        ):
             return
 
         head_x = snake.position.x
@@ -481,12 +485,13 @@ class CollisionSystem(BaseSystem):
             if other_id != box_id and hasattr(other_box, "position"):
                 occupied_positions.add((other_box.position.x, other_box.position.y))
 
-        # find a new valid position
+        # find a new valid position (avoid borders)
         attempts = 0
         max_attempts = 1000
         while attempts < max_attempts:
-            new_x = random.randint(0, world.board.width - 1)
-            new_y = random.randint(0, world.board.height - 1)
+            # avoid borders - box must be at least 1 cell away from edges
+            new_x = random.randint(1, world.board.width - 2)
+            new_y = random.randint(1, world.board.height - 2)
 
             if (new_x, new_y) not in occupied_positions:
                 # update box position
@@ -500,7 +505,7 @@ class CollisionSystem(BaseSystem):
             attempts += 1
 
         # if we can't find a valid position after max attempts, just remove the box
-        print(f"BOX RESPAWN FAILED: removing box")
+        print("BOX RESPAWN FAILED: removing box")
         world.registry.remove(box_id)
 
     def _spawn_new_box_and_hole(self, world: World) -> None:
@@ -583,7 +588,13 @@ class CollisionSystem(BaseSystem):
         if box_x is not None and hole_x is not None:
             create_box(world, x=box_x, y=box_y, grid_size=grid_size)
             create_hole(world, x=hole_x, y=hole_y, grid_size=grid_size)
-            print(f"NEW BOX AND HOLE SPAWNED: box=({box_x},{box_y}), hole=({hole_x},{hole_y})")
+            print(
+                f"NEW BOX AND HOLE SPAWNED: box=({box_x},{box_y}), hole=({hole_x},{hole_y})"
+            )
+        else:
+            print(
+                "WARNING: Failed to spawn new box and hole - no valid positions found"
+            )
 
     def _check_box_hole_collision(self, world: World, box_id: int, box) -> None:
         """Check if a box has been pushed into a hole.
@@ -601,7 +612,10 @@ class CollisionSystem(BaseSystem):
         holes = world.registry.query_by_type(EntityType.HOLE)
         for hole_id, hole in holes.items():
             if hasattr(hole, "position") and hasattr(box, "position"):
-                if box.position.x == hole.position.x and box.position.y == hole.position.y:
+                if (
+                    box.position.x == hole.position.x
+                    and box.position.y == hole.position.y
+                ):
                     print(f"BOX IN HOLE: box=({box.position.x},{box.position.y})")
 
                     # play apple eating sound (reuse for box reward)
