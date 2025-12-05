@@ -32,6 +32,7 @@ from game.game_modes_registry import (
     MOVING_APPLE_MODE_NAME,
     HEAD_TAIL_SWITCH_NAME,
     CHEESE_MODE_NAME,
+    SHRINKING_MODE_NAME,
     AUTOPLAY_MODE_NAME,
     BOX_MODE_NAME,
 )
@@ -163,6 +164,7 @@ class GameInitializer:
             and self._settings.get("swap_head_tail_on_apple")
         )
         cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
+        shrinking_mode_enabled = current_mode == SHRINKING_MODE_NAME
 
         class GameStateEntity:
             def __init__(self):
@@ -175,6 +177,7 @@ class GameInitializer:
                     moving_apples_enabled=moving_apples_enabled,
                     swap_head_tail_on_apple=swap_head_tail_enabled,
                     cheese_mode_enabled=cheese_mode_enabled,
+                    shrinking_mode_enabled=shrinking_mode_enabled,
                 )
 
             def get_type(self):
@@ -239,6 +242,7 @@ class GameInitializer:
             tail_color=tail_color,
             enable_hunger=bool(self._settings.get("enable_hunger")),
             cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
+            shrinking_mode=(self._game_mode == SHRINKING_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:
