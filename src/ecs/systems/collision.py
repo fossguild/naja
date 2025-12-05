@@ -818,6 +818,15 @@ class CollisionSystem(BaseSystem):
                         # remove eaten apple
                         world.registry.remove(entity_id)
 
+                    # Check for board-fill victory (Classic and other modes)
+                    # Skip for shrinking mode (handled separately) and AutoPlay (has its own check)
+                    game_state = self._get_game_state(world)
+                    if game_state and not getattr(
+                        game_state, "shrinking_mode_enabled", False
+                    ):
+                        if self._check_board_fill_victory(world):
+                            return  # Victory triggered, stop processing
+
                     break  # only eat one apple per frame
 
     def _handle_death(self, world: World, reason: str) -> None:
@@ -829,6 +838,31 @@ class CollisionSystem(BaseSystem):
             self._game_over_service.handle_death(world, reason)
         else:
             print(f"☠️ DEATH CAUSE: {reason} (Service missing)")
+
+    def _check_board_fill_victory(self, world: World) -> bool:
+        """Check if snake has filled the entire board (victory for Classic mode).
+
+        Returns True if victory was triggered, False otherwise.
+        """
+        snake = self._get_snake_entity(world)
+        if not snake or not hasattr(snake, "body"):
+            return False
+
+        # Calculate snake length (head + body segments)
+        snake_length = 1 + len(snake.body.segments)
+
+        # Get board size
+        board_size = world.board.width * world.board.height
+
+        # Victory when snake fills entire board
+        if snake_length >= board_size:
+            if self._game_over_service:
+                self._game_over_service.handle_victory(world, "Perfect Game!")
+            else:
+                print("🏆 VICTORY! Snake filled the board!")
+            return True
+
+        return False
 
     def _should_swap_head_and_tail(self, world: World) -> bool:
         """Determine if apple effects should swap the snake head and tail."""
