@@ -78,6 +78,18 @@ class GameInitializer:
         """Set the game mode that should be applied during initialization."""
         self._game_mode = mode or CLASSIC_MODE_NAME
 
+        # Force specific settings for autoplay mode to ensure Hamiltonian cycle works
+        if self._game_mode == AUTOPLAY_MODE_NAME and self._settings:
+            # Single apple - Hamiltonian cycle tracks one at a time
+            self._settings.set("number_of_apples", 1)
+            # No obstacles - would break the cycle path
+            self._settings.set("obstacle_difficulty", "None")
+            self._settings.set("dynamic_spawn_obstacles", False)
+            # No hunger - could cause unexpected death
+            self._settings.set("enable_hunger", False)
+            # Wraparound walls - Hamiltonian cycle uses edge wrapping
+            self._settings.set("electric_walls", True)
+
     def reset_world(self, world: World) -> None:
         """Reset the game world for a new game.
 
