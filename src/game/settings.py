@@ -45,6 +45,7 @@ class GameSettings:
         "board_color_palette": "Classic Dark",  # Board color customization
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
+        "segment_borders": False,  # Dark borders around snake segments
     }
 
     # Declarative menu field definitions organized by category
@@ -157,6 +158,13 @@ class GameSettings:
             "label": "Snake color",
             "type": "select",
             "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
+            "requires_reset": False,
+            "category": "Display",
+        },
+        {
+            "key": "segment_borders",
+            "label": "Segment borders",
+            "type": "bool",
             "requires_reset": False,
             "category": "Display",
         },
