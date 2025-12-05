@@ -186,9 +186,9 @@ class GameInitializer:
         game_state_entity = GameStateEntity()
         world.registry.add(game_state_entity)
 
-        # Auto-start for Autoplay mode (no user input)
-        if current_mode == AUTOPLAY_MODE_NAME:
-            game_state_entity.game_state.game_started = True
+        # NOTE: For autoplay mode, game_started is NOT set here.
+        # AutoplaySystem sets it after computing the first safe direction.
+        # This prevents the snake from moving before autoplay is ready.
 
     def _create_color_scheme(self, world: World) -> None:
         """Create ColorScheme entity for rendering systems.
@@ -254,6 +254,7 @@ class GameInitializer:
             enable_hunger=bool(self._settings.get("enable_hunger")),
             cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
             shrinking_mode=(self._game_mode == SHRINKING_MODE_NAME),
+            autoplay_mode=(self._game_mode == AUTOPLAY_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:
