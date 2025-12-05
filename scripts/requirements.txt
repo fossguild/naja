@@ -1,0 +1,4 @@
+# Requirements for running preview scripts
+# Install with: pip install -r scripts/requirements.txt
+pygame>=2.6.0
+platformdirs>=4.0.0
