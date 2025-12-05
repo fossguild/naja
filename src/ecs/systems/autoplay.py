@@ -319,6 +319,11 @@ class AutoplaySystem(BaseSystem):
         self._settings = settings
         self._cycle: Optional[HamiltonianCycle] = None
         self._initialized = False
+        self._game_over_service = None  # Set by gameplay scene
+
+    def set_game_over_service(self, service) -> None:
+        """Set the game over service for victory handling."""
+        self._game_over_service = service
 
     def update(self, world: World) -> None:
         """Update the snake's direction using Perturbed Hamiltonian Cycle."""
@@ -327,6 +332,10 @@ class AutoplaySystem(BaseSystem):
 
         snake = self._get_snake(world)
         if not snake:
+            return
+
+        # Check for victory (snake fills entire board)
+        if self._check_victory(snake, world):
             return
 
         # Get head position
@@ -372,6 +381,24 @@ class AutoplaySystem(BaseSystem):
 
         if best_dir:
             self._buffer_direction(snake, best_dir[0], best_dir[1])
+
+    def _check_victory(self, snake, world: World) -> bool:
+        """Check if snake has filled the entire board (victory condition).
+
+        Returns True if victory was triggered, False otherwise.
+        """
+        board_size = world.board.width * world.board.height
+        snake_length = self._get_snake_length(snake)
+
+        # Victory when snake fills entire board
+        if snake_length >= board_size:
+            if self._game_over_service:
+                self._game_over_service.handle_victory(world)
+            else:
+                print("🏆 VICTORY! Snake filled the board")
+            return True
+
+        return False
 
     def _get_new_direction(
         self,
