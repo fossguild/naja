@@ -132,14 +132,16 @@ class GameplayScene(BaseScene):
         from ecs.systems.apple_spawn import AppleSpawnSystem
         from ecs.systems.autoplay import AutoplaySystem
 
+        # Create autoplay system and wire up game over service for victory handling
+        autoplay_system = AutoplaySystem(self._current_game_mode, self._settings)
+        autoplay_system.set_game_over_service(game_over_service)
+
         # build game logic systems list
         game_logic_systems = [
             InputSystem(
                 self._pygame_adapter, self._settings, self._current_game_mode
             ),  # 0: read user input and update velocity/game state
-            AutoplaySystem(
-                self._current_game_mode, self._settings
-            ),  # 1: calculate next move in autoplay mode
+            autoplay_system,  # 1: calculate next move in autoplay mode (with victory handling)
             MovementSystem(
                 self._get_electric_walls
             ),  # 2: update entity positions based on velocity
@@ -177,22 +179,25 @@ class GameplayScene(BaseScene):
                 ]
             )
 
+        # Create settings apply system and wire up game mode for even grid restriction
+        settings_apply_system = SettingsApplySystem(
+            self._settings, self._config, self._assets
+        )
+        settings_apply_system.set_game_mode(self._current_game_mode)
+
         game_logic_systems.extend(
             [
-                ScoringSystem(),  # 7: track score and high score
-                # 8: conditionally enable HungerSystem based on game settings
+                # 7: conditionally enable HungerSystem based on game settings
                 *(
                     [HungerSystem(game_over_service=game_over_service)]
                     if self._settings and bool(self._settings.get("enable_hunger"))
                     else []
                 ),
-                scoring_system,  # 7: track score and high score
+                scoring_system,  # 8: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
                 ),  # 9: generate obstacles with connectivity guarantees
-                SettingsApplySystem(
-                    self._settings, self._config, self._assets
-                ),  # 10: apply runtime settings changes (colors, difficulty, etc)
+                settings_apply_system,  # 10: apply runtime settings changes
             ]
         )
 
@@ -214,7 +219,9 @@ class GameplayScene(BaseScene):
         if self._renderer:
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
-            self._snake_render_system = SnakeRenderSystem(self._renderer)
+            self._snake_render_system = SnakeRenderSystem(
+                self._renderer, self._settings
+            )
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
             self._overlay_render_system = OverlayRenderSystem(
                 self._renderer, self._settings, self._config
