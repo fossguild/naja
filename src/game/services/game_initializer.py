@@ -87,7 +87,7 @@ class GameInitializer:
             self._settings.set("dynamic_spawn_obstacles", False)
             # No hunger - could cause unexpected death
             self._settings.set("enable_hunger", False)
-            # Wraparound walls - Hamiltonian cycle uses edge wrapping
+            # Wraparound walls
             self._settings.set("electric_walls", True)
 
     def reset_world(self, world: World) -> None:
