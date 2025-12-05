@@ -32,6 +32,7 @@ Algorithm Summary:
 """
 
 from typing import Optional, Any, Tuple, Set, Dict
+import random
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
@@ -42,8 +43,9 @@ from game.game_modes_registry import AUTOPLAY_MODE_NAME
 class HamiltonianCycle:
     """Generates and manages a Hamiltonian cycle over a 2D grid.
 
-    Uses a simple zigzag pattern that visits every cell exactly once.
-    Each cell gets a "tour number" (0 to W*H-1).
+    Uses Prim's algorithm to generate a random spanning tree maze at half resolution,
+    then walks the maze edges to create an interesting Hamiltonian cycle pattern.
+    This creates visually engaging, randomized patterns like John Tapsell's original.
     """
 
     def __init__(self, width: int, height: int):
@@ -52,53 +54,214 @@ class HamiltonianCycle:
         self.height = height
         self.board_size = width * height
 
+        # Half-size maze dimensions
+        self.maze_width = width // 2
+        self.maze_height = height // 2
+
+        # Maze walls (which walls are removed to form passages)
+        self._can_go_right: Set[Tuple[int, int]] = set()
+        self._can_go_down: Set[Tuple[int, int]] = set()
+
         # Tour number for each cell: position in the cycle (0 to board_size-1)
         self._tour_numbers: Dict[Tuple[int, int], int] = {}
 
-        # Generate the proper Hamiltonian cycle
-        self._generate_cycle()
+        # Generate the maze-based Hamiltonian cycle
+        self._generate_maze()
+        self._generate_tour_from_maze()
 
-    def _generate_cycle(self) -> None:
-        """Generate a proper Hamiltonian cycle that closes correctly.
+    def _generate_maze(self) -> None:
+        """Generate a random spanning tree maze using randomized DFS.
 
-        Pattern:
-        - Row 0: go right from (0,0) to (W-1, 0)
-        - Rows 1 to H-1: zigzag through columns 1 to W-1 (leaving column 0 empty)
-        - Return path: go up column 0 from (0, H-1) to (0, 1)
-        - This creates a closed cycle where all adjacent tour numbers are grid-adjacent
-
-        Example for 4x4:
-         0  1  2  3
-        15  6  5  4
-        14  7  8  9
-        13 12 11 10
-
-        The cycle: 0→1→2→3→4→5→6→7→8→9→10→11→12→13→14→15→0
-        Every transition is exactly 1 grid cell (up/down/left/right).
+        Creates a maze at half the grid resolution. Walking the edges
+        of this maze produces a Hamiltonian cycle on the full grid.
         """
+        self._can_go_right.clear()
+        self._can_go_down.clear()
+
+        if self.maze_width <= 0 or self.maze_height <= 0:
+            return
+
+        visited: Set[Tuple[int, int]] = set()
+
+        # Start from (0, 0)
+        self._generate_maze_recursive(-1, -1, 0, 0, visited)
+
+    def _generate_maze_recursive(
+        self, from_x: int, from_y: int, x: int, y: int, visited: Set[Tuple[int, int]]
+    ) -> None:
+        """Recursively generate maze using randomized DFS."""
+        # Check bounds
+        if x < 0 or y < 0 or x >= self.maze_width or y >= self.maze_height:
+            return
+
+        # Already visited
+        if (x, y) in visited:
+            return
+
+        visited.add((x, y))
+
+        # Mark passage from previous cell
+        if from_x >= 0:
+            if from_x < x:
+                self._can_go_right.add((from_x, from_y))
+            elif from_x > x:
+                self._can_go_right.add((x, y))
+            elif from_y < y:
+                self._can_go_down.add((from_x, from_y))
+            elif from_y > y:
+                self._can_go_down.add((x, y))
+
+        # Visit neighbors in random order (randomized DFS creates random spanning tree)
+        neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+        random.shuffle(neighbors)
+
+        for nx, ny in neighbors:
+            self._generate_maze_recursive(x, y, nx, ny, visited)
+
+    def _can_go_left(self, x: int, y: int) -> bool:
+        """Check if can go left in maze."""
+        if x <= 0:
+            return False
+        return (x - 1, y) in self._can_go_right
+
+    def _can_go_up(self, x: int, y: int) -> bool:
+        """Check if can go up in maze."""
+        if y <= 0:
+            return False
+        return (x, y - 1) in self._can_go_down
+
+    def _find_next_dir(self, x: int, y: int, dir: str) -> str:
+        """Find next direction following 'turn left when possible' rule.
+
+        This walks the maze edges, creating a Hamiltonian cycle.
+        """
+        # Turn left preference order for each direction
+        if dir == "right":
+            if self._can_go_up(x, y):
+                return "up"
+            if (x, y) in self._can_go_right:
+                return "right"
+            if (x, y) in self._can_go_down:
+                return "down"
+            return "left"
+        elif dir == "down":
+            if (x, y) in self._can_go_right:
+                return "right"
+            if (x, y) in self._can_go_down:
+                return "down"
+            if self._can_go_left(x, y):
+                return "left"
+            return "up"
+        elif dir == "left":
+            if (x, y) in self._can_go_down:
+                return "down"
+            if self._can_go_left(x, y):
+                return "left"
+            if self._can_go_up(x, y):
+                return "up"
+            return "right"
+        else:  # up
+            if self._can_go_left(x, y):
+                return "left"
+            if self._can_go_up(x, y):
+                return "up"
+            if (x, y) in self._can_go_right:
+                return "right"
+            return "down"
+
+    def _set_tour_number(self, x: int, y: int, number: int) -> None:
+        """Set tour number for a cell (only if not already set)."""
+        if (x, y) not in self._tour_numbers:
+            self._tour_numbers[(x, y)] = number
+
+    def _generate_tour_from_maze(self) -> None:
+        """Walk the maze edges to generate Hamiltonian cycle tour numbers."""
         self._tour_numbers.clear()
+
+        if self.maze_width <= 0 or self.maze_height <= 0:
+            # Fallback for very small grids
+            for y in range(self.height):
+                for x in range(self.width):
+                    self._tour_numbers[(x, y)] = y * self.width + x
+            return
+
+        # Start at maze cell (0, 0), direction based on maze structure
+        x, y = 0, 0
+        start_dir = "up" if (0, 0) in self._can_go_down else "left"
+        dir = start_dir
         number = 0
 
-        # Row 0: go right from (0,0) to (W-1, 0)
-        for x in range(self.width):
-            self._tour_numbers[(x, 0)] = number
-            number += 1
+        # Walk the entire cycle
+        while number < self.board_size:
+            next_dir = self._find_next_dir(x, y, dir)
 
-        # Inner zigzag: rows 1 to H-1, columns 1 to W-1
-        for y in range(1, self.height):
-            if y % 2 == 1:  # Odd row: go left from W-1 to 1
-                for x in range(self.width - 1, 0, -1):
-                    self._tour_numbers[(x, y)] = number
+            # Fill in the 2x2 block for this maze cell based on direction
+            # Each maze cell corresponds to a 2x2 block in the full grid
+            bx, by = x * 2, y * 2
+
+            if dir == "right":
+                self._set_tour_number(bx, by, number)
+                number += 1
+                if next_dir in ("right", "down", "left"):
+                    self._set_tour_number(bx + 1, by, number)
                     number += 1
-            else:  # Even row: go right from 1 to W-1
-                for x in range(1, self.width):
-                    self._tour_numbers[(x, y)] = number
+                if next_dir in ("down", "left"):
+                    self._set_tour_number(bx + 1, by + 1, number)
+                    number += 1
+                if next_dir == "left":
+                    self._set_tour_number(bx, by + 1, number)
+                    number += 1
+            elif dir == "down":
+                self._set_tour_number(bx + 1, by, number)
+                number += 1
+                if next_dir in ("down", "left", "up"):
+                    self._set_tour_number(bx + 1, by + 1, number)
+                    number += 1
+                if next_dir in ("left", "up"):
+                    self._set_tour_number(bx, by + 1, number)
+                    number += 1
+                if next_dir == "up":
+                    self._set_tour_number(bx, by, number)
+                    number += 1
+            elif dir == "left":
+                self._set_tour_number(bx + 1, by + 1, number)
+                number += 1
+                if next_dir in ("left", "up", "right"):
+                    self._set_tour_number(bx, by + 1, number)
+                    number += 1
+                if next_dir in ("up", "right"):
+                    self._set_tour_number(bx, by, number)
+                    number += 1
+                if next_dir == "right":
+                    self._set_tour_number(bx + 1, by, number)
+                    number += 1
+            else:  # up
+                self._set_tour_number(bx, by + 1, number)
+                number += 1
+                if next_dir in ("up", "right", "down"):
+                    self._set_tour_number(bx, by, number)
+                    number += 1
+                if next_dir in ("right", "down"):
+                    self._set_tour_number(bx + 1, by, number)
+                    number += 1
+                if next_dir == "down":
+                    self._set_tour_number(bx + 1, by + 1, number)
                     number += 1
 
-        # Return path: column 0, from bottom (H-1) up to row 1
-        for y in range(self.height - 1, 0, -1):
-            self._tour_numbers[(0, y)] = number
-            number += 1
+            # Move to next maze cell
+            dir = next_dir
+            if dir == "right":
+                x += 1
+            elif dir == "left":
+                x -= 1
+            elif dir == "down":
+                y += 1
+            else:
+                y -= 1
+
+            # Check if we've returned to start
+            if x == 0 and y == 0 and dir == start_dir:
+                break
 
     def get_tour_number(self, x: int, y: int) -> int:
         """Get the tour number for a cell."""
