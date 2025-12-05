@@ -46,6 +46,7 @@ class GameSettings:
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
         "segment_borders": False,  # Dark borders around snake segments
+        "enable_speed_boost": False,  # Temporary speed boost when eating apples
     }
 
     # Settings that are restricted/forced for Autoplay mode
@@ -151,6 +152,13 @@ class GameSettings:
         {
             "key": "electric_walls",
             "label": "Electric walls",
+            "type": "bool",
+            "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "enable_speed_boost",
+            "label": "Speed boost on apple",
             "type": "bool",
             "requires_reset": True,
             "category": "Gameplay",

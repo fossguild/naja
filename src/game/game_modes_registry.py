@@ -30,7 +30,6 @@ SHRINKING_MODE_NAME = "Shrinking Mode"
 GAME_MODE_TELEPORT = "Teleport"
 BOX_MODE_NAME = "Box Mode"
 TRAIL_MODE_NAME = "Trail Mode"
-SPEED_BOOST_MODE_NAME = "Speed Boost Mode"
 
 ACTUAL_GAME_MODES = [
     {
@@ -69,10 +68,6 @@ ACTUAL_GAME_MODES = [
         "name": TRAIL_MODE_NAME,
         "description": "Every tile the snake moves through becomes a permanent obstacle.",
     },
-    {
-        "name": SPEED_BOOST_MODE_NAME,
-        "description": "Eating apples grants temporary 2x speed boost for 3 seconds.",
-    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -86,7 +81,6 @@ __all__ = [
     "GAME_MODE_TELEPORT",
     "BOX_MODE_NAME",
     "TRAIL_MODE_NAME",
-    "SPEED_BOOST_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",
