@@ -38,6 +38,7 @@ class TestGameOverSceneDisplay:
             def __init__(self, score, gamemode):
                 self.final_score = score
                 self.game_mode = gamemode
+                self.death_reason = ""
 
         class GameStateEntity:
             def __init__(self, score, gamemode):
@@ -393,6 +394,7 @@ class TestScoreHighlighting:
             def __init__(self):
                 self.final_score = 90
                 self.game_mode = "Classic Snake Game"
+                self.death_reason = ""
 
         class GameStateEntity:
             def __init__(self):
