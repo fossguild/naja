@@ -78,7 +78,9 @@ def create_game_state(speed_boost_mode_enabled=False, game_started=True):
             self.game_state = GameState(
                 speed_boost_mode_enabled=speed_boost_mode_enabled,
                 game_mode=(
-                    "Speed Boost Mode" if speed_boost_mode_enabled else "Classic Snake Game"
+                    "Speed Boost Mode"
+                    if speed_boost_mode_enabled
+                    else "Classic Snake Game"
                 ),
                 game_started=game_started,
             )
