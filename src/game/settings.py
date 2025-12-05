@@ -185,7 +185,10 @@ class GameSettings:
             grid_size: Size of each grid cell
         """
         self.load_settings()
-        self.settings["cells_per_side"] = initial_width // grid_size
+        # Only calculate cells_per_side if it wasn't loaded from settings
+        # This preserves the user's saved preference
+        if "cells_per_side" not in self.settings:
+            self.settings["cells_per_side"] = initial_width // grid_size
         self._validate_speed_relationship()
 
         # Key holding state tracking
