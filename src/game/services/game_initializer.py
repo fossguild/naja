@@ -183,6 +183,11 @@ class GameInitializer:
         cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
         trail_mode_enabled = current_mode == TRAIL_MODE_NAME
         shrinking_mode_enabled = current_mode == SHRINKING_MODE_NAME
+        speed_boost_mode_enabled = bool(
+            self._settings
+            and hasattr(self._settings, "get")
+            and self._settings.get("enable_speed_boost")
+        )
 
         class GameStateEntity:
             def __init__(self):
@@ -197,6 +202,7 @@ class GameInitializer:
                     cheese_mode_enabled=cheese_mode_enabled,
                     trail_mode_enabled=trail_mode_enabled,
                     shrinking_mode_enabled=shrinking_mode_enabled,
+                    speed_boost_mode_enabled=speed_boost_mode_enabled,
                 )
 
             def get_type(self):
@@ -274,6 +280,7 @@ class GameInitializer:
             cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
             shrinking_mode=(self._game_mode == SHRINKING_MODE_NAME),
             autoplay_mode=(self._game_mode == AUTOPLAY_MODE_NAME),
+            speed_boost_mode=bool(self._settings.get("enable_speed_boost")),
         )
 
     def _create_apple_config(self, world: World) -> None:

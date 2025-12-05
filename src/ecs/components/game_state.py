@@ -50,6 +50,7 @@ class GameState:
     cheese_mode_enabled: bool = False
     trail_mode_enabled: bool = False
     shrinking_mode_enabled: bool = False
+    speed_boost_mode_enabled: bool = False
     game_started: bool = False  # Set to True after first input
     final_score: int = 0  # score at time of death
     trail_obstacles: List[Tuple[int, int]] = field(default_factory=list)

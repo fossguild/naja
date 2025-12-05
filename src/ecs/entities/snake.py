@@ -20,6 +20,7 @@
 """Snake entity."""
 
 from dataclasses import dataclass
+from typing import Optional
 
 from ecs.entities.entity import Entity, EntityType
 from ecs.components.position import Position
@@ -29,6 +30,7 @@ from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
 from ecs.components.input_buffer import InputBuffer
 from ecs.components.hunger import Hunger
+from ecs.components.speed_boost import SpeedBoost
 
 
 @dataclass
@@ -41,6 +43,7 @@ class Snake(Entity):
     - body: tail segments as Position list
     - interpolation: smooth rendering data
     - renderable: visual appearance (contains head color)
+    - speed_boost: optional speed boost state (Speed Boost Mode)
 
     Note: Snake colors are now stored in renderable.color (head) and
     retrieved from ColorScheme or constants for tail color.
@@ -53,6 +56,7 @@ class Snake(Entity):
     renderable: Renderable
     input_buffer: InputBuffer
     hunger: Hunger
+    speed_boost: Optional[SpeedBoost] = None
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.

@@ -69,6 +69,11 @@ class MovementSystem(BaseSystem):
         else:
             speed = 12.0  # default speed
 
+        # Apply speed boost multiplier if active
+        if hasattr(first_snake, "speed_boost") and first_snake.speed_boost:
+            if first_snake.speed_boost.active:
+                speed *= first_snake.speed_boost.multiplier
+
         # Calculate how long one grid cell movement should take
         move_interval_ms = 1000.0 / speed
 

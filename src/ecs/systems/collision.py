@@ -733,6 +733,11 @@ class CollisionSystem(BaseSystem):
                     if game_state:
                         game_state.apples_eaten_count += 1
 
+                        # Activate speed boost if Speed Boost Mode is enabled
+                        if game_state.speed_boost_mode_enabled:
+                            if hasattr(snake, "speed_boost") and snake.speed_boost:
+                                snake.speed_boost.activate()
+
                     # increase speed by 10%, respect max_speed
                     # NOTE: keep speed constant when shrinking mode is enabled to avoid complications
                     if not shrinking_mode and hasattr(snake, "velocity"):

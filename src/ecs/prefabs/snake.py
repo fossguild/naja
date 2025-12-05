@@ -29,6 +29,7 @@ from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
 from ecs.components.input_buffer import InputBuffer
 from ecs.components.hunger import Hunger
+from ecs.components.speed_boost import SpeedBoost
 from core.types.color import Color
 from game import constants
 
@@ -43,6 +44,7 @@ def create_snake(
     cheese_mode: bool = False,
     shrinking_mode: bool = False,
     autoplay_mode: bool = False,
+    speed_boost_mode: bool = False,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -56,6 +58,7 @@ def create_snake(
         cheese_mode: Whether Cheese Mode is enabled (affects initial size)
         shrinking_mode: Whether Shrinking Mode is enabled (starts large)
         autoplay_mode: Whether Autoplay Mode is enabled (starts with zero velocity)
+        speed_boost_mode: Whether Speed Boost Mode is enabled (adds SpeedBoost component)
 
     Returns:
         int: Entity ID of created snake
@@ -132,6 +135,7 @@ def create_snake(
             size=grid_size,
         ),
         input_buffer=InputBuffer(),
+        speed_boost=SpeedBoost() if speed_boost_mode else None,
     )
 
     # register entity with world and return ID
