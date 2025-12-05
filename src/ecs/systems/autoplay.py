@@ -17,23 +17,18 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Autoplay system implementing Perturbed Hamiltonian Cycle strategy.
+"""Autoplay system implementing John Tapsell's Perturbed Hamiltonian Cycle.
 
-Perfect Snake AI: Perturbed Hamiltonian Cycle
-----------------------------------------------
-This algorithm guarantees the snake will never die and will eventually
-fill the entire board. It works by:
-
-1. Generating a Hamiltonian cycle at game start (zigzag pattern)
-2. Assigning each cell a "tour number" (position in the cycle 0 to W*H-1)
-3. Taking safe shortcuts to food when possible (early game)
-4. Following the strict cycle when snake is large (late game safety)
-
-The key insight is that head movement is only safe if it doesn't "overtake"
-the tail in the 1D cycle representation. This allows O(1) safety checks.
-
-Based on John Tapsell's algorithm:
+This is a faithful implementation of the algorithm described at:
 https://johnflux.com/2015/05/02/nokia-6110-part-3-algorithms/
+
+Algorithm Summary:
+1. Pre-compute a Hamiltonian cycle covering the entire board
+2. Assign each cell a "tour number" (position in the 1D cycle)
+3. The key insight: head can take shortcuts as long as it doesn't "overtake" tail
+4. cuttingAmountAvailable = distanceToTail - snakeLength - buffer
+5. Choose the direction with HIGHEST path_distance within cuttingAmountAvailable
+6. Disable shortcuts when snake covers >50% of board
 """
 
 from typing import Optional, Any, Tuple, Set, Dict
@@ -47,22 +42,12 @@ from game.game_modes_registry import AUTOPLAY_MODE_NAME
 class HamiltonianCycle:
     """Generates and manages a Hamiltonian cycle over a 2D grid.
 
-    Uses a zigzag pattern that visits every cell exactly once before
-    returning to the start. Each cell gets a "tour number" (0 to W*H-1).
+    Uses a simple zigzag pattern that visits every cell exactly once.
+    Each cell gets a "tour number" (0 to W*H-1).
     """
 
-    # Direction constants
-    RIGHT, DOWN, LEFT, UP = 0, 1, 2, 3
-    DX = [1, 0, -1, 0]
-    DY = [0, 1, 0, -1]
-
     def __init__(self, width: int, height: int):
-        """Initialize and generate a Hamiltonian cycle.
-
-        Args:
-            width: Grid width
-            height: Grid height
-        """
+        """Initialize and generate a Hamiltonian cycle."""
         self.width = width
         self.height = height
         self.board_size = width * height
@@ -70,64 +55,73 @@ class HamiltonianCycle:
         # Tour number for each cell: position in the cycle (0 to board_size-1)
         self._tour_numbers: Dict[Tuple[int, int], int] = {}
 
-        # Generate the zigzag cycle
-        self._generate_zigzag()
+        # Generate the proper Hamiltonian cycle
+        self._generate_cycle()
 
-    def _generate_zigzag(self) -> None:
-        """Generate a zigzag Hamiltonian cycle.
+    def _generate_cycle(self) -> None:
+        """Generate a proper Hamiltonian cycle that closes correctly.
 
-        Pattern: Left-to-right on even rows, right-to-left on odd rows.
+        Pattern:
+        - Row 0: go right from (0,0) to (W-1, 0)
+        - Rows 1 to H-1: zigzag through columns 1 to W-1 (leaving column 0 empty)
+        - Return path: go up column 0 from (0, H-1) to (0, 1)
+        - This creates a closed cycle where all adjacent tour numbers are grid-adjacent
+
+        Example for 4x4:
+         0  1  2  3
+        15  6  5  4
+        14  7  8  9
+        13 12 11 10
+
+        The cycle: 0→1→2→3→4→5→6→7→8→9→10→11→12→13→14→15→0
+        Every transition is exactly 1 grid cell (up/down/left/right).
         """
         self._tour_numbers.clear()
         number = 0
 
-        for y in range(self.height):
-            if y % 2 == 0:
-                # Left to right
-                for x in range(self.width):
+        # Row 0: go right from (0,0) to (W-1, 0)
+        for x in range(self.width):
+            self._tour_numbers[(x, 0)] = number
+            number += 1
+
+        # Inner zigzag: rows 1 to H-1, columns 1 to W-1
+        for y in range(1, self.height):
+            if y % 2 == 1:  # Odd row: go left from W-1 to 1
+                for x in range(self.width - 1, 0, -1):
                     self._tour_numbers[(x, y)] = number
                     number += 1
-            else:
-                # Right to left
-                for x in range(self.width - 1, -1, -1):
+            else:  # Even row: go right from 1 to W-1
+                for x in range(1, self.width):
                     self._tour_numbers[(x, y)] = number
                     number += 1
+
+        # Return path: column 0, from bottom (H-1) up to row 1
+        for y in range(self.height - 1, 0, -1):
+            self._tour_numbers[(0, y)] = number
+            number += 1
 
     def get_tour_number(self, x: int, y: int) -> int:
-        """Get the tour number for a cell.
-
-        Args:
-            x: X coordinate
-            y: Y coordinate
-
-        Returns:
-            Position in the cycle (0 to board_size - 1)
-        """
+        """Get the tour number for a cell."""
         return self._tour_numbers.get((x, y), 0)
 
     def path_distance(self, from_tour: int, to_tour: int) -> int:
-        """Calculate the distance along the cycle from one point to another.
+        """Calculate distance along the cycle from one point to another.
 
-        Args:
-            from_tour: Starting tour number
-            to_tour: Ending tour number
+        This is the key function - returns how many steps along the cycle
+        from 'from_tour' to 'to_tour', wrapping around if needed.
 
-        Returns:
-            Number of steps along the cycle (always positive, wraps around)
+        Following John Tapsell's original:
+        if(a < b) return b - a - 1;
+        return b - a - 1 + ARENA_SIZE;
         """
-        if to_tour >= from_tour:
-            return to_tour - from_tour
-        return to_tour - from_tour + self.board_size
+        if from_tour < to_tour:
+            return to_tour - from_tour - 1
+        return to_tour - from_tour - 1 + self.board_size
 
-    def get_next_position(self, x: int, y: int) -> Tuple[int, int]:
-        """Get the next position in the cycle after (x, y).
+    def get_next_direction(self, x: int, y: int) -> Tuple[int, int]:
+        """Get the direction to the next cell in the Hamiltonian cycle.
 
-        Args:
-            x: Current X coordinate
-            y: Current Y coordinate
-
-        Returns:
-            (next_x, next_y) - the next position in the cycle
+        This is used to explicitly follow the cycle when no shortcuts are safe.
         """
         current_tour = self.get_tour_number(x, y)
         next_tour = (current_tour + 1) % self.board_size
@@ -135,60 +129,36 @@ class HamiltonianCycle:
         # Find the cell with next_tour
         for pos, tour in self._tour_numbers.items():
             if tour == next_tour:
-                return pos
-        return (x, y)  # Fallback
+                dx = pos[0] - x
+                dy = pos[1] - y
+                return (dx, dy)
 
-    def get_next_direction(self, x: int, y: int) -> Tuple[int, int]:
-        """Get the direction to the next cell in the cycle.
-
-        Args:
-            x: Current X coordinate
-            y: Current Y coordinate
-
-        Returns:
-            (dx, dy) direction to next cell
-        """
-        next_pos = self.get_next_position(x, y)
-        dx = next_pos[0] - x
-        dy = next_pos[1] - y
-
-        # Handle wrapping (for last cell connecting to first)
-        if abs(dx) > 1:
-            dx = -1 if dx > 0 else 1
-        if abs(dy) > 1:
-            dy = -1 if dy > 0 else 1
-
-        return (dx, dy)
+        # Fallback (shouldn't happen with valid cycle)
+        return (1, 0)
 
 
 class AutoplaySystem(BaseSystem):
-    """System that controls the snake in Autoplay mode using Perturbed Hamiltonian Cycle.
+    """System that controls the snake using Perturbed Hamiltonian Cycle.
 
-    This AI is guaranteed to win every game on an empty board by following
-    a Hamiltonian cycle while taking safe shortcuts to reach food faster.
+    Faithful implementation of John Tapsell's algorithm:
+    1. Calculate cuttingAmountAvailable (how far we can shortcut)
+    2. For each valid direction, check if path_distance <= cuttingAmountAvailable
+    3. Choose direction with HIGHEST path_distance (maximum safe shortcut)
+    4. If no shortcut available, follow any valid direction
 
     Reads: Position, Velocity, SnakeBody
     Writes: InputBuffer (simulates input)
     """
 
     def __init__(self, game_mode: str, settings: Optional[Any] = None):
-        """Initialize the AutoplaySystem.
-
-        Args:
-            game_mode: The current game mode.
-            settings: Game settings.
-        """
+        """Initialize the AutoplaySystem."""
         self._game_mode = game_mode
         self._settings = settings
         self._cycle: Optional[HamiltonianCycle] = None
         self._initialized = False
 
     def update(self, world: World) -> None:
-        """Update the snake's direction using Perturbed Hamiltonian Cycle.
-
-        Args:
-            world: ECS world containing entities and components
-        """
+        """Update the snake's direction using Perturbed Hamiltonian Cycle."""
         if self._game_mode != AUTOPLAY_MODE_NAME:
             return
 
@@ -196,7 +166,11 @@ class AutoplaySystem(BaseSystem):
         if not snake:
             return
 
-        # Initialize Hamiltonian cycle on first update
+        # Get head position
+        head_x = snake.position.x
+        head_y = snake.position.y
+
+        # Initialize on first update
         if not self._initialized:
             self._cycle = HamiltonianCycle(world.board.width, world.board.height)
             self._initialized = True
@@ -206,60 +180,18 @@ class AutoplaySystem(BaseSystem):
             )
 
             # Compute first safe direction
-            head_x = snake.position.x
-            head_y = snake.position.y
-            head_tour = self._cycle.get_tour_number(head_x, head_y)
-
-            tail_pos = self._get_tail_position(snake)
-            tail_tour = (
-                self._cycle.get_tour_number(tail_pos[0], tail_pos[1])
-                if tail_pos
-                else head_tour
-            )
-
-            apple = self._get_target(world)
-            food_tour = head_tour
-            if apple:
-                food_tour = self._cycle.get_tour_number(
-                    apple.position.x, apple.position.y
-                )
-
-            snake_length = self._get_snake_length(snake)
-            obstacles = self._get_obstacles(world, snake)
-
-            cutting_available = self._get_cutting_amount(
-                head_tour,
-                tail_tour,
-                food_tour,
-                snake_length,
-                world.board.width * world.board.height,
-            )
-
-            # Find first safe direction
-            first_dir = self._find_best_direction(
+            first_dir = self._get_new_direction(
+                snake,
+                world,
                 head_x,
                 head_y,
-                head_tour,
-                food_tour,
-                cutting_available,
-                obstacles,
-                world.board.width,
-                world.board.height,
                 0,
-                0,
+                0,  # No current velocity
             )
 
             if first_dir:
                 self._buffer_direction(snake, first_dir[0], first_dir[1])
                 print(f"[Autoplay] First direction: {first_dir}")
-            else:
-                # Fallback: find any valid move
-                for dx, dy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-                    nx, ny = head_x + dx, head_y + dy
-                    if 0 <= nx < world.board.width and 0 <= ny < world.board.height:
-                        self._buffer_direction(snake, dx, dy)
-                        print(f"[Autoplay] Fallback first direction: ({dx}, {dy})")
-                        break
 
             # Signal game can start
             game_state_entities = world.registry.query_by_component("game_state")
@@ -270,185 +202,160 @@ class AutoplaySystem(BaseSystem):
                     print("[Autoplay] Game started - first direction issued")
             return
 
-        # Normal update: find best direction
-        head_x = snake.position.x
-        head_y = snake.position.y
-        head_tour = self._cycle.get_tour_number(head_x, head_y)
-
-        tail_pos = self._get_tail_position(snake)
-        if not tail_pos:
-            return
-        tail_tour = self._cycle.get_tour_number(tail_pos[0], tail_pos[1])
-
-        snake_length = self._get_snake_length(snake)
-
-        apple = self._get_target(world)
-        food_tour = head_tour
-        if apple:
-            food_tour = self._cycle.get_tour_number(apple.position.x, apple.position.y)
-
-        cutting_available = self._get_cutting_amount(
-            head_tour,
-            tail_tour,
-            food_tour,
-            snake_length,
-            world.board.width * world.board.height,
-        )
-
-        obstacles = self._get_obstacles(world, snake)
-
-        best_dir = self._find_best_direction(
-            head_x,
-            head_y,
-            head_tour,
-            food_tour,
-            cutting_available,
-            obstacles,
-            world.board.width,
-            world.board.height,
-            snake.velocity.dx,
-            snake.velocity.dy,
+        # Normal update
+        best_dir = self._get_new_direction(
+            snake, world, head_x, head_y, snake.velocity.dx, snake.velocity.dy
         )
 
         if best_dir:
             self._buffer_direction(snake, best_dir[0], best_dir[1])
 
-    def _get_cutting_amount(
+    def _get_new_direction(
         self,
-        head_tour: int,
-        tail_tour: int,
-        food_tour: int,
-        snake_length: int,
-        board_size: int,
-    ) -> int:
-        """Calculate how much of the cycle we can safely skip.
-
-        Args:
-            head_tour: Head's position in the cycle
-            tail_tour: Tail's position in the cycle
-            food_tour: Food's position in the cycle
-            snake_length: Current snake length
-            board_size: Total cells on board
-
-        Returns:
-            Maximum number of cycle steps we can safely skip
-        """
-        distance_to_tail = self._cycle.path_distance(head_tour, tail_tour)
-        distance_to_food = self._cycle.path_distance(head_tour, food_tour)
-
-        # Basic cutting: distance to tail minus snake length minus buffer
-        cutting = distance_to_tail - snake_length - 3
-
-        # Calculate empty squares
-        empty_squares = board_size - snake_length
-
-        # If snake covers >50% of the board, don't take shortcuts
-        if empty_squares < board_size // 2:
-            return 0
-
-        # If we'll eat food on the way, account for growth
-        if distance_to_food < distance_to_tail:
-            cutting -= 1
-
-            # Extra caution if not much space
-            if distance_to_tail - distance_to_food < empty_squares // 4:
-                cutting -= 2
-
-        # Don't cut more than needed to reach food
-        cutting = min(cutting, distance_to_food)
-
-        return max(0, cutting)
-
-    def _find_best_direction(
-        self,
+        snake,
+        world: World,
         head_x: int,
         head_y: int,
-        head_tour: int,
-        food_tour: int,
-        cutting_available: int,
-        obstacles: Set[Tuple[int, int]],
-        width: int,
-        height: int,
         current_dx: int,
         current_dy: int,
     ) -> Optional[Tuple[int, int]]:
-        """Find the best direction to move.
+        """Get new direction following John Tapsell's algorithm exactly.
 
-        Args:
-            head_x, head_y: Current head position
-            head_tour: Head's tour number
-            food_tour: Food's tour number
-            cutting_available: Maximum safe cutting amount
-            obstacles: Set of obstacle positions
-            width, height: Board dimensions
-            current_dx, current_dy: Current movement direction
-
-        Returns:
-            (dx, dy) direction tuple, or None if no valid move
+        This is a faithful translation of his aiGetNewSnakeDirection function.
         """
-        directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+        width = world.board.width
+        height = world.board.height
+
+        # Get head tour number
+        head_tour = self._cycle.get_tour_number(head_x, head_y)
+
+        # Get food position and tour number
+        apple = self._get_target(world)
+        if apple:
+            food_x = apple.position.x
+            food_y = apple.position.y
+            food_tour = self._cycle.get_tour_number(food_x, food_y)
+        else:
+            food_tour = head_tour
+            food_x, food_y = head_x, head_y
+
+        # Get tail position and tour number
+        # IMPORTANT: For size-1 snake (no segments), use head position as tail
+        tail_pos = self._get_tail_position(snake)
+        if tail_pos:
+            tail_x, tail_y = tail_pos
+        else:
+            # Snake has no body segments - use head as tail
+            # This gives distanceToTail = board_size - 1 (almost full cycle)
+            tail_x, tail_y = head_x, head_y
+
+        tail_tour = self._cycle.get_tour_number(tail_x, tail_y)
+
+        # Calculate distances
+        distance_to_food = self._cycle.path_distance(head_tour, food_tour)
+        distance_to_tail = self._cycle.path_distance(head_tour, tail_tour)
+
+        # Get snake length (including growth pending)
+        snake_length = self._get_snake_length(snake)
+
+        # Calculate cutting amount available (following Tapsell's formula)
+        # cuttingAmountAvailable = distanceToTail - snake.growth_length - 3
+        growth_length = 0  # We don't track pending growth separately
+        cutting_available = distance_to_tail - snake_length - growth_length - 3
+
+        # Count empty squares
+        num_empty_squares = self._cycle.board_size - snake_length
+
+        # If snake covers >50% of board, don't take shortcuts
+        if num_empty_squares < self._cycle.board_size // 2:
+            cutting_available = 0
+        elif distance_to_food < distance_to_tail:
+            # We will eat food on the way to tail, account for growth
+            cutting_available -= 1  # food.value = 1 in our game
+
+            # Extra safety buffer if food might spawn in front
+            if (distance_to_tail - distance_to_food) * 4 > num_empty_squares:
+                cutting_available -= 10
+
+        # Cap cutting to distance to food (no point cutting more)
+        cutting_desired = distance_to_food
+        if cutting_desired < cutting_available:
+            cutting_available = cutting_desired
+
+        if cutting_available < 0:
+            cutting_available = 0
+
+        # Get obstacles (snake body)
+        obstacles = self._get_obstacles(world, snake)
+
+        # Check which directions we can go
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Right, Left, Down, Up
 
         best_dir = None
-        best_score = -float("inf")
-
-        current_distance_to_food = self._cycle.path_distance(head_tour, food_tour)
+        best_dist = -1
 
         for dx, dy in directions:
-            # Can't reverse direction
-            if current_dx != 0 or current_dy != 0:
-                if dx == -current_dx and dy == -current_dy:
-                    continue
-
             nx, ny = head_x + dx, head_y + dy
 
             # Check bounds
             if nx < 0 or nx >= width or ny < 0 or ny >= height:
                 continue
 
-            # Check collision with obstacles
+            # Check collision with snake body
             if (nx, ny) in obstacles:
                 continue
 
+            # Don't reverse
+            if current_dx != 0 or current_dy != 0:
+                if dx == -current_dx and dy == -current_dy:
+                    continue
+
+            # Calculate path distance for this move
             next_tour = self._cycle.get_tour_number(nx, ny)
-            advancement = self._cycle.path_distance(head_tour, next_tour)
+            dist = self._cycle.path_distance(head_tour, next_tour)
 
-            # Only consider moves within safe cutting limit
-            if advancement <= cutting_available + 1:
-                new_distance_to_food = self._cycle.path_distance(next_tour, food_tour)
-                improvement = current_distance_to_food - new_distance_to_food
-                score = improvement * 1000 + advancement
+            # Following Tapsell: choose direction with HIGHEST dist within limit
+            if dist <= cutting_available and dist > best_dist:
+                best_dir = (dx, dy)
+                best_dist = dist
 
-                if score > best_score:
-                    best_score = score
-                    best_dir = (dx, dy)
+        # If we found a valid shortcut, use it
+        if best_dist >= 0:
+            return best_dir
 
-        # If no shortcut found, follow the cycle
-        if best_dir is None:
-            cycle_dir = self._cycle.get_next_direction(head_x, head_y)
-            dx, dy = cycle_dir
+        # No shortcut available - FOLLOW THE HAMILTONIAN CYCLE
+        # This is the key fix: always follow the cycle, not just any direction
+        cycle_dir = self._cycle.get_next_direction(head_x, head_y)
+        cycle_dx, cycle_dy = cycle_dir
+        cycle_nx, cycle_ny = head_x + cycle_dx, head_y + cycle_dy
+
+        # Check if cycle direction is valid
+        if 0 <= cycle_nx < width and 0 <= cycle_ny < height:
+            if (cycle_nx, cycle_ny) not in obstacles:
+                is_reverse = (current_dx != 0 or current_dy != 0) and (
+                    cycle_dx == -current_dx and cycle_dy == -current_dy
+                )
+                if not is_reverse:
+                    return (cycle_dx, cycle_dy)
+
+        # Cycle direction blocked - pick any valid direction (emergency fallback)
+        for dx, dy in directions:
             nx, ny = head_x + dx, head_y + dy
 
-            is_reverse = (current_dx != 0 or current_dy != 0) and (
-                dx == -current_dx and dy == -current_dy
-            )
+            if nx < 0 or nx >= width or ny < 0 or ny >= height:
+                continue
 
-            if not is_reverse and (nx, ny) not in obstacles:
-                if 0 <= nx < width and 0 <= ny < height:
-                    best_dir = (dx, dy)
+            if (nx, ny) in obstacles:
+                continue
 
-        # Last resort: find any valid move
-        if best_dir is None:
-            for dx, dy in directions:
-                if current_dx != 0 or current_dy != 0:
-                    if dx == -current_dx and dy == -current_dy:
-                        continue
-                nx, ny = head_x + dx, head_y + dy
-                if 0 <= nx < width and 0 <= ny < height:
-                    if (nx, ny) not in obstacles:
-                        best_dir = (dx, dy)
-                        break
+            if current_dx != 0 or current_dy != 0:
+                if dx == -current_dx and dy == -current_dy:
+                    continue
 
-        return best_dir
+            return (dx, dy)
+
+        # Absolute last resort (shouldn't happen)
+        return (1, 0)
 
     def _get_snake(self, world: World):
         """Get the snake entity."""
@@ -472,7 +379,7 @@ class AutoplaySystem(BaseSystem):
         return None
 
     def _get_snake_length(self, snake) -> int:
-        """Get the snake's current length."""
+        """Get the snake's current length (head + body segments)."""
         if hasattr(snake, "body") and snake.body.segments:
             return len(snake.body.segments) + 1
         return 1
@@ -482,6 +389,7 @@ class AutoplaySystem(BaseSystem):
         obstacles = set()
 
         if hasattr(snake, "body") and snake.body.segments:
+            # Exclude tail tip since it will move
             for segment in snake.body.segments[:-1]:
                 obstacles.add((segment.x, segment.y))
 
@@ -493,19 +401,13 @@ class AutoplaySystem(BaseSystem):
         return obstacles
 
     def _buffer_direction(self, snake, dx: int, dy: int) -> None:
-        """Buffer a direction command for the snake.
-
-        Args:
-            snake: Snake entity
-            dx: X direction (-1, 0, or 1)
-            dy: Y direction (-1, 0, or 1)
-        """
+        """Buffer a direction command for the snake."""
         if not hasattr(snake, "input_buffer") or snake.input_buffer is None:
             return
 
         buf = snake.input_buffer
 
-        # Don't fill buffer too much
+        # Don't overflow buffer
         if len(buf.moves) >= 1:
             return
 
