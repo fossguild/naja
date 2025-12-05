@@ -78,6 +78,10 @@ class GameInitializer:
         """Set the game mode that should be applied during initialization."""
         self._game_mode = mode or CLASSIC_MODE_NAME
 
+        # Track game mode in settings for restriction UI
+        if self._settings:
+            self._settings.set_game_mode(self._game_mode)
+
         # Force specific settings for autoplay mode to ensure Hamiltonian cycle works
         if self._game_mode == AUTOPLAY_MODE_NAME and self._settings:
             # Single apple - Hamiltonian cycle tracks one at a time

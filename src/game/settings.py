@@ -48,6 +48,19 @@ class GameSettings:
         "segment_borders": False,  # Dark borders around snake segments
     }
 
+    # Settings that are restricted/forced for Autoplay mode
+    # Keys = setting key, Values = forced value + reason
+    AUTOPLAY_RESTRICTED_SETTINGS = {
+        "number_of_apples": {"value": 1, "reason": "Single apple for cycle tracking"},
+        "obstacle_difficulty": {
+            "value": "None",
+            "reason": "Obstacles break cycle path",
+        },
+        "dynamic_spawn_obstacles": {"value": False, "reason": "No dynamic obstacles"},
+        "enable_hunger": {"value": False, "reason": "Prevents unexpected death"},
+        "electric_walls": {"value": True, "reason": "Solid walls for cycle"},
+    }
+
     # Declarative menu field definitions organized by category
     MENU_FIELDS = [
         # Audio category
@@ -208,6 +221,9 @@ class GameSettings:
             "last_step_time": 0,
         }
 
+        # Current game mode for tracking restrictions
+        self._current_game_mode = ""
+
     def _merge_missing_defaults(self) -> None:
         """Add any missing default keys (for forward compatibility)."""
         added = False
@@ -283,6 +299,36 @@ class GameSettings:
             self.settings[key] = value
             # Validate speed relationship after setting
             self._validate_speed_relationship()
+
+    def set_game_mode(self, mode: str) -> None:
+        """Set the current game mode for restriction tracking."""
+        self._current_game_mode = mode
+
+    def get_game_mode(self) -> str:
+        """Get the current game mode."""
+        return self._current_game_mode
+
+    def is_setting_restricted(self, key: str) -> bool:
+        """Check if a setting is restricted for the current game mode.
+
+        Returns:
+            True if setting is restricted for current mode, False otherwise
+        """
+        from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+        if self._current_game_mode == AUTOPLAY_MODE_NAME:
+            return key in self.AUTOPLAY_RESTRICTED_SETTINGS
+        return False
+
+    def get_restriction_reason(self, key: str) -> str:
+        """Get the reason a setting is restricted.
+
+        Returns:
+            Reason string or empty string if not restricted
+        """
+        if key in self.AUTOPLAY_RESTRICTED_SETTINGS:
+            return self.AUTOPLAY_RESTRICTED_SETTINGS[key]["reason"]
+        return ""
 
     def get_all(self) -> dict:
         """Get all settings as a dictionary.

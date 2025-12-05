@@ -141,6 +141,11 @@ class GameModesScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     # save the selected game mode
                     set_selected_game_mode(self._selected_index)
+
+                    # Get the resolved mode name and set on settings for restriction tracking
+                    resolved_mode = get_resolved_game_mode()
+                    self._settings.set_game_mode(resolved_mode)
+
                     # if Classic Snake Game is selected, reset settings to default
                     if (
                         self._selected_index == 0

@@ -61,6 +61,9 @@ class SettingsScene(BaseScene):
         self._selected_index = 0
         # total menu items = settings fields + "Reset to Default" button
         self._total_menu_items = len(self._settings.MENU_FIELDS) + 1
+        # Hover state for warning tooltips
+        self._hovered_warning_key = None
+        self._warning_icon_rects = {}  # key -> rect for hover detection
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update settings logic.
@@ -115,19 +118,27 @@ class SettingsScene(BaseScene):
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
                     # Only handle left/right on settings fields, not on "Reset to Default"
                     if self._selected_index < len(self._settings.MENU_FIELDS):
-                        # Start holding left
                         current_field = self._settings.MENU_FIELDS[self._selected_index]
-                        self._settings.start_key_hold(current_field, -1)
-                        # Apply audio settings immediately
-                        self._apply_audio_setting_if_changed(current_field["key"])
+                        # Skip if setting is restricted (locked)
+                        if not self._settings.is_setting_restricted(
+                            current_field["key"]
+                        ):
+                            # Start holding left
+                            self._settings.start_key_hold(current_field, -1)
+                            # Apply audio settings immediately
+                            self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
                     # Only handle left/right on settings fields, not on "Reset to Default"
                     if self._selected_index < len(self._settings.MENU_FIELDS):
-                        # Start holding right
                         current_field = self._settings.MENU_FIELDS[self._selected_index]
-                        self._settings.start_key_hold(current_field, +1)
-                        # Apply audio settings immediately
-                        self._apply_audio_setting_if_changed(current_field["key"])
+                        # Skip if setting is restricted (locked)
+                        if not self._settings.is_setting_restricted(
+                            current_field["key"]
+                        ):
+                            # Start holding right
+                            self._settings.start_key_hold(current_field, +1)
+                            # Apply audio settings immediately
+                            self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key == pygame.K_c:
                     # Randomize snake colors
                     self._settings.randomize_snake_colors()
@@ -136,6 +147,14 @@ class SettingsScene(BaseScene):
                 # Stop holding when any left/right key is released
                 if event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                     self._settings.stop_key_hold()
+
+        # Track mouse hover for warning tooltips
+        mouse_pos = pygame.mouse.get_pos()
+        self._hovered_warning_key = None
+        for key, rect in self._warning_icon_rects.items():
+            if rect.collidepoint(mouse_pos):
+                self._hovered_warning_key = key
+                break
 
         return None
 
@@ -162,6 +181,9 @@ class SettingsScene(BaseScene):
         """Render the settings screen with categorized layout."""
         # Clear screen
         self._renderer.fill(ARENA_PRIMARY_COLOR)
+
+        # Clear warning icon rects for fresh hover detection
+        self._warning_icon_rects.clear()
 
         # Draw title
         title = self._assets.render_custom(
@@ -231,10 +253,23 @@ class SettingsScene(BaseScene):
                     current_grid_size,
                 )
 
-                # Highlight selected item
-                color = (
-                    SCORE_COLOR if field_i == self._selected_index else MESSAGE_COLOR
-                )
+                # Check if setting is restricted
+                is_restricted = self._settings.is_setting_restricted(f["key"])
+
+                # Highlight selected item (dim color if restricted)
+                if is_restricted:
+                    # Restricted settings shown in orange/amber
+                    color = (
+                        (255, 180, 60)
+                        if field_i == self._selected_index
+                        else (180, 130, 60)
+                    )
+                else:
+                    color = (
+                        SCORE_COLOR
+                        if field_i == self._selected_index
+                        else MESSAGE_COLOR
+                    )
                 text = self._assets.render_custom(
                     f"{f['label']}: {formatted_val}",
                     color,
@@ -244,6 +279,32 @@ class SettingsScene(BaseScene):
                 rect.left = left_margin
                 rect.top = current_y
                 self._renderer.blit(text, rect)
+
+                # Draw warning indicator if restricted
+                if is_restricted:
+                    # Draw [!] warning icon
+                    warning_icon = self._assets.render_custom(
+                        "[!]",
+                        (255, 200, 50),  # Amber/yellow warning color
+                        int(self._width / 32),
+                    )
+                    icon_rect = warning_icon.get_rect()
+                    icon_rect.left = rect.right + 8
+                    icon_rect.centery = rect.centery
+                    self._renderer.blit(warning_icon, icon_rect)
+                    # Store rect for hover detection
+                    self._warning_icon_rects[f["key"]] = icon_rect
+
+                    # Draw LOCKED label
+                    locked_text = self._assets.render_custom(
+                        "LOCKED",
+                        (180, 80, 80),  # Red-ish color
+                        int(self._width / 45),
+                    )
+                    locked_rect = locked_text.get_rect()
+                    locked_rect.left = icon_rect.right + 8
+                    locked_rect.centery = rect.centery
+                    self._renderer.blit(locked_text, locked_rect)
 
             current_y += row_h
 
@@ -269,6 +330,52 @@ class SettingsScene(BaseScene):
         self._renderer.blit(
             hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
         )
+
+        # Draw hover tooltip for restricted settings
+        if (
+            self._hovered_warning_key
+            and self._hovered_warning_key in self._warning_icon_rects
+        ):
+            reason = self._settings.get_restriction_reason(self._hovered_warning_key)
+            if reason:
+                # Get mouse position for tooltip placement
+                mouse_pos = pygame.mouse.get_pos()
+
+                # Render tooltip text
+                tooltip_text = f"Locked for AutoPlay: {reason}"
+                tooltip_surface = self._assets.render_custom(
+                    tooltip_text,
+                    (255, 255, 255),
+                    int(self._width / 45),
+                )
+                tooltip_rect = tooltip_surface.get_rect()
+
+                # Position tooltip near mouse, with padding
+                padding = 8
+                tooltip_rect.left = mouse_pos[0] + 15
+                tooltip_rect.top = mouse_pos[1] - tooltip_rect.height - 5
+
+                # Keep tooltip on screen
+                if tooltip_rect.right > self._width - padding:
+                    tooltip_rect.right = self._width - padding
+                if tooltip_rect.top < padding:
+                    tooltip_rect.top = mouse_pos[1] + 20
+
+                # Draw tooltip background
+                bg_rect = tooltip_rect.inflate(16, 10)
+                pygame.draw.rect(
+                    self._renderer._surface, (40, 40, 40), bg_rect, border_radius=4
+                )
+                pygame.draw.rect(
+                    self._renderer._surface,
+                    (255, 180, 50),
+                    bg_rect,
+                    width=2,
+                    border_radius=4,
+                )
+
+                # Draw tooltip text
+                self._renderer.blit(tooltip_surface, tooltip_rect)
 
     def on_enter(self) -> None:
         """Called when entering settings."""
