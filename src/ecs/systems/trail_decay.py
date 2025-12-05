@@ -146,9 +146,7 @@ class TrailDecaySystem(BaseSystem):
                 # Mark for removal
                 entities_to_remove.append(entity_id)
                 if hasattr(entity, "position"):
-                    positions_to_remove.append(
-                        (entity.position.x, entity.position.y)
-                    )
+                    positions_to_remove.append((entity.position.x, entity.position.y))
             else:
                 # Update visual fade effect
                 self._update_obstacle_fade(entity, tag)
