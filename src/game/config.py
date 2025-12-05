@@ -57,7 +57,8 @@ class GameConfig:
         self.initial_width = (
             self.safe_max_dimension // self.initial_grid_size
         ) * self.initial_grid_size
-        self.initial_height = self.initial_width  # Square window
+        # Add 45px to height for top border with UI elements
+        self.initial_height = self.initial_width + 45
 
         # Initial game speed
         self.initial_clock_ticks = self.DEFAULT_INITIAL_SPEED
@@ -70,9 +71,11 @@ class GameConfig:
 
         Returns:
             Tuple of (width, height) ensuring dimensions are multiples of grid_size
+            Height includes additional space for top UI border (45px)
         """
         dimension = (self.safe_max_dimension // grid_size) * grid_size
-        return dimension, dimension
+        # Add 45px to height for top border with UI elements
+        return dimension, dimension + 45
 
     def get_optimal_grid_size(self, cells_per_side: int) -> int:
         """Calculate optimal grid size for desired number of cells per side.

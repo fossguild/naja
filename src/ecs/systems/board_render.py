@@ -84,26 +84,49 @@ class BoardRenderSystem(BaseSystem):
         return ColorScheme()
 
     def clear_screen(self, world: World) -> None:
-        """Clear the screen with the arena background color.
+        """Clear the screen with black background for border effect.
 
         Args:
             world: Game world
         """
-        color_scheme = self._get_color_scheme(world)
-        arena_color = color_scheme.arena.to_tuple()
-        self._renderer.fill(arena_color)
+        # Fill entire screen with black for border
+        self._renderer.fill((0, 0, 0))
+
+    def get_board_offset(self) -> tuple[int, int]:
+        """Get the offset for the game board from screen edge.
+
+        Returns:
+            Tuple of (x_offset, y_offset) in pixels
+        """
+        # Get screen dimensions
+        surface = pygame.display.get_surface()
+        if not surface:
+            return (0, 0)
+
+        # Top offset for UI elements - use fixed 45px to ensure board fits completely
+        top_offset = 45
+
+        return (0, top_offset)
 
     def draw_grid(self, world: World) -> None:
-        """Draw the game grid based on the board dimensions.
+        """Draw the game grid based on the board dimensions with border offset.
 
         Args:
             world: Game world containing the board
         """
         board = world.board
         cell_size = board.cell_size
+        offset_x, offset_y = self.get_board_offset()
 
         color_scheme = self._get_color_scheme(world)
+        arena_color = color_scheme.arena.to_tuple()
         arena_secondary_color = color_scheme.arena_secondary.to_tuple()
+
+        # Draw game board background
+        board_width_px = board.width * cell_size
+        board_height_px = board.height * cell_size
+        board_rect = pygame.Rect(offset_x, offset_y, board_width_px, board_height_px)
+        self._renderer.draw_rect(arena_color, board_rect)
 
         # Draw secondary color tiles, for a checkerboard pattern
         for y in range(board.height):
@@ -112,13 +135,25 @@ class BoardRenderSystem(BaseSystem):
                 if (x + y) % 2 == 0:
                     self._renderer.draw_rect(
                         arena_secondary_color,
-                        pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size),
+                        pygame.Rect(
+                            offset_x + x * cell_size,
+                            offset_y + y * cell_size,
+                            cell_size,
+                            cell_size,
+                        ),
                     )
 
     def draw_tile(
-        self, x: int, y: int, tile: Tile, cell_size: int, color_scheme: ColorScheme
+        self,
+        x: int,
+        y: int,
+        tile: Tile,
+        cell_size: int,
+        color_scheme: ColorScheme,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
-        """Draw a single tile at the specified grid position.
+        """Draw a single tile at the specified grid position with offset.
 
         Args:
             x: X coordinate in grid units
@@ -126,10 +161,12 @@ class BoardRenderSystem(BaseSystem):
             tile: Type of tile to draw
             cell_size: Size of grid cell in pixels
             color_scheme: Color scheme to use
+            offset_x: X offset in pixels for board border
+            offset_y: Y offset in pixels for board border
         """
-        # Calculate pixel position
-        pixel_x = x * cell_size
-        pixel_y = y * cell_size
+        # Calculate pixel position with offset
+        pixel_x = offset_x + x * cell_size
+        pixel_y = offset_y + y * cell_size
 
         # Map tile type to color
         # Note: SNAKE, APPLE tiles are NOT rendered here - handled by entity systems
@@ -148,7 +185,7 @@ class BoardRenderSystem(BaseSystem):
         self._renderer.draw_rect(color, rect)
 
     def draw_board(self, world: World) -> None:
-        """Draw all tiles on the board.
+        """Draw all tiles on the board with border offset.
 
         Args:
             world: Game world containing the board
@@ -156,11 +193,12 @@ class BoardRenderSystem(BaseSystem):
         board = world.board
         cell_size = board.cell_size
         color_scheme = self._get_color_scheme(world)
+        offset_x, offset_y = self.get_board_offset()
 
         for y in range(board.height):
             for x in range(board.width):
                 tile = board.get_tile(x, y)
-                self.draw_tile(x, y, tile, cell_size, color_scheme)
+                self.draw_tile(x, y, tile, cell_size, color_scheme, offset_x, offset_y)
 
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.

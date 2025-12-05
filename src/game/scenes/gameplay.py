@@ -100,7 +100,7 @@ class GameplayScene(BaseScene):
         self._ui_render_system: Optional[UIRenderSystem] = None
         self._overlay_render_system: Optional[OverlayRenderSystem] = None
         self._game_initializer = GameInitializer(
-            settings=settings, config=config, assets=assets
+            settings=settings, config=config, assets=assets, scoreboard=scoreboard
         )
         self._audio_service = AudioService(settings=settings)
         self._sfx_queue_service = SfxQueueService()

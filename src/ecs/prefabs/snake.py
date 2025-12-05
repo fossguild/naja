@@ -41,6 +41,7 @@ def create_snake(
     tail_color: Optional[tuple[int, int, int]] = None,
     enable_hunger: bool = False,
     cheese_mode: bool = False,
+    shrinking_mode: bool = False,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -74,7 +75,19 @@ def create_snake(
     start_y = world.board.height // 2
 
     # Initialize body based on game mode
-    if cheese_mode:
+    if shrinking_mode:
+        # Shrinking Mode: start large relative to board size so the snake will
+        # shrink as it eats. Use half of the smaller board dimension (in cells)
+        # as the initial size (head + segments).
+        # Use half of the total number of squares on the board (width * height)
+        # as the initial size (head + segments), as requested. Ensure at least 1.
+        initial_size = max(1, max(world.board.width, world.board.height))
+        tail_x = start_x - 1
+        initial_segments = [
+            Position(x=tail_x, y=start_y, prev_x=tail_x, prev_y=start_y)
+            for _ in range(initial_size - 1)
+        ]
+    elif cheese_mode:
         # Cheese Mode: Start with size 3 (head + 2 segments)
         # All segments stacked at tail position (one cell to the left of head)
         tail_x = start_x - 1

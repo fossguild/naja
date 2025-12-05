@@ -676,19 +676,47 @@ class CollisionSystem(BaseSystem):
                     if self._audio_service:
                         self._audio_service.play_sound("assets/sound/eat.flac")
 
-                    # grow snake - use pending_growth for Cheese mode (+2), immediate for others
+                    # Handle snake size change on apple eaten.
+                    # In shrinking mode the snake loses length instead of growing.
                     game_state = self._get_game_state(world)
                     cheese_mode = (
                         game_state.cheese_mode_enabled if game_state else False
                     )
+                    shrinking_mode = (
+                        game_state.shrinking_mode_enabled if game_state else False
+                    )
 
                     if hasattr(snake, "body"):
-                        if cheese_mode:
-                            # Cheese mode: +2 growth via pending_growth
-                            snake.body.pending_growth += 2
+                        if shrinking_mode:
+                            # Shrinking mode: decrease size immediately (never below 1)
+                            try:
+                                snake.body.size = max(
+                                    1, int(getattr(snake.body, "size", 1)) - 1
+                                )
+                            except Exception:
+                                snake.body.size = max(
+                                    1, getattr(snake.body, "size", 1) - 1
+                                )
+
+                            # If the snake has reached size 1 (only head), treat as victory.
+                            if getattr(snake.body, "size", 1) <= 1:
+                                if game_state is not None:
+                                    game_state.game_over = True
+                                    game_state.death_reason = "Win: shrunk to head"
+                                    try:
+                                        game_state.final_score = (
+                                            game_state.apples_eaten_count
+                                        )
+                                    except Exception:
+                                        pass
+                                self._handle_death(world, "Win: shrunk to head")
                         else:
-                            # Classic/other modes: +1 immediate growth
-                            snake.body.size += 1
+                            if cheese_mode:
+                                # Cheese mode: +2 growth via pending_growth
+                                snake.body.pending_growth += 2
+                            else:
+                                # Classic/other modes: +1 immediate growth
+                                snake.body.size += 1
 
                         if self._should_swap_head_and_tail(world):
                             self._swap_head_and_tail(snake)
@@ -706,7 +734,8 @@ class CollisionSystem(BaseSystem):
                         game_state.apples_eaten_count += 1
 
                     # increase speed by 10%, respect max_speed
-                    if hasattr(snake, "velocity"):
+                    # NOTE: keep speed constant when shrinking mode is enabled to avoid complications
+                    if not shrinking_mode and hasattr(snake, "velocity"):
                         current_speed = snake.velocity.speed
                         max_speed = (
                             float(self._settings.get("max_speed"))
