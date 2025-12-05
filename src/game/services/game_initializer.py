@@ -506,6 +506,10 @@ class GameInitializer:
             # ensure minimum size
             desired_cells = max(10, int(desired_cells))
 
+            # For autoplay mode, enforce even grid size (maze algorithm requires it)
+            if self._game_mode == AUTOPLAY_MODE_NAME and desired_cells % 2 != 0:
+                desired_cells += 1  # Round up to nearest even number
+
             # calculate optimal grid/cell size
             new_cell_size = config.get_optimal_grid_size(desired_cells)
 
