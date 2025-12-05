@@ -64,6 +64,7 @@ class SettingsApplySystem(BaseSystem):
         # track previous settings to detect changes
         self._previous_cells_per_side = None
         self._previous_palette = None
+        self._previous_board_palette = None
         self._previous_initial_speed = None
         self._previous_max_speed = None
         self._previous_obstacle_difficulty = None
@@ -90,6 +91,7 @@ class SettingsApplySystem(BaseSystem):
         # check and apply each setting type
         self._check_and_apply_grid_size(world)
         self._check_and_apply_palette(world)
+        self._check_and_apply_board_palette(world)
         self._check_and_apply_speeds(world)
         self._check_and_apply_obstacle_difficulty(world)
 
@@ -100,6 +102,7 @@ class SettingsApplySystem(BaseSystem):
 
         self._previous_cells_per_side = self._settings.get("cells_per_side")
         self._previous_palette = self._get_current_palette_key()
+        self._previous_board_palette = self._get_current_board_palette_key()
         self._previous_initial_speed = self._settings.get("initial_speed")
         self._previous_max_speed = self._settings.get("max_speed")
         self._previous_obstacle_difficulty = self._settings.get("obstacle_difficulty")
@@ -230,6 +233,60 @@ class SettingsApplySystem(BaseSystem):
                 snake.renderable.secondary_color = tail_color
                 print(f"Applied palette: head={head_color_hex}, tail={tail_color_hex}")
                 break
+
+    def _get_current_board_palette_key(self) -> str:
+        """Get a unique key representing current board palette colors.
+
+        Returns:
+            String key combining primary, secondary, and grid colors
+        """
+        board_colors = self._settings.get_board_colors()
+        return f"{board_colors['primary']}_{board_colors['secondary']}_{board_colors['grid']}"
+
+    def _check_and_apply_board_palette(self, world: World) -> None:
+        """Check if board palette changed and apply it.
+
+        Args:
+            world: ECS world instance
+        """
+        current_board_palette = self._get_current_board_palette_key()
+        if current_board_palette == self._previous_board_palette:
+            return
+
+        # board palette changed, apply it
+        self._apply_board_palette_change(world)
+        self._previous_board_palette = current_board_palette
+
+    def _apply_board_palette_change(self, world: World) -> None:
+        """Apply board palette change to ColorScheme entity.
+
+        Args:
+            world: ECS world instance
+        """
+        # get the colors from the current board palette
+        board_colors = self._settings.get_board_colors()
+        primary_hex = board_colors.get("primary")
+        secondary_hex = board_colors.get("secondary")
+        grid_hex = board_colors.get("grid")
+
+        # convert hex colors to Color objects
+        from core.types.color import Color
+
+        primary_color = Color.from_hex(primary_hex)
+        secondary_color = Color.from_hex(secondary_hex)
+        grid_color = Color.from_hex(grid_hex)
+
+        # find the ColorScheme entity and update its colors
+        color_entities = world.registry.query_by_component("color_scheme")
+        for entity_id, entity in color_entities.items():
+            entity.color_scheme.arena = primary_color
+            entity.color_scheme.arena_secondary = secondary_color
+            entity.color_scheme.grid = grid_color
+            print(
+                f"Applied board palette: primary={primary_hex}, "
+                f"secondary={secondary_hex}, grid={grid_hex}"
+            )
+            break
 
     def _check_and_apply_speeds(self, world: World) -> None:
         """Check if speeds changed and apply them.

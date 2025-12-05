@@ -200,10 +200,21 @@ class GameInitializer:
             world: ECS world instance
         """
         from ecs.components.color_scheme import ColorScheme
+        from core.types.color import Color
+
+        # Get board colors from settings
+        board_colors = self._settings.get_board_colors()
+        primary_hex = board_colors.get("primary")
+        secondary_hex = board_colors.get("secondary")
+        grid_hex = board_colors.get("grid")
 
         class ColorSchemeEntity:
             def __init__(self):
                 self.color_scheme = ColorScheme()
+                # Apply board colors from settings
+                self.color_scheme.arena = Color.from_hex(primary_hex)
+                self.color_scheme.arena_secondary = Color.from_hex(secondary_hex)
+                self.color_scheme.grid = Color.from_hex(grid_hex)
 
             def get_type(self):
                 return None  # config entity has no specific type
