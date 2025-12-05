@@ -98,6 +98,11 @@ class GameOverService:
             current_score = self._scoring_system.get_current_score(world)
             self._scoring_system.save_score_to_scoreboard(world)
 
+        # Mark snake as not alive to prevent collision system from running
+        snake = self._get_snake_entity(world)
+        if snake and hasattr(snake, "body"):
+            snake.body.alive = False
+
         # Play victory sound (different from death)
         if self._audio_service:
             self._audio_service.play_sound("assets/sound/apple_eaten.wav")
