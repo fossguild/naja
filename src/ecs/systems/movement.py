@@ -104,19 +104,20 @@ class MovementSystem(BaseSystem):
                 if hasattr(entity, "game_state") and not entity.game_state.game_started:
                     continue  # Don't move until player makes first input
 
-            # only move if velocity is non-zero
+            # Process buffered direction FIRST (before zero velocity check)
+            # This allows autoplay to start snake moving from zero velocity
+            if hasattr(snake, "input_buffer") and snake.input_buffer.moves:
+                next_dx, next_dy = snake.input_buffer.moves.pop(0)
+                velocity.dx = next_dx
+                velocity.dy = next_dy
+
+            # Only move if velocity is non-zero
             if velocity.dx == 0 and velocity.dy == 0:
                 continue
 
             # Store previous position for smooth interpolation
             position.prev_x = position.x
             position.prev_y = position.y
-
-            # Check if there's a buffered direction to apply
-            if hasattr(snake, "input_buffer") and snake.input_buffer.moves:
-                next_dx, next_dy = snake.input_buffer.moves.pop(0)
-                velocity.dx = next_dx
-                velocity.dy = next_dy
 
             # Move head by exactly one grid cell in velocity direction
             # Only wrap around if electric walls are disabled

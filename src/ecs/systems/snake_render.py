@@ -50,13 +50,15 @@ class SnakeRenderSystem(BaseSystem):
     rather than by entity type, following ECS data-driven principles.
     """
 
-    def __init__(self, renderer: RenderEnqueue):
+    def __init__(self, renderer: RenderEnqueue, settings=None):
         """Initialize the SnakeRenderSystem.
 
         Args:
             renderer: RenderEnqueue view to queue draw commands
+            settings: Optional game settings object for toggling features
         """
         self._renderer = renderer
+        self._settings = settings
 
     def get_board_offset(self) -> tuple[int, int]:
         """Get the offset for the game board from screen edge.
@@ -201,6 +203,11 @@ class SnakeRenderSystem(BaseSystem):
         rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
         self._renderer.draw_rect(color, rect, 0)
 
+        # Draw dark border for visual clarity at high speeds (if enabled)
+        if self._settings and self._settings.get("segment_borders"):
+            border_color = tuple(max(0, c - 60) for c in color)
+            self._renderer.draw_rect(border_color, rect, 2)
+
         # Draw wraparound duplicate for smooth portal effect
         if interpolation.wrapped_axis != "none":
             self._draw_wraparound_duplicate(
@@ -277,6 +284,11 @@ class SnakeRenderSystem(BaseSystem):
 
             # All segments in the array are solid (holes are just empty cells)
             self._renderer.draw_rect(segment_color, segment_rect, 0)
+
+            # Draw dark border for visual clarity at high speeds (if enabled)
+            if self._settings and self._settings.get("segment_borders"):
+                border_color = tuple(max(0, c - 60) for c in segment_color)
+                self._renderer.draw_rect(border_color, segment_rect, 2)
 
             # Draw wraparound duplicate
             if interpolation.wrapped_axis != "none":

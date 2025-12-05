@@ -78,6 +78,22 @@ class GameInitializer:
         """Set the game mode that should be applied during initialization."""
         self._game_mode = mode or CLASSIC_MODE_NAME
 
+        # Track game mode in settings for restriction UI
+        if self._settings:
+            self._settings.set_game_mode(self._game_mode)
+
+        # Force specific settings for autoplay mode to ensure Hamiltonian cycle works
+        if self._game_mode == AUTOPLAY_MODE_NAME and self._settings:
+            # Single apple - Hamiltonian cycle tracks one at a time
+            self._settings.set("number_of_apples", 1)
+            # No obstacles - would break the cycle path
+            self._settings.set("obstacle_difficulty", "None")
+            self._settings.set("dynamic_spawn_obstacles", False)
+            # No hunger - could cause unexpected death
+            self._settings.set("enable_hunger", False)
+            # Wraparound walls
+            self._settings.set("electric_walls", True)
+
     def reset_world(self, world: World) -> None:
         """Reset the game world for a new game.
 
@@ -186,9 +202,9 @@ class GameInitializer:
         game_state_entity = GameStateEntity()
         world.registry.add(game_state_entity)
 
-        # Auto-start for Autoplay mode (no user input)
-        if current_mode == AUTOPLAY_MODE_NAME:
-            game_state_entity.game_state.game_started = True
+        # NOTE: For autoplay mode, game_started is NOT set here.
+        # AutoplaySystem sets it after computing the first safe direction.
+        # This prevents the snake from moving before autoplay is ready.
 
     def _create_color_scheme(self, world: World) -> None:
         """Create ColorScheme entity for rendering systems.
@@ -254,6 +270,7 @@ class GameInitializer:
             enable_hunger=bool(self._settings.get("enable_hunger")),
             cheese_mode=(self._game_mode == CHEESE_MODE_NAME),
             shrinking_mode=(self._game_mode == SHRINKING_MODE_NAME),
+            autoplay_mode=(self._game_mode == AUTOPLAY_MODE_NAME),
         )
 
     def _create_apple_config(self, world: World) -> None:
@@ -504,6 +521,10 @@ class GameInitializer:
 
             # ensure minimum size
             desired_cells = max(10, int(desired_cells))
+
+            # For autoplay mode, enforce even grid size (maze algorithm requires it)
+            if self._game_mode == AUTOPLAY_MODE_NAME and desired_cells % 2 != 0:
+                desired_cells += 1  # Round up to nearest even number
 
             # calculate optimal grid/cell size
             new_cell_size = config.get_optimal_grid_size(desired_cells)

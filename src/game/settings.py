@@ -45,6 +45,20 @@ class GameSettings:
         "board_color_palette": "Classic Dark",  # Board color customization
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
+        "segment_borders": False,  # Dark borders around snake segments
+    }
+
+    # Settings that are restricted/forced for Autoplay mode
+    # Keys = setting key, Values = forced value + reason
+    AUTOPLAY_RESTRICTED_SETTINGS = {
+        "number_of_apples": {"value": 1, "reason": "Single apple for cycle tracking"},
+        "obstacle_difficulty": {
+            "value": "None",
+            "reason": "Obstacles break cycle path",
+        },
+        "dynamic_spawn_obstacles": {"value": False, "reason": "No dynamic obstacles"},
+        "enable_hunger": {"value": False, "reason": "Prevents unexpected death"},
+        "electric_walls": {"value": True, "reason": "Solid walls for cycle"},
     }
 
     # Declarative menu field definitions organized by category
@@ -80,7 +94,7 @@ class GameSettings:
             "label": "Max speed",
             "type": "float",
             "min": 4.0,
-            "max": 60.0,
+            "max": 100.0,
             "step": 1.0,
             "requires_reset": True,
             "category": "Gameplay",
@@ -161,6 +175,13 @@ class GameSettings:
             "category": "Display",
         },
         {
+            "key": "segment_borders",
+            "label": "Segment borders",
+            "type": "bool",
+            "requires_reset": False,
+            "category": "Display",
+        },
+        {
             "key": "board_color_palette",
             "label": "Board color",
             "type": "select",
@@ -185,7 +206,10 @@ class GameSettings:
             grid_size: Size of each grid cell
         """
         self.load_settings()
-        self.settings["cells_per_side"] = initial_width // grid_size
+        # Only calculate cells_per_side if it wasn't loaded from settings
+        # This preserves the user's saved preference
+        if "cells_per_side" not in self.settings:
+            self.settings["cells_per_side"] = initial_width // grid_size
         self._validate_speed_relationship()
 
         # Key holding state tracking
@@ -196,6 +220,9 @@ class GameSettings:
             "start_time": 0,
             "last_step_time": 0,
         }
+
+        # Current game mode for tracking restrictions
+        self._current_game_mode = ""
 
     def _merge_missing_defaults(self) -> None:
         """Add any missing default keys (for forward compatibility)."""
@@ -273,6 +300,36 @@ class GameSettings:
             # Validate speed relationship after setting
             self._validate_speed_relationship()
 
+    def set_game_mode(self, mode: str) -> None:
+        """Set the current game mode for restriction tracking."""
+        self._current_game_mode = mode
+
+    def get_game_mode(self) -> str:
+        """Get the current game mode."""
+        return self._current_game_mode
+
+    def is_setting_restricted(self, key: str) -> bool:
+        """Check if a setting is restricted for the current game mode.
+
+        Returns:
+            True if setting is restricted for current mode, False otherwise
+        """
+        from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+        if self._current_game_mode == AUTOPLAY_MODE_NAME:
+            return key in self.AUTOPLAY_RESTRICTED_SETTINGS
+        return False
+
+    def get_restriction_reason(self, key: str) -> str:
+        """Get the reason a setting is restricted.
+
+        Returns:
+            Reason string or empty string if not restricted
+        """
+        if key in self.AUTOPLAY_RESTRICTED_SETTINGS:
+            return self.AUTOPLAY_RESTRICTED_SETTINGS[key]["reason"]
+        return ""
+
     def get_all(self) -> dict:
         """Get all settings as a dictionary.
 
@@ -332,9 +389,14 @@ class GameSettings:
             Formatted string representation of the value
         """
         if field["key"] == "cells_per_side":
-            # Always show the actual/current value that will be used
-            actual = current_width // current_grid_size
-            return f"{actual} × {actual}"
+            # Show the saved value directly (the internal value)
+            grid_str = f"{int(value)} × {int(value)}"
+            # Add note for AutoPlay mode about even grid requirement
+            from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+            if self._current_game_mode == AUTOPLAY_MODE_NAME:
+                grid_str += " (even only)"
+            return grid_str
         elif field["key"] == "obstacle_difficulty":
             return f"{value}"
         elif isinstance(value, bool):
