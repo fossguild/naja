@@ -335,9 +335,8 @@ class GameSettings:
             Formatted string representation of the value
         """
         if field["key"] == "cells_per_side":
-            # Display +1 to match actual grid size user sees in game
-            actual = (current_width // current_grid_size) + 1
-            return f"{actual} × {actual}"
+            # Show the saved value directly (the internal value)
+            return f"{int(value)} × {int(value)}"
         elif field["key"] == "obstacle_difficulty":
             return f"{value}"
         elif isinstance(value, bool):
