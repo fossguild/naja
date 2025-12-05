@@ -175,7 +175,6 @@ class GameOverScene(BaseScene):
                 new_score_color = GAME_OVER_NEW_SCORE_COLOR
                 title_text = "Game Over"
 
-
             # Title text (either "You Win!" or "Game Over") centered
             title_surface = big_font.render(title_text, True, title_color)
             title_rect = title_surface.get_rect(
@@ -339,8 +338,9 @@ class GameOverScene(BaseScene):
                 if hasattr(entity, "game_state"):
                     self._current_score = entity.game_state.final_score
                     self._gamemode = entity.game_state.game_mode
-                    # Check if this is a victory
-                    self._is_victory = entity.game_state.death_reason == "Victory"
+                    # Update death_reason from world if not already set
+                    if not self._death_reason and entity.game_state.death_reason:
+                        self._death_reason = entity.game_state.death_reason
 
         # Check if this is a new high score and capture timestamp
         # Note: The score has already been added to the scoreboard by ScoringSystem
