@@ -102,6 +102,52 @@ SNAKE_COLOR_PALETTES = [
     {"head": "#ff0000", "tail": "#rainbow", "name": "Rainbow"},
 ]
 
+# Color palettes for board customization (from Figma design)
+BOARD_COLOR_PALETTES = [
+    # Classic Dark (default)
+    {
+        "primary": "#202020",
+        "secondary": "#2c2c2c",
+        "grid": "#3c3c3b",
+        "name": "Classic Dark",
+    },
+    # Pink
+    {
+        "primary": "#E780A0",
+        "secondary": "#DE527F",
+        "grid": "#5C2436",
+        "name": "Pink",
+    },
+    # Orange
+    {
+        "primary": "#FFC073",
+        "secondary": "#F8961E",
+        "grid": "#613C0F",
+        "name": "Orange",
+    },
+    # Green
+    {
+        "primary": "#BDDCA5",
+        "secondary": "#90BE6D",
+        "grid": "#3F5230",
+        "name": "Green",
+    },
+    # Blue
+    {
+        "primary": "#97AABB",
+        "secondary": "#577590",
+        "grid": "#2C3B49",
+        "name": "Blue",
+    },
+    # Purple
+    {
+        "primary": "#C17CD8",
+        "secondary": "#8D41A6",
+        "grid": "#41204C",
+        "name": "Purple",
+    },
+]
+
 # Rainbow colors for the Rainbow skin (ROYGBIV spectrum)
 RAINBOW_COLORS = [
     "#ff0000",  # Red
@@ -148,3 +194,28 @@ def get_snake_colors_by_name(name: str):
         if palette["name"] == name:
             return palette
     return SNAKE_COLOR_PALETTES[0]  # Return default if not found
+
+
+def get_random_board_colors():
+    """Get a random color palette for the board.
+
+    Returns:
+        dict: Dictionary with 'primary', 'secondary', 'grid', and 'name' keys
+    """
+    return random.choice(BOARD_COLOR_PALETTES)
+
+
+def get_board_colors_by_name(name: str):
+    """Get board colors by palette name.
+
+    Args:
+        name: Name of the color palette
+
+    Returns:
+        dict: Dictionary with 'primary', 'secondary', 'grid', and 'name' keys,
+              or default if not found
+    """
+    for palette in BOARD_COLOR_PALETTES:
+        if palette["name"] == name:
+            return palette
+    return BOARD_COLOR_PALETTES[0]  # Return default if not found

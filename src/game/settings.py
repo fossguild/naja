@@ -24,7 +24,7 @@ from types import FunctionType
 from typing import Any
 import os
 import json
-from .constants import SNAKE_COLOR_PALETTES, USER_DATA_DIR
+from .constants import SNAKE_COLOR_PALETTES, BOARD_COLOR_PALETTES, USER_DATA_DIR
 
 
 class GameSettings:
@@ -41,7 +41,8 @@ class GameSettings:
         "sound_effects": True,  # Controls all sound effects (eat, death, etc.)
         "dynamic_spawn_obstacles": False,
         "electric_walls": True,
-        "snake_color_palette": "Classic Green",  # New setting
+        "snake_color_palette": "Classic Green",  # Snake color customization
+        "board_color_palette": "Classic Dark",  # Board color customization
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
     }
@@ -156,6 +157,14 @@ class GameSettings:
             "label": "Snake color",
             "type": "select",
             "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
+            "requires_reset": False,
+            "category": "Display",
+        },
+        {
+            "key": "board_color_palette",
+            "label": "Board color",
+            "type": "select",
+            "options": [palette["name"] for palette in BOARD_COLOR_PALETTES],
             "requires_reset": False,
             "category": "Display",
         },
@@ -486,6 +495,17 @@ class GameSettings:
 
         palette_name = self.settings.get("snake_color_palette", "Classic Green")
         return get_snake_colors_by_name(palette_name)
+
+    def get_board_colors(self):
+        """Get current board colors based on selected palette.
+
+        Returns:
+            dict: Dictionary with 'primary', 'secondary', 'grid', and 'name' keys
+        """
+        from .constants import get_board_colors_by_name
+
+        palette_name = self.settings.get("board_color_palette", "Classic Dark")
+        return get_board_colors_by_name(palette_name)
 
     def randomize_snake_colors(self):
         """Randomize snake colors to a random palette.
