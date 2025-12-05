@@ -36,6 +36,10 @@ from game.constants import (
     GAME_OVER_HIGH_SCORE_COLOR,
     GAME_OVER_TIMESTAMP_COLOR,
     GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR,
+    VICTORY_TITLE_COLOR,
+    VICTORY_MESSAGE_COLOR,
+    VICTORY_HIGHLIGHT_COLOR,
+    VICTORY_HIGH_SCORE_COLOR,
 )
 from game.scoreboard import Scoreboard, MAX_SCOREBOARD_ENTRIES
 from game.settings import GameSettings
@@ -85,7 +89,23 @@ class GameOverScene(BaseScene):
         self._current_score = 0
         self._is_new_high_score = False
         self._new_score_timestamp = None
-        self._is_victory = False
+
+    @property
+    def _is_victory(self) -> bool:
+        """Check if this is a victory (win) instead of a death (loss)."""
+        return self._death_reason.startswith("Win:")
+
+    @property
+    def _victory_message(self) -> str:
+        """Get the victory message to display based on death_reason.
+
+        Extracts the message after 'Win: ' prefix, or returns a default.
+        This allows new game modes to automatically use their custom message
+        by setting death_reason to 'Win: <their message>'.
+        """
+        if self._is_victory and len(self._death_reason) > 5:
+            return self._death_reason[5:].strip()  # Remove 'Win: ' prefix
+        return "You completed the game!"  # Default fallback for others
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game over logic.
@@ -139,39 +159,43 @@ class GameOverScene(BaseScene):
                 small_font = pygame.font.Font(None, small_font_size)
                 tiny_font = pygame.font.Font(None, tiny_font_size)
 
-            # Use color constants from game.constants
-            message_color = GAME_OVER_MESSAGE_COLOR
-            highlight_color = GAME_OVER_HIGHLIGHT_COLOR
-            new_score_color = GAME_OVER_NEW_SCORE_COLOR
-            high_score_color = GAME_OVER_HIGH_SCORE_COLOR
-
-            # Victory colors (green/gold theme)
-            victory_color = (0, 255, 100)  # Bright green
-            victory_highlight = (255, 215, 0)  # Gold
-
-            # "Game Over" or "You Win!" text centered
+            # Use victory or game over colors based on win/loss
             if self._is_victory:
-                title_text = big_font.render("You Win!", True, victory_color)
+                title_color = VICTORY_TITLE_COLOR
+                message_color = VICTORY_MESSAGE_COLOR
+                highlight_color = VICTORY_HIGHLIGHT_COLOR
+                high_score_color = VICTORY_HIGH_SCORE_COLOR
+                new_score_color = VICTORY_HIGHLIGHT_COLOR
+                title_text = "You Win!"
             else:
-                title_text = big_font.render("Game Over", True, message_color)
-            title_rect = title_text.get_rect(
+                title_color = GAME_OVER_MESSAGE_COLOR
+                message_color = GAME_OVER_MESSAGE_COLOR
+                highlight_color = GAME_OVER_HIGHLIGHT_COLOR
+                high_score_color = GAME_OVER_HIGH_SCORE_COLOR
+                new_score_color = GAME_OVER_NEW_SCORE_COLOR
+                title_text = "Game Over"
+
+
+            # Title text (either "You Win!" or "Game Over") centered
+            title_surface = big_font.render(title_text, True, title_color)
+            title_rect = title_surface.get_rect(
                 center=(self._width // 2, self._height / 5)
             )
-            self._renderer.blit(title_text, title_rect)
+            self._renderer.blit(title_surface, title_rect)
 
-            # Victory subtitle
+            # Display victory message or "NEW HIGH SCORE!" below title
+            y_offset = self._height / 3.5
             if self._is_victory:
-                subtitle = medium_font.render(
-                    "🏆 Perfect Game! 🏆", True, victory_highlight
+                # Show victory message (e.g., "Fully Shrunk!", "Board Complete!")
+                victory_text = medium_font.render(
+                    self._victory_message, True, message_color
                 )
-                subtitle_rect = subtitle.get_rect(
-                    center=(self._width // 2, self._height / 5 + 70)
+                victory_rect = victory_text.get_rect(
+                    center=(self._width // 2, y_offset)
                 )
-                self._renderer.blit(subtitle, subtitle_rect)
+                self._renderer.blit(victory_text, victory_rect)
+                y_offset += 50
 
-            # Display "NEW HIGH SCORE!" if applicable
-            # Start lower when victory subtitle is displayed
-            y_offset = self._height / 2.8 if self._is_victory else self._height / 3.5
             if self._is_new_high_score:
                 high_score_text = medium_font.render(
                     "* NEW HIGH SCORE! *", True, high_score_color
