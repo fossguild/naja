@@ -84,13 +84,14 @@ class BoardRenderSystem(BaseSystem):
         return ColorScheme()
 
     def clear_screen(self, world: World) -> None:
-        """Clear the screen with black background for border effect.
+        """Clear the screen with grid color background for border effect.
 
         Args:
             world: Game world
         """
-        # Fill entire screen with black for border
-        self._renderer.fill((0, 0, 0))
+        # Fill entire screen with grid color for border
+        color_scheme = self._get_color_scheme(world)
+        self._renderer.fill(color_scheme.grid.to_tuple())
 
     def get_board_offset(self) -> tuple[int, int]:
         """Get the offset for the game board from screen edge.

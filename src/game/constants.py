@@ -104,11 +104,11 @@ SNAKE_COLOR_PALETTES = [
 
 # Color palettes for board customization (from Figma design)
 BOARD_COLOR_PALETTES = [
-    # Classic Dark (default)
+    # Classic Dark (default) - uses black border
     {
         "primary": "#202020",
         "secondary": "#2c2c2c",
-        "grid": "#3c3c3b",
+        "grid": "#000000",
         "name": "Classic Dark",
     },
     # Pink

@@ -277,16 +277,16 @@ class SettingsApplySystem(BaseSystem):
         grid_color = Color.from_hex(grid_hex)
 
         # find the ColorScheme entity and update its colors
-        for entity_id, entity in world.registry.all_entities.items():
-            if hasattr(entity, "color_scheme"):
-                entity.color_scheme.arena = primary_color
-                entity.color_scheme.arena_secondary = secondary_color
-                entity.color_scheme.grid = grid_color
-                print(
-                    f"Applied board palette: primary={primary_hex}, "
-                    f"secondary={secondary_hex}, grid={grid_hex}"
-                )
-                break
+        color_entities = world.registry.query_by_component("color_scheme")
+        for entity_id, entity in color_entities.items():
+            entity.color_scheme.arena = primary_color
+            entity.color_scheme.arena_secondary = secondary_color
+            entity.color_scheme.grid = grid_color
+            print(
+                f"Applied board palette: primary={primary_hex}, "
+                f"secondary={secondary_hex}, grid={grid_hex}"
+            )
+            break
 
     def _check_and_apply_speeds(self, world: World) -> None:
         """Check if speeds changed and apply them.
