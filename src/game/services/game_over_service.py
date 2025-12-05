@@ -80,6 +80,39 @@ class GameOverService:
 
         print(f"☠️ DEATH CAUSE: {reason}")
 
+    def handle_victory(self, world: World) -> None:
+        """Handle snake victory (filled the entire board).
+
+        Similar to handle_death but with victory-specific behavior:
+        1. Save final score
+        2. Mark snake as "alive" (won, not dead)
+        3. Play victory sound
+        4. Update GameState with "Victory" reason
+
+        Args:
+            world: ECS world
+        """
+        # Get current score and save to scoreboard
+        current_score = 0
+        if self._scoring_system:
+            current_score = self._scoring_system.get_current_score(world)
+            self._scoring_system.save_score_to_scoreboard(world)
+
+        # Play victory sound (different from death)
+        if self._audio_service:
+            self._audio_service.play_sound("assets/sound/apple_eaten.wav")
+            # Could add victory music here if available
+
+        # Update game state
+        game_state = self._get_game_state(world)
+        if game_state:
+            game_state.game_over = True
+            game_state.death_reason = "Victory"
+            game_state.next_scene = "game_over"
+            game_state.final_score = current_score
+
+        print("🏆 VICTORY! Snake filled the entire board!")
+
     def _get_snake_entity(self, world: World):
         """Helper to find snake entity."""
         snakes = world.registry.query_by_type(EntityType.SNAKE)
