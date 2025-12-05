@@ -165,12 +165,13 @@ class GameOverScene(BaseScene):
                     "🏆 Perfect Game! 🏆", True, victory_highlight
                 )
                 subtitle_rect = subtitle.get_rect(
-                    center=(self._width // 2, self._height / 5 + 60)
+                    center=(self._width // 2, self._height / 5 + 70)
                 )
                 self._renderer.blit(subtitle, subtitle_rect)
 
             # Display "NEW HIGH SCORE!" if applicable
-            y_offset = self._height / 3.5
+            # Start lower when victory subtitle is displayed
+            y_offset = self._height / 2.8 if self._is_victory else self._height / 3.5
             if self._is_new_high_score:
                 high_score_text = medium_font.render(
                     "* NEW HIGH SCORE! *", True, high_score_color
