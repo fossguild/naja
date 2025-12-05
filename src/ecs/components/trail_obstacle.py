@@ -22,14 +22,21 @@
 from dataclasses import dataclass
 
 
+# Default time-to-live for trail obstacles (in snake moves)
+DEFAULT_TRAIL_TTL = 30
+
+
 @dataclass
 class TrailObstacleTag:
     """Marker component for trail obstacle entities in Trail Mode.
 
-    Tag-only component with no data fields.
+    Contains TTL (time-to-live) for gradual decay.
     Differentiates trail obstacles (created during gameplay) from
     static obstacles (created at level start).
 
     Used by: TrailObstacle entities
-    Read by: CollisionSystem, rendering systems
+    Read by: CollisionSystem, TrailDecaySystem, rendering systems
     """
+
+    ttl: int = DEFAULT_TRAIL_TTL  # Remaining moves before obstacle disappears
+    max_ttl: int = DEFAULT_TRAIL_TTL  # Original TTL for fade calculations

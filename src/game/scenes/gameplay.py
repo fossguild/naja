@@ -46,6 +46,7 @@ from ecs.systems.overlay_render import OverlayRenderSystem
 from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
 from ecs.systems.trail_generation import TrailGenerationSystem
+from ecs.systems.trail_decay import TrailDecaySystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME, BOX_MODE_NAME
 from ecs.systems.hunger import HungerSystem
@@ -145,6 +146,7 @@ class GameplayScene(BaseScene):
                 self._get_electric_walls
             ),  # 2: update entity positions based on velocity
             TrailGenerationSystem(),  # 3: create trail obstacles in Trail Mode
+            TrailDecaySystem(),  # 4: decay and remove old trail obstacles
         ]
 
         # add apple-related systems only if not in Box Mode
