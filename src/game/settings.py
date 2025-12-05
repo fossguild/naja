@@ -80,7 +80,7 @@ class GameSettings:
             "label": "Max speed",
             "type": "float",
             "min": 4.0,
-            "max": 60.0,
+            "max": 100.0,
             "step": 1.0,
             "requires_reset": True,
             "category": "Gameplay",
