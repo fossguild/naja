@@ -390,7 +390,13 @@ class GameSettings:
         """
         if field["key"] == "cells_per_side":
             # Show the saved value directly (the internal value)
-            return f"{int(value)} × {int(value)}"
+            grid_str = f"{int(value)} × {int(value)}"
+            # Add note for AutoPlay mode about even grid requirement
+            from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+            if self._current_game_mode == AUTOPLAY_MODE_NAME:
+                grid_str += " (even only)"
+            return grid_str
         elif field["key"] == "obstacle_difficulty":
             return f"{value}"
         elif isinstance(value, bool):
