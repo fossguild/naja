@@ -42,6 +42,7 @@ def create_snake(
     enable_hunger: bool = False,
     cheese_mode: bool = False,
     shrinking_mode: bool = False,
+    autoplay_mode: bool = False,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -53,6 +54,8 @@ def create_snake(
         tail_color: RGB color for snake tail (default: light green)
         enable_hunger: Whether to enable hunger mechanic for the snake (default: False)
         cheese_mode: Whether Cheese Mode is enabled (affects initial size)
+        shrinking_mode: Whether Shrinking Mode is enabled (starts large)
+        autoplay_mode: Whether Autoplay Mode is enabled (starts with zero velocity)
 
     Returns:
         int: Entity ID of created snake
@@ -101,10 +104,17 @@ def create_snake(
         initial_segments = []
         initial_size = 1
 
+    # In autoplay mode, start with zero velocity so autoplay can set the first direction
+    # Otherwise start moving right
+    if autoplay_mode:
+        initial_dx, initial_dy = 0, 0
+    else:
+        initial_dx, initial_dy = 1, 0
+
     # create snake entity with all required components
     snake = Snake(
         position=Position(x=start_x, y=start_y, prev_x=start_x, prev_y=start_y),
-        velocity=Velocity(dx=1, dy=0, speed=initial_speed),
+        velocity=Velocity(dx=initial_dx, dy=initial_dy, speed=initial_speed),
         body=SnakeBody(segments=initial_segments, size=initial_size, alive=True),
         hunger=(
             Hunger(
