@@ -280,6 +280,32 @@ class OverlayRenderSystem(BaseSystem):
     def _draw_settings_hint(self, surface_width: int, surface_height: int) -> None:
         """Draw settings menu hint footer."""
         font_path = "assets/font/GetVoIP-Grotesque.ttf"
+
+        # Seizure warning for rainbow color in AutoPlay mode
+        if self._settings:
+            from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+            is_autoplay = self._settings.get_game_mode() == AUTOPLAY_MODE_NAME
+            is_rainbow = (
+                "rainbow" in str(self._settings.get("snake_color_palette")).lower()
+            )
+            if is_autoplay and is_rainbow:
+                warning_font_size = int(surface_width / 45)
+                try:
+                    warning_font = pygame.font.Font(font_path, warning_font_size)
+                except Exception:
+                    warning_font = pygame.font.Font(None, warning_font_size)
+
+                warning_text = "[!] SEIZURE WARNING: Rainbow colors + high speed may cause discomfort"
+                warning_surf = warning_font.render(warning_text, True, (255, 100, 100))
+                warning_rect = warning_surf.get_rect(
+                    center=(surface_width / 2, surface_height * 0.88)
+                )
+                # Draw background
+                bg_rect = warning_rect.inflate(20, 8)
+                self._renderer.draw_rect((40, 20, 20), bg_rect)
+                self._renderer.blit(warning_surf, warning_rect)
+
         hint_text = "[A/D] change   [W/S] navigate   [Enter] select   [Esc] back   [C] random colors"
         hint_font_size = int(surface_width / 50)
         try:

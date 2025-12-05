@@ -331,6 +331,29 @@ class SettingsScene(BaseScene):
             hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
         )
 
+        # Seizure warning for rainbow color in AutoPlay mode
+        from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+        is_autoplay = self._settings.get_game_mode() == AUTOPLAY_MODE_NAME
+        is_rainbow = "rainbow" in str(self._settings.get("snake_color_palette")).lower()
+        if is_autoplay and is_rainbow:
+            # Draw seizure warning banner
+            warning_text = (
+                "[!] SEIZURE WARNING: Rainbow colors + high speed may cause discomfort"
+            )
+            warning_surface = self._assets.render_custom(
+                warning_text,
+                (255, 100, 100),  # Red warning color
+                int(self._width / 45),
+            )
+            warning_rect = warning_surface.get_rect(
+                center=(self._width / 2, self._height * 0.90)
+            )
+            # Draw background for visibility
+            bg_rect = warning_rect.inflate(20, 8)
+            self._renderer.draw_rect((40, 20, 20), bg_rect)
+            self._renderer.blit(warning_surface, warning_rect)
+
         # Draw hover tooltip for restricted settings
         if (
             self._hovered_warning_key
@@ -363,16 +386,7 @@ class SettingsScene(BaseScene):
 
                 # Draw tooltip background
                 bg_rect = tooltip_rect.inflate(16, 10)
-                pygame.draw.rect(
-                    self._renderer._surface, (40, 40, 40), bg_rect, border_radius=4
-                )
-                pygame.draw.rect(
-                    self._renderer._surface,
-                    (255, 180, 50),
-                    bg_rect,
-                    width=2,
-                    border_radius=4,
-                )
+                self._renderer.draw_rect((40, 40, 40), bg_rect)
 
                 # Draw tooltip text
                 self._renderer.blit(tooltip_surface, tooltip_rect)
