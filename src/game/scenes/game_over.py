@@ -85,6 +85,7 @@ class GameOverScene(BaseScene):
         self._current_score = 0
         self._is_new_high_score = False
         self._new_score_timestamp = None
+        self._is_victory = False
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game over logic.
@@ -144,12 +145,29 @@ class GameOverScene(BaseScene):
             new_score_color = GAME_OVER_NEW_SCORE_COLOR
             high_score_color = GAME_OVER_HIGH_SCORE_COLOR
 
-            # "Game Over" text centered
-            game_over_text = big_font.render("Game Over", True, message_color)
-            game_over_rect = game_over_text.get_rect(
+            # Victory colors (green/gold theme)
+            victory_color = (0, 255, 100)  # Bright green
+            victory_highlight = (255, 215, 0)  # Gold
+
+            # "Game Over" or "You Win!" text centered
+            if self._is_victory:
+                title_text = big_font.render("You Win!", True, victory_color)
+            else:
+                title_text = big_font.render("Game Over", True, message_color)
+            title_rect = title_text.get_rect(
                 center=(self._width // 2, self._height / 5)
             )
-            self._renderer.blit(game_over_text, game_over_rect)
+            self._renderer.blit(title_text, title_rect)
+
+            # Victory subtitle
+            if self._is_victory:
+                subtitle = medium_font.render(
+                    "🏆 Perfect Game! 🏆", True, victory_highlight
+                )
+                subtitle_rect = subtitle.get_rect(
+                    center=(self._width // 2, self._height / 5 + 60)
+                )
+                self._renderer.blit(subtitle, subtitle_rect)
 
             # Display "NEW HIGH SCORE!" if applicable
             y_offset = self._height / 3.5
@@ -296,6 +314,8 @@ class GameOverScene(BaseScene):
                 if hasattr(entity, "game_state"):
                     self._current_score = entity.game_state.final_score
                     self._gamemode = entity.game_state.game_mode
+                    # Check if this is a victory
+                    self._is_victory = entity.game_state.death_reason == "Victory"
 
         # Check if this is a new high score and capture timestamp
         # Note: The score has already been added to the scoreboard by ScoringSystem
@@ -321,17 +341,23 @@ class GameOverScene(BaseScene):
                     ):
                         self._is_new_high_score = True
 
-        # Play death song (like old code) - only if audio is not muted
+        # Play appropriate music - only if audio is not muted
         if not self._settings or self._settings.get("background_music"):
             try:
                 from game.services.audio_service import AudioService
                 from game.services.assets import GameAssets
 
-                pygame.mixer.music.load("assets/sound/death_song.mp3")
-                pygame.mixer.music.play(-1)  # loop
-                # update trackers to prevent audio service from reloading the same track
-                AudioService._current_music_track = "assets/sound/death_song.mp3"
-                GameAssets._current_music_track = "assets/sound/death_song.mp3"
+                # Use victory or death music based on outcome
+                if self._is_victory:
+                    # For victory, we can use the background music or just not play death song
+                    # Using apple sound as a simple victory indicator for now
+                    pass  # No looping music for victory, just the celebration
+                else:
+                    pygame.mixer.music.load("assets/sound/death_song.mp3")
+                    pygame.mixer.music.play(-1)  # loop
+                    # update trackers to prevent audio service from reloading the same track
+                    AudioService._current_music_track = "assets/sound/death_song.mp3"
+                    GameAssets._current_music_track = "assets/sound/death_song.mp3"
             except Exception:
                 pass
 
