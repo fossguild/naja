@@ -60,6 +60,7 @@ class SettingsApplySystem(BaseSystem):
         self._settings = settings
         self._config = config
         self._assets = assets
+        self._game_mode = None  # Set via set_game_mode()
 
         # track previous settings to detect changes
         self._previous_cells_per_side = None
@@ -71,6 +72,14 @@ class SettingsApplySystem(BaseSystem):
 
         # initialize tracking on first update
         self._initialized = False
+
+    def set_game_mode(self, mode: str) -> None:
+        """Set the current game mode.
+
+        Args:
+            mode: Game mode name (e.g., 'AutoPlay')
+        """
+        self._game_mode = mode
 
     def update(self, world: World) -> None:
         """Apply any pending settings changes.
@@ -147,6 +156,12 @@ class SettingsApplySystem(BaseSystem):
         """
         # ensure minimum size
         desired_cells = max(10, int(desired_cells))
+
+        # For autoplay mode, enforce even grid size (maze algorithm requires it)
+        from game.game_modes_registry import AUTOPLAY_MODE_NAME
+
+        if self._game_mode == AUTOPLAY_MODE_NAME and desired_cells % 2 != 0:
+            desired_cells += 1  # Round up to nearest even number
 
         # calculate optimal grid/cell size
         new_cell_size = self._config.get_optimal_grid_size(desired_cells)
