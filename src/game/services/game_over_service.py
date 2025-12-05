@@ -80,17 +80,20 @@ class GameOverService:
 
         print(f"☠️ DEATH CAUSE: {reason}")
 
-    def handle_victory(self, world: World) -> None:
-        """Handle snake victory (filled the entire board).
+    def handle_victory(
+        self, world: World, win_message: str = "Board Complete!"
+    ) -> None:
+        """Handle snake victory.
 
         Similar to handle_death but with victory-specific behavior:
         1. Save final score
         2. Mark snake as "alive" (won, not dead)
         3. Play victory sound
-        4. Update GameState with "Victory" reason
+        4. Update GameState with victory reason
 
         Args:
             world: ECS world
+            win_message: Victory message to display (without "Win:" prefix)
         """
         # Get current score and save to scoreboard
         current_score = 0
@@ -112,11 +115,11 @@ class GameOverService:
         game_state = self._get_game_state(world)
         if game_state:
             game_state.game_over = True
-            game_state.death_reason = "Victory"
+            game_state.death_reason = f"Win: {win_message}"
             game_state.next_scene = "game_over"
             game_state.final_score = current_score
 
-        print("🏆 VICTORY! Snake filled the entire board!")
+        print(f"🏆 VICTORY! {win_message}")
 
     def _get_snake_entity(self, world: World):
         """Helper to find snake entity."""
