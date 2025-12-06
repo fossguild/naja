@@ -59,11 +59,47 @@ class SettingsScene(BaseScene):
         self._settings = settings
         self._config = config
         self._selected_index = 0
-        # total menu items = settings fields + "Reset to Default" button
+        # track which sections are collapsed
+        self._collapsed_sections = set()
+        # initialize collapsed sections from field definitions (only once)
+        for field in self._settings.MENU_FIELDS:
+            if field["type"] == "section" and field.get("collapsed", False):
+                self._collapsed_sections.add(field["key"])
+        # total menu items = visible settings fields + "Reset to Default" button
         self._total_menu_items = len(self._settings.MENU_FIELDS) + 1
-        # Hover state for warning tooltips
+        # hover state for warning tooltips
         self._hovered_warning_key = None
         self._warning_icon_rects = {}  # key -> rect for hover detection
+
+    def _get_visible_fields(self) -> list[dict]:
+        """Get only the fields that should be visible based on section collapse state.
+
+        Returns:
+            List of visible fields
+        """
+        visible = []
+        for field in self._settings.MENU_FIELDS:
+            # section headers are always visible
+            if field["type"] == "section":
+                visible.append(field)
+            # regular fields are visible if they don't have a parent section,
+            # or if their parent section is not collapsed
+            else:
+                parent = field.get("parent_section")
+                if not parent or parent not in self._collapsed_sections:
+                    visible.append(field)
+        return visible
+
+    def _toggle_section(self, section_key: str) -> None:
+        """Toggle a section's collapsed state.
+
+        Args:
+            section_key: Key of the section to toggle
+        """
+        if section_key in self._collapsed_sections:
+            self._collapsed_sections.remove(section_key)
+        else:
+            self._collapsed_sections.add(section_key)
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update settings logic.
@@ -74,12 +110,22 @@ class SettingsScene(BaseScene):
         Returns:
             Next scene name or None
         """
+        # Get visible fields
+        visible_fields = self._get_visible_fields()
+
+        # Clamp selected index to visible range
+        if self._selected_index >= len(visible_fields):
+            self._selected_index = len(visible_fields) - 1
+        if self._selected_index < 0:
+            self._selected_index = 0
+
         # Update key holding state (this handles continuous changes)
         # Only update if not on "Reset to Default" button
-        if self._selected_index < len(self._settings.MENU_FIELDS):
-            if self._settings.update_key_hold():
+        if self._selected_index < len(visible_fields):
+            current_field = visible_fields[self._selected_index]
+            # only update if not a section
+            if current_field["type"] != "section" and self._settings.update_key_hold():
                 # A value was updated by key holding
-                current_field = self._settings.MENU_FIELDS[self._selected_index]
                 self._apply_audio_setting_if_changed(current_field["key"])
 
         # Handle input
@@ -95,32 +141,42 @@ class SettingsScene(BaseScene):
                     return "menu"  # back to menu
                 elif event.key == pygame.K_RETURN:
                     # Check if "Reset to Default" is selected
-                    if self._selected_index == len(self._settings.MENU_FIELDS):
+                    if self._selected_index == len(visible_fields):
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
                         # Stay in settings to show the reset took effect
-                    else:
-                        # Regular return to menu
-                        self._settings.stop_key_hold()
-                        return "menu"
+                    elif self._selected_index < len(visible_fields):
+                        # toggle section if selected field is a section
+                        current_field = visible_fields[self._selected_index]
+                        print(
+                            f"[DEBUG] Enter pressed on field: {current_field.get('label')} (type: {current_field.get('type')})"
+                        )
+                        if current_field["type"] == "section":
+                            print(f"[DEBUG] Toggling section: {current_field['key']}")
+                            self._toggle_section(current_field["key"])
+                            print(f"[DEBUG] Collapsed sections: {self._collapsed_sections}")
+                        else:
+                            # Regular field - return to menu
+                            self._settings.stop_key_hold()
+                            return "menu"
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
-                    self._selected_index = (
-                        self._selected_index + 1
-                    ) % self._total_menu_items
+                    # navigate through visible fields + reset button
+                    total_items = len(visible_fields) + 1
+                    self._selected_index = (self._selected_index + 1) % total_items
                 elif event.key in (pygame.K_UP, pygame.K_w):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
-                    self._selected_index = (
-                        self._selected_index - 1
-                    ) % self._total_menu_items
+                    # navigate through visible fields + reset button
+                    total_items = len(visible_fields) + 1
+                    self._selected_index = (self._selected_index - 1) % total_items
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
                     # Only handle left/right on settings fields, not on "Reset to Default"
-                    if self._selected_index < len(self._settings.MENU_FIELDS):
-                        current_field = self._settings.MENU_FIELDS[self._selected_index]
-                        # Skip if setting is restricted (locked)
-                        if not self._settings.is_setting_restricted(
+                    if self._selected_index < len(visible_fields):
+                        current_field = visible_fields[self._selected_index]
+                        # Skip if field is a section or setting is restricted (locked)
+                        if current_field["type"] != "section" and not self._settings.is_setting_restricted(
                             current_field["key"]
                         ):
                             # Start holding left
@@ -129,10 +185,10 @@ class SettingsScene(BaseScene):
                             self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
                     # Only handle left/right on settings fields, not on "Reset to Default"
-                    if self._selected_index < len(self._settings.MENU_FIELDS):
-                        current_field = self._settings.MENU_FIELDS[self._selected_index]
-                        # Skip if setting is restricted (locked)
-                        if not self._settings.is_setting_restricted(
+                    if self._selected_index < len(visible_fields):
+                        current_field = visible_fields[self._selected_index]
+                        # Skip if field is a section or setting is restricted (locked)
+                        if current_field["type"] != "section" and not self._settings.is_setting_restricted(
                             current_field["key"]
                         ):
                             # Start holding right
@@ -210,10 +266,17 @@ class SettingsScene(BaseScene):
         current_y = padding_y - scroll_offset
         current_category = None
 
+        # Get visible fields (respecting section collapse state)
+        visible_fields = self._get_visible_fields()
+
         # Draw settings grouped by category
-        for field_i, f in enumerate(self._settings.MENU_FIELDS):
-            # Draw category header if this is a new category
-            if f.get("category") != current_category:
+        for field_i, f in enumerate(visible_fields):
+            # skip category headers for section headers and their children
+            is_section_child = f.get("parent_section") is not None
+            is_section = f.get("type") == "section"
+
+            # Draw category header if this is a new category (but not for sections or section children)
+            if not is_section and not is_section_child and f.get("category") != current_category:
                 current_category = f.get("category", "Other")
 
                 # Add spacing before category (except first)
@@ -236,81 +299,101 @@ class SettingsScene(BaseScene):
 
             # Draw setting field only if visible
             if content_start_y - row_h <= current_y <= content_end_y:
-                val = self._settings.get(f["key"])
+                # handle section headers specially
+                if f["type"] == "section":
+                    # section headers get a collapse indicator
+                    is_expanded = f["key"] not in self._collapsed_sections
+                    indicator = "v" if is_expanded else ">"
+                    label_text = f"{indicator} {f['label']}"
 
-                # Calculate current grid size for display
-                current_grid_size = 20
-                if self._config:
-                    desired_cells = max(10, int(self._settings.get("cells_per_side")))
-                    current_grid_size = self._config.get_optimal_grid_size(
-                        desired_cells
+                    # make section headers slightly larger
+                    color = SCORE_COLOR if field_i == self._selected_index else MESSAGE_COLOR
+                    text = self._assets.render_custom(
+                        label_text,
+                        color,
+                        int(self._width / 28),
                     )
-
-                formatted_val = self._settings.format_setting_value(
-                    f,
-                    val,
-                    self._width,
-                    current_grid_size,
-                )
-
-                # Check if setting is restricted
-                is_restricted = self._settings.is_setting_restricted(f["key"])
-
-                # Highlight selected item (dim color if restricted)
-                if is_restricted:
-                    # Restricted settings shown in orange/amber
-                    color = (
-                        (255, 180, 60)
-                        if field_i == self._selected_index
-                        else (180, 130, 60)
-                    )
+                    rect = text.get_rect()
+                    rect.left = left_margin - category_indent
+                    rect.top = current_y
+                    self._renderer.blit(text, rect)
                 else:
-                    color = (
-                        SCORE_COLOR
-                        if field_i == self._selected_index
-                        else MESSAGE_COLOR
-                    )
-                text = self._assets.render_custom(
-                    f"{f['label']}: {formatted_val}",
-                    color,
-                    int(self._width / 32),
-                )
-                rect = text.get_rect()
-                rect.left = left_margin
-                rect.top = current_y
-                self._renderer.blit(text, rect)
+                    # regular fields
+                    val = self._settings.get(f["key"])
 
-                # Draw warning indicator if restricted
-                if is_restricted:
-                    # Draw [!] warning icon
-                    warning_icon = self._assets.render_custom(
-                        "[!]",
-                        (255, 200, 50),  # Amber/yellow warning color
+                    # Calculate current grid size for display
+                    current_grid_size = 20
+                    if self._config:
+                        desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                        current_grid_size = self._config.get_optimal_grid_size(
+                            desired_cells
+                        )
+
+                    formatted_val = self._settings.format_setting_value(
+                        f,
+                        val,
+                        self._width,
+                        current_grid_size,
+                    )
+
+                    # Check if setting is restricted
+                    is_restricted = self._settings.is_setting_restricted(f["key"])
+
+                    # Highlight selected item (dim color if restricted)
+                    if is_restricted:
+                        # Restricted settings shown in orange/amber
+                        color = (
+                            (255, 180, 60)
+                            if field_i == self._selected_index
+                            else (180, 130, 60)
+                        )
+                    else:
+                        color = (
+                            SCORE_COLOR
+                            if field_i == self._selected_index
+                            else MESSAGE_COLOR
+                        )
+                    text = self._assets.render_custom(
+                        f"{f['label']}: {formatted_val}",
+                        color,
                         int(self._width / 32),
                     )
-                    icon_rect = warning_icon.get_rect()
-                    icon_rect.left = rect.right + 8
-                    icon_rect.centery = rect.centery
-                    self._renderer.blit(warning_icon, icon_rect)
-                    # Store rect for hover detection
-                    self._warning_icon_rects[f["key"]] = icon_rect
+                    rect = text.get_rect()
+                    rect.left = left_margin
+                    rect.top = current_y
+                    self._renderer.blit(text, rect)
 
-                    # Draw LOCKED label
-                    locked_text = self._assets.render_custom(
-                        "LOCKED",
-                        (180, 80, 80),  # Red-ish color
-                        int(self._width / 45),
-                    )
-                    locked_rect = locked_text.get_rect()
-                    locked_rect.left = icon_rect.right + 8
-                    locked_rect.centery = rect.centery
-                    self._renderer.blit(locked_text, locked_rect)
+                    # Draw warning indicator if restricted
+                    if is_restricted:
+                        # Draw [!] warning icon
+                        warning_icon = self._assets.render_custom(
+                            "[!]",
+                            (255, 200, 50),  # Amber/yellow warning color
+                            int(self._width / 32),
+                        )
+                        icon_rect = warning_icon.get_rect()
+                        icon_rect.left = rect.right + 8
+                        icon_rect.centery = rect.centery
+                        self._renderer.blit(warning_icon, icon_rect)
+                        # Store rect for hover detection
+                        self._warning_icon_rects[f["key"]] = icon_rect
+
+                        # Draw LOCKED label
+                        locked_text = self._assets.render_custom(
+                            "LOCKED",
+                            (180, 80, 80),  # Red-ish color
+                            int(self._width / 45),
+                        )
+                        locked_rect = locked_text.get_rect()
+                        locked_rect.left = icon_rect.right + 8
+                        locked_rect.centery = rect.centery
+                        self._renderer.blit(locked_text, locked_rect)
 
             current_y += row_h
 
         # Draw "Reset to Default" button
         current_y += int(self._height * 0.04)
-        reset_index = len(self._settings.MENU_FIELDS)
+        reset_index = len(visible_fields)
 
         # Only draw if visible
         if content_start_y - row_h <= current_y <= content_end_y:
@@ -325,7 +408,7 @@ class SettingsScene(BaseScene):
             self._renderer.blit(reset_text, reset_rect)
 
         # Hint footer
-        hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back   [C] random colors"
+        hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"
         hint = self._assets.render_custom(hint_text, GRID_COLOR, int(self._width / 50))
         self._renderer.blit(
             hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
