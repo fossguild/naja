@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Naja Dark Theme - inspired by the game */
+    --background: 220 10% 12%;
+    --foreground: 0 0% 85%;
+
+    --card: 220 10% 15%;
+    --card-foreground: 0 0% 85%;
+
+    --popover: 220 10% 15%;
+    --popover-foreground: 0 0% 85%;
+
+    --primary: 142 70% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 10% 20%;
+    --secondary-foreground: 0 0% 70%;
+
+    --muted: 220 10% 18%;
+    --muted-foreground: 0 0% 50%;
+
+    --accent: 0 75% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 10% 22%;
+    --input: 220 10% 22%;
+    --ring: 142 70% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom Naja Colors */
+    --naja-snake: 142 70% 45%;
+    --naja-apple: 0 75% 55%;
+    --naja-grid-light: 220 10% 18%;
+    --naja-grid-dark: 220 10% 14%;
+    --naja-title: 0 0% 55%;
+    --naja-glow: 142 70% 45%;
+
+    --sidebar-background: 220 10% 12%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 10% 20%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 220 10% 22%;
+    --sidebar-ring: 142 70% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-fredoka;
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 20px hsl(var(--naja-glow) / 0.5),
+                 0 0 40px hsl(var(--naja-glow) / 0.3);
+  }
+
+  .text-glow-accent {
+    text-shadow: 0 0 20px hsl(var(--naja-apple) / 0.5),
+                 0 0 40px hsl(var(--naja-apple) / 0.3);
+  }
+
+  .grid-pattern {
+    background-image: 
+      linear-gradient(45deg, hsl(var(--naja-grid-dark)) 25%, transparent 25%),
+      linear-gradient(-45deg, hsl(var(--naja-grid-dark)) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, hsl(var(--naja-grid-dark)) 75%),
+      linear-gradient(-45deg, transparent 75%, hsl(var(--naja-grid-dark)) 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+  }
+
+  .naja-border {
+    border: 2px solid hsl(var(--border));
+    box-shadow: inset 0 0 30px hsl(var(--naja-grid-dark) / 0.5);
+  }
+}
+
+@layer components {
+  .btn-naja {
+    @apply px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-300;
+    @apply bg-primary text-primary-foreground;
+    @apply hover:scale-105 hover:shadow-lg;
+    box-shadow: 0 4px 20px hsl(var(--naja-snake) / 0.3);
+  }
+
+  .btn-naja:hover {
+    box-shadow: 0 6px 30px hsl(var(--naja-snake) / 0.5);
+  }
+
+  .btn-github {
+    @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-300;
+    @apply bg-secondary text-foreground border border-border;
+    @apply hover:bg-muted hover:border-primary/50;
+  }
+
+  .game-container {
+    @apply rounded-xl overflow-hidden;
+    background: hsl(var(--naja-grid-light));
+    box-shadow: 
+      0 0 0 3px hsl(var(--border)),
+      0 20px 60px hsl(0 0% 0% / 0.5),
+      inset 0 0 100px hsl(var(--naja-grid-dark) / 0.3);
+  }
+}
