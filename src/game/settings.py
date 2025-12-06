@@ -617,7 +617,9 @@ class GameSettings:
         ]
 
     def scoreboard_settings(self) -> dict[str, Any]:
-        relevant_settings = {v["key"] for v in self.MENU_FIELDS if v.get("requires_reset", False)}
+        relevant_settings = {
+            v["key"] for v in self.MENU_FIELDS if v.get("requires_reset", False)
+        }
         filtered_settings = {
             k: v for k, v in self.settings.items() if k in relevant_settings
         }

@@ -154,7 +154,9 @@ class SettingsScene(BaseScene):
                         if current_field["type"] == "section":
                             print(f"[DEBUG] Toggling section: {current_field['key']}")
                             self._toggle_section(current_field["key"])
-                            print(f"[DEBUG] Collapsed sections: {self._collapsed_sections}")
+                            print(
+                                f"[DEBUG] Collapsed sections: {self._collapsed_sections}"
+                            )
                         else:
                             # Regular field - return to menu
                             self._settings.stop_key_hold()
@@ -176,7 +178,9 @@ class SettingsScene(BaseScene):
                     if self._selected_index < len(visible_fields):
                         current_field = visible_fields[self._selected_index]
                         # Skip if field is a section or setting is restricted (locked)
-                        if current_field["type"] != "section" and not self._settings.is_setting_restricted(
+                        if current_field[
+                            "type"
+                        ] != "section" and not self._settings.is_setting_restricted(
                             current_field["key"]
                         ):
                             # Start holding left
@@ -188,7 +192,9 @@ class SettingsScene(BaseScene):
                     if self._selected_index < len(visible_fields):
                         current_field = visible_fields[self._selected_index]
                         # Skip if field is a section or setting is restricted (locked)
-                        if current_field["type"] != "section" and not self._settings.is_setting_restricted(
+                        if current_field[
+                            "type"
+                        ] != "section" and not self._settings.is_setting_restricted(
                             current_field["key"]
                         ):
                             # Start holding right
@@ -276,7 +282,11 @@ class SettingsScene(BaseScene):
             is_section = f.get("type") == "section"
 
             # Draw category header if this is a new category (but not for sections or section children)
-            if not is_section and not is_section_child and f.get("category") != current_category:
+            if (
+                not is_section
+                and not is_section_child
+                and f.get("category") != current_category
+            ):
                 current_category = f.get("category", "Other")
 
                 # Add spacing before category (except first)
@@ -307,7 +317,11 @@ class SettingsScene(BaseScene):
                     label_text = f"{indicator} {f['label']}"
 
                     # make section headers slightly larger
-                    color = SCORE_COLOR if field_i == self._selected_index else MESSAGE_COLOR
+                    color = (
+                        SCORE_COLOR
+                        if field_i == self._selected_index
+                        else MESSAGE_COLOR
+                    )
                     text = self._assets.render_custom(
                         label_text,
                         color,
@@ -324,7 +338,9 @@ class SettingsScene(BaseScene):
                     # Calculate current grid size for display
                     current_grid_size = 20
                     if self._config:
-                        desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                        desired_cells = max(
+                            10, int(self._settings.get("cells_per_side"))
+                        )
                         current_grid_size = self._config.get_optimal_grid_size(
                             desired_cells
                         )

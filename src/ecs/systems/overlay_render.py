@@ -249,7 +249,11 @@ class OverlayRenderSystem(BaseSystem):
             is_section = f.get("type") == "section"
 
             # Draw category header if this is a new category (but not for sections or section children)
-            if not is_section and not is_section_child and f.get("category") != current_category:
+            if (
+                not is_section
+                and not is_section_child
+                and f.get("category") != current_category
+            ):
                 current_category = f.get("category", "Other")
 
                 # Add spacing before category (except first)
@@ -297,7 +301,9 @@ class OverlayRenderSystem(BaseSystem):
                     # Calculate current grid size for display
                     current_grid_size = 20
                     if self._config:
-                        desired_cells = max(10, int(self._settings.get("cells_per_side")))
+                        desired_cells = max(
+                            10, int(self._settings.get("cells_per_side"))
+                        )
                         current_grid_size = self._config.get_optimal_grid_size(
                             desired_cells
                         )

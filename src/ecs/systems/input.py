@@ -302,7 +302,9 @@ class InputSystem(BaseSystem):
         menu_fields = self._settings.get_in_game_menu_fields()
         # get visible fields (respecting section collapse state)
         if self._overlay_render_system:
-            visible_fields = self._overlay_render_system._get_visible_fields(menu_fields)
+            visible_fields = self._overlay_render_system._get_visible_fields(
+                menu_fields
+            )
         else:
             visible_fields = menu_fields
         total_items = len(visible_fields) + 1  # +1 for "Return to Menu" option
@@ -322,7 +324,10 @@ class InputSystem(BaseSystem):
             elif game_state.settings_selected_index < len(visible_fields):
                 # check if this is a section header
                 current_field = visible_fields[game_state.settings_selected_index]
-                if current_field.get("type") == "section" and self._overlay_render_system:
+                if (
+                    current_field.get("type") == "section"
+                    and self._overlay_render_system
+                ):
                     # toggle section
                     self._overlay_render_system.toggle_section(current_field["key"])
                 else:
