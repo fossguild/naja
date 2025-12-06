@@ -46,6 +46,7 @@ class GameSettings:
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
         "segment_borders": False,  # Dark borders around snake segments
+        "game_mode": "Classic",  # current game mode
     }
 
     # Settings that are restricted/forced for Autoplay mode
@@ -188,6 +189,18 @@ class GameSettings:
             "options": [palette["name"] for palette in BOARD_COLOR_PALETTES],
             "requires_reset": False,
             "category": "Display",
+        },
+        {
+            "key": "game_mode_section",
+            "label": "Game Mode Settings",
+            "type": "section",
+            "collapsed": True,  # starts collapsed
+        },
+        {
+            "key": "game_mode",
+            "label": "  Current Mode",
+            "type": "readonly",
+            "parent_section": "game_mode_section",
         },
     ]
 
@@ -388,7 +401,13 @@ class GameSettings:
         Returns:
             Formatted string representation of the value
         """
-        if field["key"] == "cells_per_side":
+        if field["type"] == "section":
+            # section headers don't have values
+            return ""
+        elif field["type"] == "readonly":
+            # readonly fields just display the value
+            return str(value)
+        elif field["key"] == "cells_per_side":
             # Show the saved value directly (the internal value)
             grid_str = f"{int(value)} × {int(value)}"
             # Add note for AutoPlay mode about even grid requirement
@@ -472,6 +491,10 @@ class GameSettings:
         """
         key = field["key"]
         kind = field["type"]
+
+        # readonly and section fields cannot be changed
+        if kind in ("readonly", "section"):
+            return
 
         if kind == "bool":
             if key not in self.settings:
@@ -594,7 +617,9 @@ class GameSettings:
         ]
 
     def scoreboard_settings(self) -> dict[str, Any]:
-        relevant_settings = {v["key"] for v in self.MENU_FIELDS if v["requires_reset"]}
+        relevant_settings = {
+            v["key"] for v in self.MENU_FIELDS if v.get("requires_reset", False)
+        }
         filtered_settings = {
             k: v for k, v in self.settings.items() if k in relevant_settings
         }

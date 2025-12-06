@@ -53,6 +53,7 @@ class InputSystem(BaseSystem):
         pygame_adapter: Optional[Any] = None,
         settings: Optional[Any] = None,
         game_mode: str = "Classic Snake Game",
+        overlay_render_system: Optional[Any] = None,
     ):
         """Initialize the InputSystem.
 
@@ -60,9 +61,11 @@ class InputSystem(BaseSystem):
             pygame_adapter: Pygame IO adapter for reading events
             settings: Game settings for palette randomization
             game_mode: Current game mode
+            overlay_render_system: OverlayRenderSystem for section toggling
         """
         self._pygame_adapter = pygame_adapter
         self._settings = settings
+        self._overlay_render_system = overlay_render_system
         self._game_mode = game_mode
 
     def update(self, world: World) -> None:
@@ -297,8 +300,15 @@ class InputSystem(BaseSystem):
 
         # use only in-game adjustable fields (no reset required)
         menu_fields = self._settings.get_in_game_menu_fields()
-        total_items = len(menu_fields) + 1  # +1 for "Return to Menu" option
-        return_to_menu_index = len(menu_fields)  # last item
+        # get visible fields (respecting section collapse state)
+        if self._overlay_render_system:
+            visible_fields = self._overlay_render_system._get_visible_fields(
+                menu_fields
+            )
+        else:
+            visible_fields = menu_fields
+        total_items = len(visible_fields) + 1  # +1 for "Return to Menu" option
+        return_to_menu_index = len(visible_fields)  # last item
 
         # handle ESC to close settings
         if key == pygame.K_ESCAPE:
@@ -311,6 +321,19 @@ class InputSystem(BaseSystem):
                 game_state.settings_menu_open = False
                 game_state.paused = False
                 game_state.next_scene = "menu"
+            elif game_state.settings_selected_index < len(visible_fields):
+                # check if this is a section header
+                current_field = visible_fields[game_state.settings_selected_index]
+                if (
+                    current_field.get("type") == "section"
+                    and self._overlay_render_system
+                ):
+                    # toggle section
+                    self._overlay_render_system.toggle_section(current_field["key"])
+                else:
+                    # close settings and resume game
+                    game_state.settings_menu_open = False
+                    game_state.paused = False
             else:
                 # close settings and resume game
                 game_state.settings_menu_open = False

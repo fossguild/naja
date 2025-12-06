@@ -130,6 +130,12 @@ class GameplayScene(BaseScene):
             audio_service=self._audio_service, scoring_system=scoring_system
         )
 
+        # Create overlay_render_system early so it can be passed to InputSystem
+        if self._renderer:
+            self._overlay_render_system = OverlayRenderSystem(
+                self._renderer, self._settings, self._config
+            )
+
         # game logic systems (indices 0-7, paused during pause)
         from ecs.systems.apple_spawn import AppleSpawnSystem
         from ecs.systems.autoplay import AutoplaySystem
@@ -141,7 +147,10 @@ class GameplayScene(BaseScene):
         # build game logic systems list
         game_logic_systems = [
             InputSystem(
-                self._pygame_adapter, self._settings, self._current_game_mode
+                self._pygame_adapter,
+                self._settings,
+                self._current_game_mode,
+                self._overlay_render_system,
             ),  # 0: read user input and update velocity/game state
             autoplay_system,  # 1: calculate next move in autoplay mode (with victory handling)
             MovementSystem(
@@ -227,9 +236,7 @@ class GameplayScene(BaseScene):
                 self._renderer, self._settings
             )
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
-            self._overlay_render_system = OverlayRenderSystem(
-                self._renderer, self._settings, self._config
-            )
+            # overlay_render_system already created earlier (before InputSystem)
             self._systems.extend(
                 [
                     self._board_render_system,

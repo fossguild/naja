@@ -54,6 +54,43 @@ class OverlayRenderSystem(BaseSystem):
         self._renderer = renderer
         self._settings = settings
         self._config = config
+        # track which sections are collapsed
+        self._collapsed_sections = set()
+        # initialize collapsed sections from field definitions (only once)
+        if self._settings:
+            for field in self._settings.MENU_FIELDS:
+                if field.get("type") == "section" and field.get("collapsed", False):
+                    self._collapsed_sections.add(field["key"])
+
+    def _get_visible_fields(self, all_fields: list) -> list:
+        """Get only the fields that should be visible based on section collapse state.
+
+        Returns:
+            List of visible fields
+        """
+        visible = []
+        for field in all_fields:
+            # section headers are always visible
+            if field.get("type") == "section":
+                visible.append(field)
+            # regular fields are visible if they don't have a parent section,
+            # or if their parent section is not collapsed
+            else:
+                parent = field.get("parent_section")
+                if not parent or parent not in self._collapsed_sections:
+                    visible.append(field)
+        return visible
+
+    def toggle_section(self, section_key: str) -> None:
+        """Toggle a section's collapsed state.
+
+        Args:
+            section_key: Key of the section to toggle
+        """
+        if section_key in self._collapsed_sections:
+            self._collapsed_sections.remove(section_key)
+        else:
+            self._collapsed_sections.add(section_key)
 
     def draw_pause_overlay(self, surface_width: int, surface_height: int) -> None:
         """Draw pause overlay with semi-transparent background and text.
@@ -181,7 +218,9 @@ class OverlayRenderSystem(BaseSystem):
 
         # Get in-game adjustable settings
         menu_fields = self._settings.get_in_game_menu_fields()
-        return_to_menu_index = len(menu_fields)
+        # get visible fields (respecting section collapse state)
+        visible_fields = self._get_visible_fields(menu_fields)
+        return_to_menu_index = len(visible_fields)
 
         # Calculate available height for content
         content_start_y = padding_y
@@ -190,20 +229,31 @@ class OverlayRenderSystem(BaseSystem):
         # Fonts
         item_font_size = int(surface_width / 32)
         category_font_size = int(surface_width / 32)
+        section_font_size = int(surface_width / 28)
         try:
             item_font = pygame.font.Font(font_path, item_font_size)
             category_font = pygame.font.Font(font_path, category_font_size)
+            section_font = pygame.font.Font(font_path, section_font_size)
         except Exception:
             item_font = pygame.font.Font(None, item_font_size)
             category_font = pygame.font.Font(None, category_font_size)
+            section_font = pygame.font.Font(None, section_font_size)
 
         current_y = padding_y - scroll_offset
         current_category = None
 
         # Draw settings grouped by category
-        for field_i, f in enumerate(menu_fields):
-            # Draw category header if this is a new category
-            if f.get("category") != current_category:
+        for field_i, f in enumerate(visible_fields):
+            # skip category headers for section headers and their children
+            is_section_child = f.get("parent_section") is not None
+            is_section = f.get("type") == "section"
+
+            # Draw category header if this is a new category (but not for sections or section children)
+            if (
+                not is_section
+                and not is_section_child
+                and f.get("category") != current_category
+            ):
                 current_category = f.get("category", "Other")
 
                 # Add spacing before category (except first)
@@ -226,36 +276,58 @@ class OverlayRenderSystem(BaseSystem):
 
             # Draw setting field only if visible
             if content_start_y - row_h <= current_y <= content_end_y:
-                val = self._settings.get(f["key"])
+                # handle section headers specially
+                if f.get("type") == "section":
+                    # section headers get a collapse indicator
+                    is_expanded = f["key"] not in self._collapsed_sections
+                    indicator = "v" if is_expanded else ">"
+                    label_text = f"{indicator} {f['label']}"
 
-                # Calculate current grid size for display
-                current_grid_size = 20
-                if self._config:
-                    desired_cells = max(10, int(self._settings.get("cells_per_side")))
-                    current_grid_size = self._config.get_optimal_grid_size(
-                        desired_cells
+                    # make section headers slightly larger
+                    text_color = (
+                        Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                        if field_i == selected_index
+                        else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                    )
+                    text = section_font.render(label_text, True, text_color)
+                    rect = text.get_rect()
+                    rect.left = left_margin - category_indent
+                    rect.top = current_y
+                    self._renderer.blit(text, rect)
+                else:
+                    # regular fields
+                    val = self._settings.get(f["key"])
+
+                    # Calculate current grid size for display
+                    current_grid_size = 20
+                    if self._config:
+                        desired_cells = max(
+                            10, int(self._settings.get("cells_per_side"))
+                        )
+                        current_grid_size = self._config.get_optimal_grid_size(
+                            desired_cells
+                        )
+
+                    formatted_val = self._settings.format_setting_value(
+                        f,
+                        val,
+                        surface_width,
+                        current_grid_size,
                     )
 
-                formatted_val = self._settings.format_setting_value(
-                    f,
-                    val,
-                    surface_width,
-                    current_grid_size,
-                )
-
-                # Highlight selected item
-                text_color = (
-                    Color.from_hex(constants.SCORE_COLOR).to_tuple()
-                    if field_i == selected_index
-                    else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
-                )
-                text = item_font.render(
-                    f"{f['label']}: {formatted_val}", True, text_color
-                )
-                rect = text.get_rect()
-                rect.left = left_margin
-                rect.top = current_y
-                self._renderer.blit(text, rect)
+                    # Highlight selected item
+                    text_color = (
+                        Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                        if field_i == selected_index
+                        else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                    )
+                    text = item_font.render(
+                        f"{f['label']}: {formatted_val}", True, text_color
+                    )
+                    rect = text.get_rect()
+                    rect.left = left_margin
+                    rect.top = current_y
+                    self._renderer.blit(text, rect)
 
             current_y += row_h
 
