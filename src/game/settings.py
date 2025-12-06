@@ -38,6 +38,7 @@ class GameSettings:
         "eat_sound": True,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # New setting
+        "game_mode": "Classic",  # current game mode
     }
 
     # Declarative menu field definitions
@@ -98,6 +99,18 @@ class GameSettings:
             "label": "Snake Color",
             "type": "select",
             "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
+        },
+        {
+            "key": "game_mode_section",
+            "label": "Game Mode Settings",
+            "type": "section",
+            "collapsed": True,  # starts collapsed
+        },
+        {
+            "key": "game_mode",
+            "label": "  Current Mode",
+            "type": "readonly",
+            "parent_section": "game_mode_section",
         },
     ]
 
@@ -172,7 +185,13 @@ class GameSettings:
         Returns:
             Formatted string representation of the value
         """
-        if field["key"] == "cells_per_side":
+        if field["type"] == "section":
+            # section headers don't have values
+            return ""
+        elif field["type"] == "readonly":
+            # readonly fields just display the value
+            return str(value)
+        elif field["key"] == "cells_per_side":
             requested = int(value)
             actual = current_width // current_grid_size
             return (
@@ -197,6 +216,10 @@ class GameSettings:
         """
         key = field["key"]
         kind = field["type"]
+
+        # readonly and section fields cannot be changed
+        if kind in ("readonly", "section"):
+            return
 
         if kind == "bool":
             self.settings[key] = not self.settings[key]

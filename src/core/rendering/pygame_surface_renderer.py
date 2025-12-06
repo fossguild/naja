@@ -408,24 +408,48 @@ class PygameSurfaceRenderer:
                 value = values.get(field["key"], "")
                 color = selected_color if i == selected else unselected_color
 
-                # Format the value display
-                if field["type"] == "bool":
-                    display_value = "ON" if value else "OFF"
-                elif field["type"] == "select":
-                    display_value = str(value)
-                else:
-                    display_value = str(value)
+                # Handle section headers differently
+                if field["type"] == "section":
+                    # section headers get a collapse indicator
+                    is_expanded = values.get(field["key"], False)
+                    indicator = "v" if is_expanded else ">"
+                    label_text = f"{indicator} {field['label']}"
 
-                text = field_font.render(
-                    f"{field['label']}: {display_value}", True, color
-                )
+                    # make section headers slightly larger and bold-ish (use title_color)
+                    section_font = pygame.font.Font(
+                        "assets/font/GetVoIP-Grotesque.ttf", int(width / 28)
+                    )
+                    text = section_font.render(label_text, True, color)
+                else:
+                    # Format the value display for regular fields
+                    if field["type"] == "bool":
+                        display_value = "ON" if value else "OFF"
+                    elif field["type"] == "select":
+                        display_value = str(value)
+                    elif field["type"] == "readonly":
+                        display_value = str(value)
+                    else:
+                        display_value = str(value)
+
+                    # readonly fields don't show value editing hint
+                    if field["type"] == "readonly":
+                        text = field_font.render(
+                            f"{field['label']}: {display_value}", True, color
+                        )
+                    else:
+                        text = field_font.render(
+                            f"{field['label']}: {display_value}", True, color
+                        )
+
                 rect = text.get_rect()
                 rect.left = int(width * 0.10)
                 rect.top = start_y + i * row_height
                 surface.blit(text, rect)
 
             # Render hint
-            hint_text = "[A/D] change   [W/S] select   [Enter/Esc] back"
+            hint_text = (
+                "[A/D] change   [W/S] select   [Enter] toggle section   [Esc] back"
+            )
             hint = hint_font.render(hint_text, True, hint_color)
             hint_rect = hint.get_rect(center=(width // 2, int(height * 0.95)))
             surface.blit(hint, hint_rect)

@@ -205,9 +205,9 @@ class TestGameplaySceneReset:
 
         snake_id, snake = next(iter(snakes.items()))
         print(f"Second snake alive status: {snake.body.alive}")
-        assert snake.body.alive is True, (
-            "Snake should be alive after restart (BUG CHECK)"
-        )
+        assert (
+            snake.body.alive is True
+        ), "Snake should be alive after restart (BUG CHECK)"
 
     def test_board_render_system_after_reset(self, gameplay_scene, game_world):
         """Test that BoardRenderSystem correctly handles snake state after reset."""
