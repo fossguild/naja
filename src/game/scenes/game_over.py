@@ -338,8 +338,9 @@ class GameOverScene(BaseScene):
                 if hasattr(entity, "game_state"):
                     self._current_score = entity.game_state.final_score
                     self._gamemode = entity.game_state.game_mode
-                    # Update death_reason from world if not already set
-                    if not self._death_reason and entity.game_state.death_reason:
+                    # Always update death_reason from world state
+                    # (must reset each time, not check if empty)
+                    if entity.game_state.death_reason:
                         self._death_reason = entity.game_state.death_reason
 
         # Check if this is a new high score and capture timestamp
