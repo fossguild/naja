@@ -33,6 +33,7 @@ from ecs.components.game_state import GameState
 from ecs.components.score import Score
 from ecs.components.moving_apple import MovingApple
 from ecs.components.input_buffer import InputBuffer
+from ecs.components.trail_obstacle import TrailObstacleTag
 
 __all__ = [
     "Position",
@@ -50,4 +51,5 @@ __all__ = [
     "Score",
     "MovingApple",
     "InputBuffer",
+    "TrailObstacleTag",
 ]

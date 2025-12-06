@@ -29,6 +29,7 @@ AUTOPLAY_MODE_NAME = "AutoPlay"
 SHRINKING_MODE_NAME = "Shrinking Mode"
 GAME_MODE_TELEPORT = "Teleport"
 BOX_MODE_NAME = "Box Mode"
+TRAIL_MODE_NAME = "Trail Mode"
 
 ACTUAL_GAME_MODES = [
     {
@@ -63,6 +64,10 @@ ACTUAL_GAME_MODES = [
         "name": BOX_MODE_NAME,
         "description": "Push boxes into holes to earn points.",
     },
+    {
+        "name": TRAIL_MODE_NAME,
+        "description": "Every tile the snake moves through becomes a permanent obstacle.",
+    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -75,6 +80,7 @@ __all__ = [
     "AUTOPLAY_MODE_NAME",
     "GAME_MODE_TELEPORT",
     "BOX_MODE_NAME",
+    "TRAIL_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",
