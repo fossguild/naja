@@ -5,7 +5,8 @@
       "Bash(python -m pytest:*)",
       "Bash(source venv/bin/activate)",
       "Bash(source .venv/bin/activate)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(black:*)"
     ],
     "deny": [],
     "ask": []
