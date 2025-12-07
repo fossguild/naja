@@ -70,6 +70,12 @@ class SettingsScene(BaseScene):
         # hover state for warning tooltips
         self._hovered_warning_key = None
         self._warning_icon_rects = {}  # key -> rect for hover detection
+        # key repeat tracking for smooth scrolling
+        self._key_down_pressed = False
+        self._key_up_pressed = False
+        self._key_repeat_timer = 0.0
+        self._key_repeat_initial_delay = 300.0  # ms before repeat starts
+        self._key_repeat_interval = 80.0  # ms between repeats
 
     def _get_visible_fields(self) -> list[dict]:
         """Get only the fields that should be visible based on section collapse state.
@@ -119,6 +125,28 @@ class SettingsScene(BaseScene):
         if self._selected_index < 0:
             self._selected_index = 0
 
+        # Handle key repeat for smooth scrolling
+        if self._key_down_pressed or self._key_up_pressed:
+            self._key_repeat_timer += dt_ms
+            # check if we should trigger a repeat
+            should_repeat = False
+            if self._key_repeat_timer >= self._key_repeat_initial_delay:
+                # after initial delay, repeat at interval
+                if (
+                    self._key_repeat_timer
+                    >= self._key_repeat_initial_delay + self._key_repeat_interval
+                ):
+                    should_repeat = True
+                    # reset timer but keep the "credit" for smooth repeating
+                    self._key_repeat_timer = self._key_repeat_initial_delay
+
+            if should_repeat:
+                total_items = len(visible_fields) + 1
+                if self._key_down_pressed:
+                    self._selected_index = (self._selected_index + 1) % total_items
+                elif self._key_up_pressed:
+                    self._selected_index = (self._selected_index - 1) % total_items
+
         # Update key holding state (this handles continuous changes)
         # Only update if not on "Reset to Default" button
         if self._selected_index < len(visible_fields):
@@ -138,6 +166,10 @@ class SettingsScene(BaseScene):
                 if event.key == pygame.K_ESCAPE:
                     # Stop any ongoing key hold when leaving
                     self._settings.stop_key_hold()
+                    # Reset key repeat state
+                    self._key_down_pressed = False
+                    self._key_up_pressed = False
+                    self._key_repeat_timer = 0.0
                     return "menu"  # back to menu
                 elif event.key == pygame.K_RETURN:
                     # Check if "Reset to Default" is selected
@@ -167,12 +199,20 @@ class SettingsScene(BaseScene):
                     # navigate through visible fields + reset button
                     total_items = len(visible_fields) + 1
                     self._selected_index = (self._selected_index + 1) % total_items
+                    # mark key as pressed and reset timer for repeat
+                    self._key_down_pressed = True
+                    self._key_up_pressed = False
+                    self._key_repeat_timer = 0.0
                 elif event.key in (pygame.K_UP, pygame.K_w):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
                     # navigate through visible fields + reset button
                     total_items = len(visible_fields) + 1
                     self._selected_index = (self._selected_index - 1) % total_items
+                    # mark key as pressed and reset timer for repeat
+                    self._key_up_pressed = True
+                    self._key_down_pressed = False
+                    self._key_repeat_timer = 0.0
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
                     # Only handle left/right on settings fields, not on "Reset to Default"
                     if self._selected_index < len(visible_fields):
@@ -209,6 +249,13 @@ class SettingsScene(BaseScene):
                 # Stop holding when any left/right key is released
                 if event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                     self._settings.stop_key_hold()
+                # Stop key repeat when up/down keys are released
+                if event.key in (pygame.K_DOWN, pygame.K_s):
+                    self._key_down_pressed = False
+                    self._key_repeat_timer = 0.0
+                elif event.key in (pygame.K_UP, pygame.K_w):
+                    self._key_up_pressed = False
+                    self._key_repeat_timer = 0.0
 
         # Track mouse hover for warning tooltips
         mouse_pos = pygame.mouse.get_pos()

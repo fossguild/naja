@@ -67,6 +67,13 @@ class InputSystem(BaseSystem):
         self._settings = settings
         self._overlay_render_system = overlay_render_system
         self._game_mode = game_mode
+        # key repeat tracking for smooth scrolling in settings menu
+        self._key_down_pressed = False
+        self._key_up_pressed = False
+        self._key_repeat_timer = 0.0
+        self._last_update_time = pygame.time.get_ticks()
+        self._key_repeat_initial_delay = 300.0  # ms before repeat starts
+        self._key_repeat_interval = 80.0  # ms between repeats
 
     def update(self, world: World) -> None:
         """Process input events and modify ECS components.
@@ -77,6 +84,49 @@ class InputSystem(BaseSystem):
         if not self._pygame_adapter:
             return
 
+        # calculate delta time
+        current_time = pygame.time.get_ticks()
+        dt_ms = current_time - self._last_update_time
+        self._last_update_time = current_time
+
+        # handle key repeat for smooth scrolling in settings menu
+        game_state = self._get_game_state(world)
+        if game_state and game_state.settings_menu_open:
+            if self._key_down_pressed or self._key_up_pressed:
+                self._key_repeat_timer += dt_ms
+                # check if we should trigger a repeat
+                should_repeat = False
+                if self._key_repeat_timer >= self._key_repeat_initial_delay:
+                    # after initial delay, repeat at interval
+                    if (
+                        self._key_repeat_timer
+                        >= self._key_repeat_initial_delay + self._key_repeat_interval
+                    ):
+                        should_repeat = True
+                        # reset timer but keep the "credit" for smooth repeating
+                        self._key_repeat_timer = self._key_repeat_initial_delay
+
+                if should_repeat and self._settings:
+                    # use only in-game adjustable fields
+                    menu_fields = self._settings.get_in_game_menu_fields()
+                    # get visible fields
+                    if self._overlay_render_system:
+                        visible_fields = (
+                            self._overlay_render_system._get_visible_fields(menu_fields)
+                        )
+                    else:
+                        visible_fields = menu_fields
+                    total_items = len(visible_fields) + 1
+
+                    if self._key_down_pressed:
+                        game_state.settings_selected_index = (
+                            game_state.settings_selected_index + 1
+                        ) % total_items
+                    elif self._key_up_pressed:
+                        game_state.settings_selected_index = (
+                            game_state.settings_selected_index - 1
+                        ) % total_items
+
         # get all pygame events
         events = self._pygame_adapter.get_events()
 
@@ -86,6 +136,8 @@ class InputSystem(BaseSystem):
                 self._handle_quit(world)
             elif event.type == pygame.KEYDOWN:
                 self._handle_keydown(world, event.key)
+            elif event.type == pygame.KEYUP:
+                self._handle_keyup(world, event.key)
 
     def _handle_quit(self, world: World) -> None:
         """Handle quit event (window close button).
@@ -184,6 +236,24 @@ class InputSystem(BaseSystem):
             self._handle_music_toggle()
         elif key == pygame.K_c:
             self._handle_palette_randomize()
+
+    def _handle_keyup(self, world: World, key: int) -> None:
+        """Handle key up events.
+
+        Args:
+            world: ECS world
+            key: Pygame key constant
+        """
+        # check if settings menu is open
+        game_state = self._get_game_state(world)
+        if game_state and game_state.settings_menu_open:
+            # stop key repeat when up/down keys are released
+            if key in (pygame.K_DOWN, pygame.K_s):
+                self._key_down_pressed = False
+                self._key_repeat_timer = 0.0
+            elif key in (pygame.K_UP, pygame.K_w):
+                self._key_up_pressed = False
+                self._key_repeat_timer = 0.0
 
     def _get_snake_entity(self, world: World):
         """Get the snake entity from the world.
@@ -314,6 +384,10 @@ class InputSystem(BaseSystem):
         if key == pygame.K_ESCAPE:
             game_state.settings_menu_open = False
             game_state.paused = False
+            # reset key repeat state
+            self._key_down_pressed = False
+            self._key_up_pressed = False
+            self._key_repeat_timer = 0.0
         # handle RETURN to activate selected item
         elif key == pygame.K_RETURN:
             if game_state.settings_selected_index == return_to_menu_index:
@@ -321,6 +395,10 @@ class InputSystem(BaseSystem):
                 game_state.settings_menu_open = False
                 game_state.paused = False
                 game_state.next_scene = "menu"
+                # reset key repeat state
+                self._key_down_pressed = False
+                self._key_up_pressed = False
+                self._key_repeat_timer = 0.0
             elif game_state.settings_selected_index < len(visible_fields):
                 # check if this is a section header
                 current_field = visible_fields[game_state.settings_selected_index]
@@ -334,20 +412,36 @@ class InputSystem(BaseSystem):
                     # close settings and resume game
                     game_state.settings_menu_open = False
                     game_state.paused = False
+                    # reset key repeat state
+                    self._key_down_pressed = False
+                    self._key_up_pressed = False
+                    self._key_repeat_timer = 0.0
             else:
                 # close settings and resume game
                 game_state.settings_menu_open = False
                 game_state.paused = False
+                # reset key repeat state
+                self._key_down_pressed = False
+                self._key_up_pressed = False
+                self._key_repeat_timer = 0.0
         # navigate down
         elif key in (pygame.K_DOWN, pygame.K_s):
             game_state.settings_selected_index = (
                 game_state.settings_selected_index + 1
             ) % total_items
+            # mark key as pressed and reset timer for repeat
+            self._key_down_pressed = True
+            self._key_up_pressed = False
+            self._key_repeat_timer = 0.0
         # navigate up
         elif key in (pygame.K_UP, pygame.K_w):
             game_state.settings_selected_index = (
                 game_state.settings_selected_index - 1
             ) % total_items
+            # mark key as pressed and reset timer for repeat
+            self._key_up_pressed = True
+            self._key_down_pressed = False
+            self._key_repeat_timer = 0.0
         # adjust setting left/right (only for actual settings, not "Return to Menu")
         elif key in (pygame.K_LEFT, pygame.K_a):
             if game_state.settings_selected_index < len(menu_fields):
