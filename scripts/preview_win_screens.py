@@ -20,6 +20,7 @@ from game.constants import (  # noqa: E402
     VICTORY_HIGH_SCORE_COLOR,
     GAME_OVER_MESSAGE_COLOR,
     GAME_OVER_HIGHLIGHT_COLOR,
+    GAME_OVER_HIGH_SCORE_COLOR,
 )
 from core.types.color import Color  # noqa: E402
 
@@ -98,7 +99,7 @@ def main():
             title_color = GAME_OVER_MESSAGE_COLOR
             message_color = GAME_OVER_MESSAGE_COLOR
             highlight_color = GAME_OVER_HIGHLIGHT_COLOR
-            high_score_color = (255, 69, 0)
+            high_score_color = GAME_OVER_HIGH_SCORE_COLOR
             title_text = "Game Over"
 
         # Render title
