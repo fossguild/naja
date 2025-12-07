@@ -40,6 +40,12 @@ GAME_OVER_NEW_SCORE_COLOR = (
 GAME_OVER_HIGH_SCORE_COLOR = (255, 69, 0)  # Red-orange for "NEW HIGH SCORE!" message
 GAME_OVER_TIMESTAMP_COLOR = (80, 80, 80)  # Dark gray for timestamps
 GAME_OVER_TIMESTAMP_HIGHLIGHT_COLOR = (180, 160, 0)  # Gold-ish for new score timestamp
+
+# Victory screen colors (green/gold theme)
+VICTORY_TITLE_COLOR = (50, 205, 50)  # Lime green for "You Win!"
+VICTORY_MESSAGE_COLOR = (144, 238, 144)  # Light green for victory message
+VICTORY_HIGHLIGHT_COLOR = (255, 215, 0)  # Gold for score
+VICTORY_HIGH_SCORE_COLOR = (0, 255, 127)  # Spring green for "NEW HIGH SCORE!"
 #
 WINDOW_TITLE = "Naja"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
