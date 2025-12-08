@@ -172,6 +172,7 @@ class GameInitializer:
             world: ECS world instance
         """
         from ecs.components.game_state import GameState
+        from ecs.components.mouse_state import MouseState
 
         current_mode = self._game_mode
         moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
@@ -198,6 +199,8 @@ class GameInitializer:
                     trail_mode_enabled=trail_mode_enabled,
                     shrinking_mode_enabled=shrinking_mode_enabled,
                 )
+                # add mouse state component for mouse input tracking
+                self.mouse_state = MouseState()
 
             def get_type(self):
                 return None  # config entity has no specific type

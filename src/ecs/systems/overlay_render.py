@@ -220,7 +220,6 @@ class OverlayRenderSystem(BaseSystem):
         menu_fields = self._settings.get_in_game_menu_fields()
         # get visible fields (respecting section collapse state)
         visible_fields = self._get_visible_fields(menu_fields)
-        return_to_menu_index = len(visible_fields)
 
         # Calculate available height for content
         content_start_y = padding_y
@@ -331,8 +330,26 @@ class OverlayRenderSystem(BaseSystem):
 
             current_y += row_h
 
-        # Draw "Return to Menu" option
+        # Draw "Resume Game" option
         current_y += int(surface_height * 0.04)
+        resume_game_index = len(visible_fields)
+
+        # Only draw if visible
+        if content_start_y - row_h <= current_y <= content_end_y:
+            text_color = (
+                Color.from_hex(constants.SCORE_COLOR).to_tuple()
+                if selected_index == resume_game_index
+                else (100, 200, 100)
+            )
+            resume_text = item_font.render("──  Resume Game  ──", True, text_color)
+            rect = resume_text.get_rect()
+            rect.left = left_margin - category_indent
+            rect.top = current_y
+            self._renderer.blit(resume_text, rect)
+
+        # Draw "Return to Menu" option
+        current_y += row_h
+        return_to_menu_index = len(visible_fields) + 1
 
         # Only draw if visible
         if content_start_y - row_h <= current_y <= content_end_y:

@@ -54,6 +54,8 @@ class InputSystem(BaseSystem):
         settings: Optional[Any] = None,
         game_mode: str = "Classic Snake Game",
         overlay_render_system: Optional[Any] = None,
+        surface_width: int = 800,
+        surface_height: int = 600,
     ):
         """Initialize the InputSystem.
 
@@ -62,11 +64,15 @@ class InputSystem(BaseSystem):
             settings: Game settings for palette randomization
             game_mode: Current game mode
             overlay_render_system: OverlayRenderSystem for section toggling
+            surface_width: Width of the game surface for mouse hit detection
+            surface_height: Height of the game surface for mouse hit detection
         """
         self._pygame_adapter = pygame_adapter
         self._settings = settings
         self._overlay_render_system = overlay_render_system
         self._game_mode = game_mode
+        self._surface_width = surface_width
+        self._surface_height = surface_height
         # key repeat tracking for smooth scrolling in settings menu
         self._key_down_pressed = False
         self._key_up_pressed = False
@@ -116,7 +122,9 @@ class InputSystem(BaseSystem):
                         )
                     else:
                         visible_fields = menu_fields
-                    total_items = len(visible_fields) + 1
+                    total_items = (
+                        len(visible_fields) + 2
+                    )  # +2 for "Resume Game" and "Return to Menu"
 
                     if self._key_down_pressed:
                         game_state.settings_selected_index = (
@@ -130,6 +138,12 @@ class InputSystem(BaseSystem):
         # get all pygame events
         events = self._pygame_adapter.get_events()
 
+        # reset edge-triggered mouse state before processing events
+        mouse_state = self._get_mouse_state(world)
+        if mouse_state:
+            mouse_state.left_button_just_pressed = False
+            mouse_state.left_button_just_released = False
+
         # process each event
         for event in events:
             if event.type == pygame.QUIT:
@@ -138,6 +152,17 @@ class InputSystem(BaseSystem):
                 self._handle_keydown(world, event.key)
             elif event.type == pygame.KEYUP:
                 self._handle_keyup(world, event.key)
+            elif event.type == pygame.MOUSEMOTION:
+                self._handle_mouse_motion(world, event.pos)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self._handle_mouse_button_down(world, event.pos, event.button)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self._handle_mouse_button_up(world, event.pos, event.button)
+            elif event.type == pygame.MOUSEWHEEL:
+                self._handle_mouse_wheel(world, event.y)
+
+        # update cursor style based on hover state
+        self._update_cursor_style(world)
 
     def _handle_quit(self, world: World) -> None:
         """Handle quit event (window close button).
@@ -346,13 +371,13 @@ class InputSystem(BaseSystem):
         """
         game_state = self._get_game_state(world)
         if game_state:
-            # calculate total menu items (settings + "Return to Menu" option)
+            # calculate total menu items (settings + "Resume Game" + "Return to Menu" options)
             in_game_fields = (
                 self._settings.get_in_game_menu_fields() if self._settings else []
             )
             game_state.settings_menu_item_count = (
-                len(in_game_fields) + 1
-            )  # +1 for "Return to Menu"
+                len(in_game_fields) + 2
+            )  # +2 for "Resume Game" and "Return to Menu"
             game_state.settings_menu_open = True
             game_state.paused = True
             game_state.settings_selected_index = 0
@@ -377,8 +402,11 @@ class InputSystem(BaseSystem):
             )
         else:
             visible_fields = menu_fields
-        total_items = len(visible_fields) + 1  # +1 for "Return to Menu" option
-        return_to_menu_index = len(visible_fields)  # last item
+        total_items = (
+            len(visible_fields) + 2
+        )  # +2 for "Resume Game" and "Return to Menu"
+        resume_game_index = len(visible_fields)  # second to last item
+        return_to_menu_index = len(visible_fields) + 1  # last item
 
         # handle ESC to close settings
         if key == pygame.K_ESCAPE:
@@ -390,7 +418,15 @@ class InputSystem(BaseSystem):
             self._key_repeat_timer = 0.0
         # handle RETURN to activate selected item
         elif key == pygame.K_RETURN:
-            if game_state.settings_selected_index == return_to_menu_index:
+            if game_state.settings_selected_index == resume_game_index:
+                # "Resume Game" selected
+                game_state.settings_menu_open = False
+                game_state.paused = False
+                # reset key repeat state
+                self._key_down_pressed = False
+                self._key_up_pressed = False
+                self._key_repeat_timer = 0.0
+            elif game_state.settings_selected_index == return_to_menu_index:
                 # "Return to Menu" selected
                 game_state.settings_menu_open = False
                 game_state.paused = False
@@ -416,14 +452,6 @@ class InputSystem(BaseSystem):
                     self._key_down_pressed = False
                     self._key_up_pressed = False
                     self._key_repeat_timer = 0.0
-            else:
-                # close settings and resume game
-                game_state.settings_menu_open = False
-                game_state.paused = False
-                # reset key repeat state
-                self._key_down_pressed = False
-                self._key_up_pressed = False
-                self._key_repeat_timer = 0.0
         # navigate down
         elif key in (pygame.K_DOWN, pygame.K_s):
             game_state.settings_selected_index = (
@@ -513,3 +541,338 @@ class InputSystem(BaseSystem):
         """
         if self._settings:
             self._settings.randomize_snake_colors()
+
+    def _get_mouse_state(self, world: World):
+        """Get the MouseState component from game state entity.
+
+        Args:
+            world: ECS world
+
+        Returns:
+            MouseState component or None if not found
+        """
+        # query for entities with mouse_state component
+        mouse_state_entities = world.registry.query_by_component("mouse_state")
+        if mouse_state_entities:
+            entity = next(iter(mouse_state_entities.values()))
+            if hasattr(entity, "mouse_state"):
+                return entity.mouse_state
+        return None
+
+    def _handle_mouse_motion(self, world: World, pos: tuple[int, int]) -> None:
+        """Handle MOUSEMOTION events - update position and hover states.
+
+        Args:
+            world: ECS world
+            pos: Mouse position (x, y)
+        """
+        mouse_state = self._get_mouse_state(world)
+        if not mouse_state:
+            return
+
+        # update mouse position
+        mouse_state.x, mouse_state.y = pos
+
+        # reset cursor to arrow by default
+        mouse_state.cursor_type = "arrow"
+
+        # check hover over gameplay buttons (return and music)
+        from ecs.helpers.ui_layout import UILayout
+
+        return_rect = UILayout.get_return_button_rect(
+            self._surface_width, self._surface_height
+        )
+        music_rect = UILayout.get_music_button_rect(
+            self._surface_width, self._surface_height
+        )
+
+        if return_rect.collidepoint(pos) or music_rect.collidepoint(pos):
+            mouse_state.cursor_type = "hand"
+
+        # check hover over settings overlay items if settings menu is open
+        game_state = self._get_game_state(world)
+        if game_state and game_state.settings_menu_open:
+            # if hovering over any settings item, change cursor to hand
+            # (detailed hit detection done in _handle_mouse_button_up)
+            mouse_state.cursor_type = "hand"
+
+    def _handle_mouse_button_down(
+        self, world: World, pos: tuple[int, int], button: int
+    ) -> None:
+        """Handle MOUSEBUTTONDOWN events.
+
+        Args:
+            world: ECS world
+            pos: Mouse position (x, y)
+            button: Mouse button number (1=left, 2=middle, 3=right)
+        """
+        if button != 1:  # only handle left click
+            return
+
+        mouse_state = self._get_mouse_state(world)
+        if not mouse_state:
+            return
+
+        mouse_state.left_button_pressed = True
+        mouse_state.left_button_just_pressed = True
+
+    def _handle_mouse_button_up(
+        self, world: World, pos: tuple[int, int], button: int
+    ) -> None:
+        """Handle MOUSEBUTTONUP events - process clicks.
+
+        Args:
+            world: ECS world
+            pos: Mouse position (x, y)
+            button: Mouse button number (1=left, 2=middle, 3=right)
+        """
+        if button != 1:  # only handle left click
+            return
+
+        mouse_state = self._get_mouse_state(world)
+        if not mouse_state:
+            return
+
+        mouse_state.left_button_pressed = False
+        mouse_state.left_button_just_released = True
+
+        # detect which element was clicked
+        game_state = self._get_game_state(world)
+
+        # if settings menu is open, check for settings overlay clicks first
+        if game_state and game_state.settings_menu_open:
+            self._handle_settings_overlay_click(world, pos)
+            return
+
+        # check gameplay button clicks
+        from ecs.helpers.ui_layout import UILayout
+
+        # check return button
+        return_rect = UILayout.get_return_button_rect(
+            self._surface_width, self._surface_height
+        )
+        if return_rect.collidepoint(pos):
+            self._process_click_action(world, "return_button")
+            return
+
+        # check music button
+        music_rect = UILayout.get_music_button_rect(
+            self._surface_width, self._surface_height
+        )
+        if music_rect.collidepoint(pos):
+            self._process_click_action(world, "toggle_music")
+            return
+
+    def _handle_mouse_wheel(self, world: World, scroll_y: int) -> None:
+        """Handle mouse wheel scroll events.
+
+        Args:
+            world: ECS world
+            scroll_y: Scroll direction (positive = scroll up, negative = scroll down)
+        """
+        game_state = self._get_game_state(world)
+        if not game_state:
+            return
+
+        # only handle scroll in settings menu
+        if game_state.settings_menu_open and self._settings:
+            # get visible fields
+            menu_fields = self._settings.get_in_game_menu_fields()
+            if self._overlay_render_system:
+                visible_fields = self._overlay_render_system._get_visible_fields(
+                    menu_fields
+                )
+            else:
+                visible_fields = menu_fields
+
+            total_items = (
+                len(visible_fields) + 2
+            )  # +2 for "Resume Game" and "Return to Menu"
+
+            # scroll up (scroll_y > 0) means move selection up (decrease index)
+            # scroll down (scroll_y < 0) means move selection down (increase index)
+            if scroll_y > 0:
+                # scroll up - move selection up
+                game_state.settings_selected_index = (
+                    game_state.settings_selected_index - 1
+                ) % total_items
+            elif scroll_y < 0:
+                # scroll down - move selection down
+                game_state.settings_selected_index = (
+                    game_state.settings_selected_index + 1
+                ) % total_items
+
+    def _handle_settings_overlay_click(
+        self, world: World, pos: tuple[int, int]
+    ) -> None:
+        """Handle clicks on settings overlay items.
+
+        Args:
+            world: ECS world
+            pos: Mouse position (x, y)
+        """
+        game_state = self._get_game_state(world)
+        if not game_state or not self._settings:
+            return
+
+        # get visible settings fields
+        menu_fields = self._settings.get_in_game_menu_fields()
+        if self._overlay_render_system:
+            visible_fields = self._overlay_render_system._get_visible_fields(
+                menu_fields
+            )
+        else:
+            visible_fields = menu_fields
+
+        # calculate settings overlay geometry (MUST MATCH OverlayRenderSystem)
+        row_h = int(self._surface_height * 0.055)
+        category_h = int(self._surface_height * 0.07)
+        padding_y = int(self._surface_height * 0.20)
+
+        # calculate scroll offset (same as OverlayRenderSystem)
+        item_height_avg = row_h
+        scroll_offset = max(
+            0, (game_state.settings_selected_index - 3) * item_height_avg
+        )
+
+        current_y = padding_y - scroll_offset
+        current_category = None
+
+        # calculate available height for content
+        content_start_y = padding_y
+        content_end_y = int(self._surface_height * 0.88)
+
+        # check each visible field
+        for field_i, field in enumerate(visible_fields):
+            # skip category headers for section headers and their children
+            is_section_child = field.get("parent_section") is not None
+            is_section = field.get("type") == "section"
+
+            # handle category spacing (same as OverlayRenderSystem)
+            if (
+                not is_section
+                and not is_section_child
+                and field.get("category") != current_category
+            ):
+                current_category = field.get("category", "Other")
+                # add spacing before category (except first)
+                if field_i > 0:
+                    current_y += int(self._surface_height * 0.03)
+                current_y += category_h
+
+            # create item rect only if visible
+            if content_start_y - row_h <= current_y <= content_end_y:
+                padding_x = int(self._surface_width * 0.05)
+                item_rect = pygame.Rect(
+                    padding_x,
+                    current_y - row_h // 2,
+                    self._surface_width - padding_x * 2,
+                    row_h,
+                )
+
+                if item_rect.collidepoint(pos):
+                    # clicked on this item - select it
+                    game_state.settings_selected_index = field_i
+
+                    # check if clicked on left/right adjustment areas (only for non-sections)
+                    if field.get("type") != "section":
+                        adjust_area_width = 80
+                        left_adjust_rect = pygame.Rect(
+                            item_rect.x,
+                            item_rect.y,
+                            adjust_area_width,
+                            item_rect.height,
+                        )
+                        right_adjust_rect = pygame.Rect(
+                            item_rect.x + item_rect.width - adjust_area_width,
+                            item_rect.y,
+                            adjust_area_width,
+                            item_rect.height,
+                        )
+
+                        if left_adjust_rect.collidepoint(pos):
+                            # adjust left
+                            self._settings.step_setting(field, -1)
+                            self._apply_audio_setting_if_changed(field["key"])
+                        elif right_adjust_rect.collidepoint(pos):
+                            # adjust right
+                            self._settings.step_setting(field, +1)
+                            self._apply_audio_setting_if_changed(field["key"])
+                    else:
+                        # section - toggle it
+                        if self._overlay_render_system:
+                            self._overlay_render_system.toggle_section(field["key"])
+                    return
+
+            current_y += row_h
+
+        # check "Resume Game" button
+        current_y += int(self._surface_height * 0.04)
+        resume_game_index = len(visible_fields)
+
+        if content_start_y - row_h <= current_y <= content_end_y:
+            padding_x = int(self._surface_width * 0.05)
+            resume_game_rect = pygame.Rect(
+                padding_x,
+                current_y - row_h // 2,
+                self._surface_width - padding_x * 2,
+                row_h,
+            )
+            if resume_game_rect.collidepoint(pos):
+                game_state.settings_selected_index = resume_game_index
+                self._process_click_action(world, "settings_resume_game")
+                return
+
+        # check "Return to Menu" button at bottom
+        current_y += row_h
+        return_to_menu_index = len(visible_fields) + 1
+
+        if content_start_y - row_h <= current_y <= content_end_y:
+            padding_x = int(self._surface_width * 0.05)
+            return_to_menu_rect = pygame.Rect(
+                padding_x,
+                current_y - row_h // 2,
+                self._surface_width - padding_x * 2,
+                row_h,
+            )
+            if return_to_menu_rect.collidepoint(pos):
+                game_state.settings_selected_index = return_to_menu_index
+                self._process_click_action(world, "settings_return_to_menu")
+
+    def _process_click_action(self, world: World, action: str) -> None:
+        """Process click action based on identifier.
+
+        Args:
+            world: ECS world
+            action: Action identifier string
+        """
+        if action == "return_button":
+            self._handle_open_settings(world)
+        elif action == "toggle_music":
+            self._handle_music_toggle()
+        elif action == "settings_resume_game":
+            game_state = self._get_game_state(world)
+            if game_state:
+                game_state.settings_menu_open = False
+                game_state.paused = False
+        elif action == "settings_return_to_menu":
+            game_state = self._get_game_state(world)
+            if game_state:
+                game_state.settings_menu_open = False
+                game_state.paused = False
+                game_state.next_scene = "menu"
+
+    def _update_cursor_style(self, world: World) -> None:
+        """Update cursor style based on MouseState.cursor_type.
+
+        Args:
+            world: ECS world
+        """
+        mouse_state = self._get_mouse_state(world)
+        if not mouse_state:
+            return
+
+        if mouse_state.cursor_type == "hand":
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+        else:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)

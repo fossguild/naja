@@ -151,7 +151,9 @@ class GameplayScene(BaseScene):
                 self._settings,
                 self._current_game_mode,
                 self._overlay_render_system,
-            ),  # 0: read user input and update velocity/game state
+                self._width,
+                self._height,
+            ),  # 0: read user input and update velocity/game state (includes mouse)
             autoplay_system,  # 1: calculate next move in autoplay mode (with victory handling)
             MovementSystem(
                 self._get_electric_walls

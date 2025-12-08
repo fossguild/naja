@@ -6,7 +6,13 @@
       "Bash(source venv/bin/activate)",
       "Bash(source .venv/bin/activate)",
       "Bash(python -c:*)",
-      "Bash(black:*)"
+      "Bash(black:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(python3 -m pytest:*)",
+      "Bash(cat:*)",
+      "Bash(python -m ruff check:*)",
+      "Bash(python -m black:*)"
     ],
     "deny": [],
     "ask": []

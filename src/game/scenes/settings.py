@@ -65,8 +65,8 @@ class SettingsScene(BaseScene):
         for field in self._settings.MENU_FIELDS:
             if field["type"] == "section" and field.get("collapsed", False):
                 self._collapsed_sections.add(field["key"])
-        # total menu items = visible settings fields + "Reset to Default" button
-        self._total_menu_items = len(self._settings.MENU_FIELDS) + 1
+        # total menu items = visible settings fields + "Reset to Default" + "Back to Menu"
+        self._total_menu_items = len(self._settings.MENU_FIELDS) + 2
         # hover state for warning tooltips
         self._hovered_warning_key = None
         self._warning_icon_rects = {}  # key -> rect for hover detection
@@ -172,8 +172,12 @@ class SettingsScene(BaseScene):
                     self._key_repeat_timer = 0.0
                     return "menu"  # back to menu
                 elif event.key == pygame.K_RETURN:
+                    # Check if "Back to Menu" is selected
+                    if self._selected_index == len(visible_fields) + 1:
+                        self._settings.stop_key_hold()
+                        return "menu"
                     # Check if "Reset to Default" is selected
-                    if self._selected_index == len(visible_fields):
+                    elif self._selected_index == len(visible_fields):
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
                         # Stay in settings to show the reset took effect
@@ -190,9 +194,8 @@ class SettingsScene(BaseScene):
                                 f"[DEBUG] Collapsed sections: {self._collapsed_sections}"
                             )
                         else:
-                            # Regular field - return to menu
-                            self._settings.stop_key_hold()
-                            return "menu"
+                            # Regular field - do nothing (stay in settings)
+                            pass
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
@@ -257,6 +260,78 @@ class SettingsScene(BaseScene):
                     self._key_up_pressed = False
                     self._key_repeat_timer = 0.0
 
+            elif event.type == pygame.MOUSEMOTION:
+                # handle mouse hover - only change cursor, not selection
+                mouse_pos = event.pos
+                # reset cursor to arrow by default
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                # check hover over each setting item to change cursor
+                for i, field in enumerate(visible_fields):
+                    rect = self._get_setting_item_rect(i, visible_fields)
+                    if rect and rect.collidepoint(mouse_pos):
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                        break
+                # check hover over "Reset to Default" button
+                reset_rect = self._get_reset_button_rect(len(visible_fields))
+                if reset_rect and reset_rect.collidepoint(mouse_pos):
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+
+            elif event.type == pygame.MOUSEWHEEL:
+                # handle mouse wheel scroll
+                total_items = (
+                    len(visible_fields) + 2
+                )  # +2 for "Reset to Default" and "Back to Menu"
+                if event.y > 0:
+                    # scroll up - move selection up
+                    self._selected_index = (self._selected_index - 1) % total_items
+                elif event.y < 0:
+                    # scroll down - move selection down
+                    self._selected_index = (self._selected_index + 1) % total_items
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # handle left mouse click
+                mouse_pos = event.pos
+                # check click on setting items
+                for i, field in enumerate(visible_fields):
+                    rect = self._get_setting_item_rect(i, visible_fields)
+                    if rect and rect.collidepoint(mouse_pos):
+                        self._selected_index = i
+                        # if section, toggle it
+                        if field["type"] == "section":
+                            self._toggle_section(field["key"])
+                        # if regular field, check for left/right adjustment areas
+                        elif not self._settings.is_setting_restricted(field["key"]):
+                            # check if clicked on left/right adjustment areas
+                            adjust_area_width = 80
+                            left_adjust_rect = pygame.Rect(
+                                rect.x, rect.y, adjust_area_width, rect.height
+                            )
+                            right_adjust_rect = pygame.Rect(
+                                rect.x + rect.width - adjust_area_width,
+                                rect.y,
+                                adjust_area_width,
+                                rect.height,
+                            )
+                            if left_adjust_rect.collidepoint(mouse_pos):
+                                # adjust left
+                                self._settings.step_setting(field, -1)
+                                self._apply_audio_setting_if_changed(field["key"])
+                            elif right_adjust_rect.collidepoint(mouse_pos):
+                                # adjust right
+                                self._settings.step_setting(field, +1)
+                                self._apply_audio_setting_if_changed(field["key"])
+                        return None
+                # check click on "Reset to Default" button
+                reset_rect = self._get_reset_button_rect(len(visible_fields))
+                if reset_rect and reset_rect.collidepoint(mouse_pos):
+                    self._settings.reset_to_defaults()
+                    self._settings.save_settings()
+                # check click on "Back to Menu" button
+                back_rect = self._get_back_button_rect(len(visible_fields))
+                if back_rect and back_rect.collidepoint(mouse_pos):
+                    self._settings.stop_key_hold()
+                    return "menu"
+
         # Track mouse hover for warning tooltips
         mouse_pos = pygame.mouse.get_pos()
         self._hovered_warning_key = None
@@ -285,6 +360,118 @@ class SettingsScene(BaseScene):
                 pygame.mixer.unpause()
             else:
                 pygame.mixer.pause()
+
+    def _get_setting_item_rect(
+        self, index: int, visible_fields: list[dict]
+    ) -> Optional[pygame.Rect]:
+        """Calculate bounding box for setting item at given index.
+
+        Args:
+            index: Index of the setting item in visible_fields
+            visible_fields: List of visible fields
+
+        Returns:
+            pygame.Rect representing the clickable area, or None if not visible
+        """
+        # calculate same layout as render() method
+        row_h = int(self._height * 0.055)
+        padding_y = int(self._height * 0.20)
+        content_start_y = padding_y
+        content_end_y = int(self._height * 0.92)
+
+        # calculate scroll offset (same as render)
+        item_height_avg = row_h
+        visible_item_count = (content_end_y - content_start_y) // item_height_avg
+        if self._selected_index > visible_item_count // 2:
+            scroll_offset = (self._selected_index - visible_item_count // 2) * row_h
+        else:
+            scroll_offset = 0
+
+        current_y = padding_y - scroll_offset + index * row_h
+
+        # only return rect if item is in visible range
+        if not (content_start_y - row_h <= current_y <= content_end_y):
+            return None
+
+        # use full width with some padding
+        padding_x = int(self._width * 0.05)
+        return pygame.Rect(
+            padding_x, current_y - row_h // 2, self._width - padding_x * 2, row_h
+        )
+
+    def _get_reset_button_rect(
+        self, visible_fields_count: int
+    ) -> Optional[pygame.Rect]:
+        """Calculate bounding box for 'Reset to Default' button.
+
+        Args:
+            visible_fields_count: Number of visible setting fields
+
+        Returns:
+            pygame.Rect representing the clickable area, or None if not visible
+        """
+        # calculate same layout as render() method
+        row_h = int(self._height * 0.055)
+        padding_y = int(self._height * 0.20)
+        content_start_y = padding_y
+        content_end_y = int(self._height * 0.92)
+
+        # calculate scroll offset (same as render)
+        item_height_avg = row_h
+        visible_item_count = (content_end_y - content_start_y) // item_height_avg
+        if self._selected_index > visible_item_count // 2:
+            scroll_offset = (self._selected_index - visible_item_count // 2) * row_h
+        else:
+            scroll_offset = 0
+
+        # button is after all fields
+        current_y = padding_y - scroll_offset + visible_fields_count * row_h
+
+        # only return rect if button is in visible range
+        if not (content_start_y - row_h <= current_y <= content_end_y):
+            return None
+
+        # use full width with some padding
+        padding_x = int(self._width * 0.05)
+        return pygame.Rect(
+            padding_x, current_y - row_h // 2, self._width - padding_x * 2, row_h
+        )
+
+    def _get_back_button_rect(self, visible_fields_count: int) -> Optional[pygame.Rect]:
+        """Calculate bounding box for 'Back to Menu' button.
+
+        Args:
+            visible_fields_count: Number of visible setting fields
+
+        Returns:
+            pygame.Rect representing the clickable area, or None if not visible
+        """
+        # calculate same layout as render() method
+        row_h = int(self._height * 0.055)
+        padding_y = int(self._height * 0.20)
+        content_start_y = padding_y
+        content_end_y = int(self._height * 0.92)
+
+        # calculate scroll offset (same as render)
+        item_height_avg = row_h
+        visible_item_count = (content_end_y - content_start_y) // item_height_avg
+        if self._selected_index > visible_item_count // 2:
+            scroll_offset = (self._selected_index - visible_item_count // 2) * row_h
+        else:
+            scroll_offset = 0
+
+        # button is after all fields + reset button
+        current_y = padding_y - scroll_offset + (visible_fields_count + 1) * row_h
+
+        # only return rect if button is in visible range
+        if not (content_start_y - row_h <= current_y <= content_end_y):
+            return None
+
+        # use full width with some padding
+        padding_x = int(self._width * 0.05)
+        return pygame.Rect(
+            padding_x, current_y - row_h // 2, self._width - padding_x * 2, row_h
+        )
 
     def render(self) -> None:
         """Render the settings screen with categorized layout."""
@@ -469,6 +656,22 @@ class SettingsScene(BaseScene):
             reset_rect.left = left_margin - category_indent
             reset_rect.top = current_y
             self._renderer.blit(reset_text, reset_rect)
+
+        # Draw "Back to Menu" button
+        current_y += row_h
+        back_index = len(visible_fields) + 1
+
+        # Only draw if visible
+        if content_start_y - row_h <= current_y <= content_end_y:
+            back_text = self._assets.render_custom(
+                "──  Back to Menu  ──",
+                SCORE_COLOR if self._selected_index == back_index else (100, 100, 200),
+                int(self._width / 32),
+            )
+            back_rect = back_text.get_rect()
+            back_rect.left = left_margin - category_indent
+            back_rect.top = current_y
+            self._renderer.blit(back_text, back_rect)
 
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"

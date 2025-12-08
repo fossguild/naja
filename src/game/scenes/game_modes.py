@@ -119,6 +119,7 @@ class GameModesScene(BaseScene):
         self._menu_items = [
             *[mode["name"] for mode in ACTUAL_GAME_MODES],
             RANDOM_MODE_LABEL,
+            "Back to Menu",
         ]
 
     def update(self, dt_ms: float) -> Optional[str]:
@@ -139,6 +140,11 @@ class GameModesScene(BaseScene):
                         self._menu_items
                     )
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    # check if "Back to Menu" is selected
+                    if self._selected_index == len(self._menu_items) - 1:
+                        # go back to main menu without changing mode
+                        return "menu"
+
                     # save the selected game mode
                     set_selected_game_mode(self._selected_index)
 
@@ -166,6 +172,59 @@ class GameModesScene(BaseScene):
                 elif event.key == pygame.K_ESCAPE:
                     # go back to main menu
                     return "menu"
+
+            elif event.type == pygame.MOUSEMOTION:
+                # handle mouse hover - only change cursor, not selection
+                mouse_pos = event.pos
+                # reset cursor to arrow by default
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                # check hover over each mode item to change cursor
+                for i, item in enumerate(self._menu_items):
+                    rect = self._get_mode_item_rect(i)
+                    if rect and rect.collidepoint(mouse_pos):
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                        break
+
+            elif event.type == pygame.MOUSEWHEEL:
+                # handle mouse wheel scroll
+                if event.y > 0:
+                    # scroll up - move selection up
+                    self._selected_index = (self._selected_index - 1) % len(
+                        self._menu_items
+                    )
+                elif event.y < 0:
+                    # scroll down - move selection down
+                    self._selected_index = (self._selected_index + 1) % len(
+                        self._menu_items
+                    )
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # handle left mouse click
+                mouse_pos = event.pos
+                for i, item in enumerate(self._menu_items):
+                    rect = self._get_mode_item_rect(i)
+                    if rect and rect.collidepoint(mouse_pos):
+                        # check if "Back to Menu" is selected
+                        if i == len(self._menu_items) - 1:
+                            # go back to main menu without changing mode
+                            return "menu"
+
+                        # same logic as RETURN key
+                        set_selected_game_mode(i)
+                        resolved_mode = get_resolved_game_mode()
+                        self._settings.set_game_mode(resolved_mode)
+
+                        if i == 0:  # Classic mode
+                            self._settings.reset_to_defaults()
+                            self._settings.save_settings()
+                        elif i == 1:  # Random
+                            self._settings.reset_to_defaults()
+                            self._settings.save_settings()
+                        elif i == 2:  # Head-Tail Swap mode
+                            self._settings.reset_to_defaults()
+                            self._settings.save_settings()
+
+                        return "menu"
 
         return None
 
@@ -279,6 +338,51 @@ class GameModesScene(BaseScene):
         elif index == RANDOM_MODE_INDEX:
             return "Randomly selects one of the unlocked game modes."
         return None
+
+    def _get_mode_item_rect(self, index: int) -> Optional[pygame.Rect]:
+        """Calculate bounding box for mode item at given index.
+
+        Args:
+            index: Index of the mode item
+
+        Returns:
+            pygame.Rect representing the clickable area, or None if not visible
+        """
+        # calculate same layout as render() method
+        row_h = int(self._height * 0.10)
+        padding_y = int(self._height * 0.25)
+        content_start_y = padding_y
+        content_end_y = int(self._height * 0.88)
+
+        # calculate scroll offset
+        total_items_height = len(self._menu_items) * row_h
+        available_height = content_end_y - padding_y
+
+        if total_items_height > available_height:
+            scroll_offset = max(0, (self._selected_index - 2) * row_h)
+        else:
+            scroll_offset = 0
+
+        current_y = padding_y - scroll_offset + index * row_h
+
+        # only return rect if item is in visible range
+        if not (content_start_y <= current_y <= content_end_y):
+            return None
+
+        # render text to get exact size (same as render method)
+        item = self._menu_items[index]
+        display_text = item
+        if index == get_selected_game_mode():
+            display_text = f">> {item} <<"
+
+        text_surface = self._assets.render_custom(
+            display_text, (255, 255, 255), int(self._width / 25)
+        )
+        text_rect = text_surface.get_rect(center=(self._width / 2, current_y))
+
+        # add padding for larger clickable area
+        padding = 20
+        return text_rect.inflate(padding * 2, padding * 2)
 
     def _wrap_text(self, text: str, max_width: int, font_size: int) -> list[str]:
         """Wrap text to fit within max_width."""

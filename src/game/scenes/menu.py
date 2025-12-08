@@ -115,6 +115,48 @@ class MenuScene(BaseScene):
                     pygame.quit()
                     exit()
 
+            elif event.type == pygame.MOUSEMOTION:
+                # handle mouse hover - only change cursor, not selection
+                mouse_pos = event.pos
+                # reset cursor to arrow by default
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                # check hover over each menu item to change cursor
+                for i, item in enumerate(self._menu_items):
+                    rect = self._get_menu_item_rect(i)
+                    if rect.collidepoint(mouse_pos):
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                        break
+
+            elif event.type == pygame.MOUSEWHEEL:
+                # handle mouse wheel scroll
+                if event.y > 0:
+                    # scroll up - move selection up
+                    self._selected_index = (self._selected_index - 1) % len(
+                        self._menu_items
+                    )
+                elif event.y < 0:
+                    # scroll down - move selection down
+                    self._selected_index = (self._selected_index + 1) % len(
+                        self._menu_items
+                    )
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # handle left mouse click
+                mouse_pos = event.pos
+                for i, item in enumerate(self._menu_items):
+                    rect = self._get_menu_item_rect(i)
+                    if rect.collidepoint(mouse_pos):
+                        # same logic as RETURN key
+                        if item == "Start Game":
+                            return "gameplay"
+                        elif item == "Game Modes":
+                            return "game_modes"
+                        elif item == "Settings":
+                            return "settings"
+                        elif item == "Quit":
+                            pygame.quit()
+                            exit()
+
         return None
 
     def render(self) -> None:
@@ -191,3 +233,25 @@ class MenuScene(BaseScene):
             return get_display_mode_name()
         except Exception:
             return "Classic Snake Game"
+
+    def _get_menu_item_rect(self, index: int) -> pygame.Rect:
+        """Calculate bounding box for menu item at given index.
+
+        Args:
+            index: Index of the menu item
+
+        Returns:
+            pygame.Rect representing the clickable area
+        """
+        # use same positioning as render() method (lines 146-148)
+        center_x = self._width / 2
+        center_y = self._height / 2 + index * (self._height * 0.12)
+
+        # render text to get exact size
+        item_text = self._menu_items[index]
+        text_surface = self._assets.render_small(item_text, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=(center_x, center_y))
+
+        # add padding for larger clickable area
+        padding = 20
+        return text_rect.inflate(padding * 2, padding * 2)

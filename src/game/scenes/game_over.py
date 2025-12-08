@@ -128,6 +128,10 @@ class GameOverScene(BaseScene):
                 elif event.key == pygame.K_q:
                     return "menu"  # return to main menu
 
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # left click anywhere restarts game (same as ENTER/SPACE)
+                return "gameplay"
+
         return None
 
     def render(self) -> None:
