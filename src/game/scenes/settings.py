@@ -27,7 +27,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COLOR
+from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR
 
 
 class SettingsScene(BaseScene):
@@ -472,7 +472,9 @@ class SettingsScene(BaseScene):
 
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"
-        hint = self._assets.render_custom(hint_text, GRID_COLOR, int(self._width / 50))
+        hint = self._assets.render_custom(
+            hint_text, MESSAGE_COLOR, int(self._width / 50)
+        )
         self._renderer.blit(
             hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
         )
