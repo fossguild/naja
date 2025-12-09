@@ -47,7 +47,7 @@ VICTORY_MESSAGE_COLOR = (144, 238, 144)  # Light green for victory message
 VICTORY_HIGHLIGHT_COLOR = (255, 215, 0)  # Gold for score
 VICTORY_HIGH_SCORE_COLOR = (0, 255, 127)  # Spring green for "NEW HIGH SCORE!"
 #
-WINDOW_TITLE = "Naja"  # Window title.
+WINDOW_TITLE = "NAJA"  # Window title.
 CLOCK_TICKS = 4  # How fast the snake moves.
 HUNGER_MAX_TIME = 10.0  # Maximum hunger time in seconds before starvation death.
 
