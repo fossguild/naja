@@ -292,9 +292,9 @@ def test_trail_mode_integration(world, trail_system, movement_system):
 
     # Verify trail obstacle created after movement
     obstacles_after_move = len(world.registry.query_by_type(EntityType.OBSTACLE))
-    assert (
-        obstacles_after_move > initial_obstacles
-    ), "Trail obstacle should be created after movement"
+    assert obstacles_after_move > initial_obstacles, (
+        "Trail obstacle should be created after movement"
+    )
 
 
 class TestTrailDecaySystem:

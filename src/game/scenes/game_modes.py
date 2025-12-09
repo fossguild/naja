@@ -348,7 +348,9 @@ class GameModesScene(BaseScene):
         self._renderer.blit(hint_text, hint_rect)
 
         # Draw floating modal if open
-        if self._showing_info_modal and 0 <= self._info_modal_index < len(ACTUAL_GAME_MODES):
+        if self._showing_info_modal and 0 <= self._info_modal_index < len(
+            ACTUAL_GAME_MODES
+        ):
             modal_rect = self._get_modal_rect()
             mode_info = ACTUAL_GAME_MODES[self._info_modal_index]
 
@@ -372,7 +374,9 @@ class GameModesScene(BaseScene):
             self._renderer.blit(title_text, title_rect)
 
             # draw detailed info with word wrap
-            detailed_info = mode_info.get("detailed_info", "No detailed information available.")
+            detailed_info = mode_info.get(
+                "detailed_info", "No detailed information available."
+            )
             wrapped_lines = self._wrap_text(
                 detailed_info,
                 int(modal_rect.width * 0.9),
@@ -385,9 +389,7 @@ class GameModesScene(BaseScene):
                 line_text = self._assets.render_custom(
                     line, (220, 220, 220), int(self._width / 35)
                 )
-                line_rect = line_text.get_rect(
-                    center=(modal_rect.centerx, text_y)
-                )
+                line_rect = line_text.get_rect(center=(modal_rect.centerx, text_y))
                 self._renderer.blit(line_text, line_rect)
                 text_y += line_height
 
@@ -395,7 +397,9 @@ class GameModesScene(BaseScene):
             apply_rect, cancel_rect = self._get_modal_button_rects()
 
             # Apply button
-            apply_color = (80, 180, 100) if self._modal_selected_button == 0 else (60, 140, 80)
+            apply_color = (
+                (80, 180, 100) if self._modal_selected_button == 0 else (60, 140, 80)
+            )
             self._renderer.draw_rect(apply_color, apply_rect)
             self._renderer.draw_rect((150, 255, 150), apply_rect, 2)
 
@@ -406,7 +410,9 @@ class GameModesScene(BaseScene):
             self._renderer.blit(apply_text, apply_text_rect)
 
             # Cancel button
-            cancel_color = (180, 80, 80) if self._modal_selected_button == 1 else (140, 60, 60)
+            cancel_color = (
+                (180, 80, 80) if self._modal_selected_button == 1 else (140, 60, 60)
+            )
             self._renderer.draw_rect(cancel_color, cancel_rect)
             self._renderer.draw_rect((255, 150, 150), cancel_rect, 2)
 
@@ -415,8 +421,6 @@ class GameModesScene(BaseScene):
             )
             cancel_text_rect = cancel_text.get_rect(center=cancel_rect.center)
             self._renderer.blit(cancel_text, cancel_text_rect)
-
-
 
     def on_enter(self) -> None:
         """Called when entering game modes menu."""
