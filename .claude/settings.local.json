@@ -6,7 +6,8 @@
       "Bash(source venv/bin/activate)",
       "Bash(source .venv/bin/activate)",
       "Bash(python -c:*)",
-      "Bash(black:*)"
+      "Bash(black:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
