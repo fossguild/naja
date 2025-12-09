@@ -46,7 +46,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR, WINDOW_TITLE
+from game.constants import ARENA_PRIMARY_COLOR, WINDOW_TITLE
 
 
 class MenuScene(BaseScene):
@@ -76,10 +76,10 @@ class MenuScene(BaseScene):
         self._settings = settings
         self._selected_index = 0
         self._menu_items = [
-            [self._assets.button_start,self._assets.button_start_hover], 
-            [self._assets.button_gamemode,self._assets.button_gamemode_hover],
-            [self._assets.button_settings,self._assets.button_settings_hover],
-            [self._assets.button_quit,self._assets.button_quit_hover]
+            [self._assets.button_start, self._assets.button_start_hover],
+            [self._assets.button_gamemode, self._assets.button_gamemode_hover],
+            [self._assets.button_settings, self._assets.button_settings_hover],
+            [self._assets.button_quit, self._assets.button_quit_hover],
         ]
         self.footer_text = "Created by: 2025.2 Open Source class"
         self.icmc_text = "ICMC"
@@ -109,13 +109,25 @@ class MenuScene(BaseScene):
                         self._menu_items
                     )
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    if self._menu_items[self._selected_index][1] == self._assets.button_start_hover:
+                    if (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_start_hover
+                    ):
                         return "gameplay"
-                    elif self._menu_items[self._selected_index][1] == self._assets.button_gamemode_hover:
+                    elif (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_gamemode_hover
+                    ):
                         return "game_modes"
-                    elif self._menu_items[self._selected_index][1] == self._assets.button_settings_hover:
+                    elif (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_settings_hover
+                    ):
                         return "settings"
-                    elif self._menu_items[self._selected_index][1] == self._assets.button_quit_hover:
+                    elif (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_quit_hover
+                    ):
                         pygame.quit()
                         exit()
                 elif event.key == pygame.K_ESCAPE:
@@ -131,7 +143,7 @@ class MenuScene(BaseScene):
 
         # Draw title (bigger and more prominent)
         title = self._assets.render_custom(
-            WINDOW_TITLE, '#27CA9E', int(self._width / 7)
+            WINDOW_TITLE, "#27CA9E", int(self._width / 7)
         )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 5))
         self._renderer.blit(title, title_rect)
@@ -139,7 +151,7 @@ class MenuScene(BaseScene):
         # Draw selected game mode below title
         mode_text = self._get_selected_mode_text()
         mode_surface = self._assets.render_custom(
-            mode_text, '#27CA9E', int(self._width / 40)
+            mode_text, "#27CA9E", int(self._width / 40)
         )
         mode_rect = mode_surface.get_rect(
             center=(self._width / 2, self._height / 5 + self._height * 0.10)
@@ -148,27 +160,31 @@ class MenuScene(BaseScene):
 
         # Draw menu items
         for i, item in enumerate(self._menu_items):
-            img = self._menu_items[i][1] if i == self._selected_index else self._menu_items[i][0]
+            img = (
+                self._menu_items[i][1]
+                if i == self._selected_index
+                else self._menu_items[i][0]
+            )
             rect = img.get_rect(
                 center=(self._width / 2, self._height / 2 + i * (self._height * 0.096))
             )
             self._renderer.blit(img, rect)
-        
-        #Draw creators text
+
+        # Draw creators text
         footer_surface = self._assets.render_custom(
-            self.footer_text, '#27CA9E', int(self._width / 40)
+            self.footer_text, "#27CA9E", int(self._width / 40)
         )
         footer_rect = footer_surface.get_rect(
-            center=(self._width / 2, self._height/1.1)
+            center=(self._width / 2, self._height / 1.1)
         )
         self._renderer.blit(footer_surface, footer_rect)
 
         # Draw ICMC text
         icmc_surface = self._assets.render_custom(
-            self.icmc_text, '#27CA9E', int(self._width / 40)
+            self.icmc_text, "#27CA9E", int(self._width / 40)
         )
         icmc_rect = icmc_surface.get_rect(
-            center=(self._width / 2, self._height/1.1 + (self._height * 0.03))
+            center=(self._width / 2, self._height / 1.1 + (self._height * 0.03))
         )
         self._renderer.blit(icmc_surface, icmc_rect)
 

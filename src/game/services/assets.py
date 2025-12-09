@@ -108,49 +108,65 @@ class GameAssets:
         except pygame.error as e:
             print(f"Warning: Could not load eat sound: {e}")
             self.eat_sound = None
-    
+
     def load_buttons(self) -> None:
         """Load button images"""
         try:
-            self.button_start = pygame.image.load(f"{self.BUTTON_PATH}/start.png",)
+            self.button_start = pygame.image.load(
+                f"{self.BUTTON_PATH}/start.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load start button: {e}")
             self.button_start = None
         try:
-            self.button_start_hover = pygame.image.load(f"{self.BUTTON_PATH}/start_hover.png",)
+            self.button_start_hover = pygame.image.load(
+                f"{self.BUTTON_PATH}/start_hover.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load start hover button: {e}")
             self.button_start_hover = None
-        
+
         try:
-            self.button_gamemode = pygame.image.load(f"{self.BUTTON_PATH}/gamemode.png",)
+            self.button_gamemode = pygame.image.load(
+                f"{self.BUTTON_PATH}/gamemode.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load game mode button: {e}")
             self.button_gamemode = None
         try:
-            self.button_gamemode_hover = pygame.image.load(f"{self.BUTTON_PATH}/gamemode_hover.png",)
+            self.button_gamemode_hover = pygame.image.load(
+                f"{self.BUTTON_PATH}/gamemode_hover.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load game mode hover button: {e}")
             self.button_gamemode_hover = None
-        
+
         try:
-            self.button_settings = pygame.image.load(f"{self.BUTTON_PATH}/settings.png",)
+            self.button_settings = pygame.image.load(
+                f"{self.BUTTON_PATH}/settings.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load settings button: {e}")
             self.button_settings = None
         try:
-            self.button_settings_hover = pygame.image.load(f"{self.BUTTON_PATH}/settings_hover.png",)
+            self.button_settings_hover = pygame.image.load(
+                f"{self.BUTTON_PATH}/settings_hover.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load settings hover button: {e}")
             self.button_settings_hover = None
 
         try:
-            self.button_quit = pygame.image.load(f"{self.BUTTON_PATH}/quit.png",)
+            self.button_quit = pygame.image.load(
+                f"{self.BUTTON_PATH}/quit.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load quit button: {e}")
             self.button_quit = None
         try:
-            self.button_quit_hover = pygame.image.load(f"{self.BUTTON_PATH}/quit_hover.png",)
+            self.button_quit_hover = pygame.image.load(
+                f"{self.BUTTON_PATH}/quit_hover.png",
+            )
         except pygame.error as e:
             print(f"Warning: Could not load quit hover button : {e}")
             self.button_quit_hover = None
