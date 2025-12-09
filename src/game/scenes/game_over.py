@@ -89,6 +89,7 @@ class GameOverScene(BaseScene):
         self._current_score = 0
         self._is_new_high_score = False
         self._new_score_timestamp = None
+        self._selected_button = 0  # 0 = Play Again, 1 = Menu
 
     @property
     def _is_victory(self) -> bool:
@@ -124,15 +125,93 @@ class GameOverScene(BaseScene):
 
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    return "gameplay"  # restart game directly
+                    # enter/space activates selected button
+                    if self._selected_button == 0:
+                        return "gameplay"  # play again
+                    else:
+                        return "menu"  # back to menu
                 elif event.key == pygame.K_q:
                     return "menu"  # return to main menu
+                elif event.key in (pygame.K_LEFT, pygame.K_a):
+                    self._selected_button = 0  # select Play Again
+                elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                    self._selected_button = 1  # select Menu
+
+            elif event.type == pygame.MOUSEMOTION:
+                # handle mouse hover - change cursor and selection
+                mouse_pos = event.pos
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+                play_again_rect = self._get_play_again_button_rect()
+                menu_rect = self._get_menu_button_rect()
+
+                if play_again_rect and play_again_rect.collidepoint(mouse_pos):
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    self._selected_button = 0
+                elif menu_rect and menu_rect.collidepoint(mouse_pos):
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    self._selected_button = 1
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # left click anywhere restarts game (same as ENTER/SPACE)
-                return "gameplay"
+                # handle left mouse click on buttons
+                mouse_pos = event.pos
+                play_again_rect = self._get_play_again_button_rect()
+                menu_rect = self._get_menu_button_rect()
+
+                if play_again_rect and play_again_rect.collidepoint(mouse_pos):
+                    return "gameplay"  # play again
+                elif menu_rect and menu_rect.collidepoint(mouse_pos):
+                    return "menu"  # back to menu
 
         return None
+
+    def _get_play_again_button_rect(self) -> Optional[pygame.Rect]:
+        """Calculate bounding box for 'Play Again' button.
+
+        Returns:
+            pygame.Rect representing the clickable area, or None if not available
+        """
+        try:
+            # button position at bottom of screen
+            button_y = self._height - 50
+            # left button (Play Again) - centered in left half
+            button_center_x = self._width // 4
+            # approximate button size
+            button_width = int(self._width * 0.35)
+            button_height = 80
+
+            return pygame.Rect(
+                button_center_x - button_width // 2,
+                button_y - button_height // 2,
+                button_width,
+                button_height,
+            )
+        except Exception:
+            return None
+
+    def _get_menu_button_rect(self) -> Optional[pygame.Rect]:
+        """Calculate bounding box for 'Menu' button.
+
+        Returns:
+            pygame.Rect representing the clickable area, or None if not available
+        """
+        try:
+            # button position at bottom of screen
+            button_y = self._height - 50
+            # right button (Menu) - centered in right half
+            button_center_x = (self._width * 3) // 4
+            # approximate button size
+            button_width = int(self._width * 0.25)
+            button_height = 40
+
+            return pygame.Rect(
+                button_center_x - button_width // 2,
+                button_y - button_height // 2,
+                button_width,
+                button_height,
+            )
+        except Exception:
+            return None
 
     def render(self) -> None:
         """Render the game over screen."""
@@ -308,24 +387,46 @@ class GameOverScene(BaseScene):
                 if len(top_scores) < MAX_SCOREBOARD_ENTRIES:
                     y_offset += 40 * (MAX_SCOREBOARD_ENTRIES - len(top_scores))
 
-            # "Press Enter/Space to restart • Q to menu" text at bottom
-            restart_text = small_font.render(
-                "Press Enter/Space to play again  •  Q to menu", True, message_color
-            )
-            restart_rect = restart_text.get_rect(
-                center=(self._width // 2, self._height - 50)
-            )
+            # Draw two buttons at bottom: "Play Again" and "Menu"
+            button_y = self._height - 50
 
-            # If text doesn't fit, make it shorter
-            if restart_rect.width > self._width * 0.95:
-                restart_text = small_font.render(
-                    "Enter/Space: play  •  Q: menu", True, message_color
-                )
-                restart_rect = restart_text.get_rect(
-                    center=(self._width // 2, self._height - 50)
-                )
+            # Play Again button (left)
+            play_again_color = (
+                highlight_color if self._selected_button == 0 else message_color
+            )
+            play_again_text_top = small_font.render("Play Again", True, play_again_color)
+            play_again_text_bottom = small_font.render(
+                "(Space/Enter)", True, play_again_color
+            )
+            
+            # Position top line slightly above center
+            play_again_rect_top = play_again_text_top.get_rect(
+                center=(self._width // 4, button_y - small_font.get_height() // 2)
+            )
+            # Position bottom line slightly below center
+            play_again_rect_bottom = play_again_text_bottom.get_rect(
+                center=(self._width // 4, button_y + small_font.get_height() // 2)
+            )
+            
+            self._renderer.blit(play_again_text_top, play_again_rect_top)
+            self._renderer.blit(play_again_text_bottom, play_again_rect_bottom)
 
-            self._renderer.blit(restart_text, restart_rect)
+            # Separator
+            separator_text = small_font.render("•", True, message_color)
+            separator_rect = separator_text.get_rect(
+                center=(self._width // 2, button_y)
+            )
+            self._renderer.blit(separator_text, separator_rect)
+
+            # Menu button (right)
+            menu_color = (
+                highlight_color if self._selected_button == 1 else message_color
+            )
+            menu_text = small_font.render("Menu(Q)", True, menu_color)
+            menu_rect = menu_text.get_rect(
+                center=(self._width * 3 // 4, button_y)
+            )
+            self._renderer.blit(menu_text, menu_rect)
 
         except Exception as e:
             # if font loading fails, just show arena color

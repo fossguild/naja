@@ -117,9 +117,9 @@ class GameModesScene(BaseScene):
         self._settings = settings
         self._selected_index = 0
         self._menu_items = [
+            "──  Back to Menu  ──",
             *[mode["name"] for mode in ACTUAL_GAME_MODES],
             RANDOM_MODE_LABEL,
-            "Back to Menu",
         ]
 
     def update(self, dt_ms: float) -> Optional[str]:
@@ -140,13 +140,13 @@ class GameModesScene(BaseScene):
                         self._menu_items
                     )
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    # check if "Back to Menu" is selected
-                    if self._selected_index == len(self._menu_items) - 1:
+                    # check if "Back to Menu" is selected (now at index 0)
+                    if self._selected_index == 0:
                         # go back to main menu without changing mode
                         return "menu"
 
-                    # save the selected game mode
-                    set_selected_game_mode(self._selected_index)
+                    # save the selected game mode (adjust index by -1 since Back to Menu is first)
+                    set_selected_game_mode(self._selected_index - 1)
 
                     # Get the resolved mode name and set on settings for restriction tracking
                     resolved_mode = get_resolved_game_mode()
@@ -154,16 +154,16 @@ class GameModesScene(BaseScene):
 
                     # if Classic Snake Game is selected, reset settings to default
                     if (
-                        self._selected_index == 0
+                        self._selected_index == 1
                     ):  # Classic mode intentionally resets custom tweaks
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
 
-                    elif self._selected_index == 1:  # Random
+                    elif self._selected_index == 2:  # Random
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
 
-                    elif self._selected_index == 2:  # Head-Tail Swap mode
+                    elif self._selected_index == 3:  # Head-Tail Swap mode
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
 
@@ -204,23 +204,23 @@ class GameModesScene(BaseScene):
                 for i, item in enumerate(self._menu_items):
                     rect = self._get_mode_item_rect(i)
                     if rect and rect.collidepoint(mouse_pos):
-                        # check if "Back to Menu" is selected
-                        if i == len(self._menu_items) - 1:
+                        # check if "Back to Menu" is selected (now at index 0)
+                        if i == 0:
                             # go back to main menu without changing mode
                             return "menu"
 
                         # same logic as RETURN key
-                        set_selected_game_mode(i)
+                        set_selected_game_mode(i - 1)
                         resolved_mode = get_resolved_game_mode()
                         self._settings.set_game_mode(resolved_mode)
 
-                        if i == 0:  # Classic mode
+                        if i == 1:  # Classic mode
                             self._settings.reset_to_defaults()
                             self._settings.save_settings()
-                        elif i == 1:  # Random
+                        elif i == 2:  # Random
                             self._settings.reset_to_defaults()
                             self._settings.save_settings()
-                        elif i == 2:  # Head-Tail Swap mode
+                        elif i == 3:  # Head-Tail Swap mode
                             self._settings.reset_to_defaults()
                             self._settings.save_settings()
 
@@ -265,11 +265,16 @@ class GameModesScene(BaseScene):
         for i, item in enumerate(self._menu_items):
             # Only draw if in visible range
             if content_start_y <= current_y <= content_end_y:
-                color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
+                # Special color for "Back to Menu" button (blue)
+                if i == 0:  # Back to Menu is now first
+                    color = SCORE_COLOR if i == self._selected_index else (100, 100, 200)
+                else:
+                    color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
 
                 # add arrow indicator if this mode is selected (confirmed)
+                # Skip indicator for "Back to Menu" button
                 display_text = item
-                if i == get_selected_game_mode():
+                if i > 0 and (i - 1) == get_selected_game_mode():
                     display_text = f">> {item} <<"
 
                 # Use consistent font size, centered
@@ -280,8 +285,9 @@ class GameModesScene(BaseScene):
                 self._renderer.blit(text, rect)
 
                 # Draw description for currently navigated mode (centered, wrapped)
-                if i == self._selected_index:
-                    description = self._get_description_for_index(i)
+                # Skip description for "Back to Menu" button
+                if i == self._selected_index and i > 0:
+                    description = self._get_description_for_index(i - 1)
                     if description:
                         desc_y = current_y + int(self._height * 0.04)
                         if content_start_y <= desc_y <= content_end_y:
@@ -312,8 +318,8 @@ class GameModesScene(BaseScene):
 
     def on_enter(self) -> None:
         """Called when entering game modes menu."""
-        # start with cursor on currently selected game mode
-        self._selected_index = get_selected_game_mode()
+        # start with cursor on currently selected game mode (+1 because Back to Menu is first)
+        self._selected_index = get_selected_game_mode() + 1
 
         # play menu music when entering game modes menu
         if self._settings.get("background_music"):
@@ -372,7 +378,7 @@ class GameModesScene(BaseScene):
         # render text to get exact size (same as render method)
         item = self._menu_items[index]
         display_text = item
-        if index == get_selected_game_mode():
+        if index > 0 and (index - 1) == get_selected_game_mode():
             display_text = f">> {item} <<"
 
         text_surface = self._assets.render_custom(

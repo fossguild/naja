@@ -141,16 +141,16 @@ class SettingsScene(BaseScene):
                     self._key_repeat_timer = self._key_repeat_initial_delay
 
             if should_repeat:
-                total_items = len(visible_fields) + 1
+                total_items = len(visible_fields) + 2
                 if self._key_down_pressed:
                     self._selected_index = (self._selected_index + 1) % total_items
                 elif self._key_up_pressed:
                     self._selected_index = (self._selected_index - 1) % total_items
 
         # Update key holding state (this handles continuous changes)
-        # Only update if not on "Reset to Default" button
-        if self._selected_index < len(visible_fields):
-            current_field = visible_fields[self._selected_index]
+        # Only update if on a settings field (not on buttons)
+        if self._selected_index > 0 and self._selected_index <= len(visible_fields):
+            current_field = visible_fields[self._selected_index - 1]
             # only update if not a section
             if current_field["type"] != "section" and self._settings.update_key_hold():
                 # A value was updated by key holding
@@ -172,18 +172,18 @@ class SettingsScene(BaseScene):
                     self._key_repeat_timer = 0.0
                     return "menu"  # back to menu
                 elif event.key == pygame.K_RETURN:
-                    # Check if "Back to Menu" is selected
-                    if self._selected_index == len(visible_fields) + 1:
+                    # Check if "Back to Menu" is selected (now at index 0)
+                    if self._selected_index == 0:
                         self._settings.stop_key_hold()
                         return "menu"
-                    # Check if "Reset to Default" is selected
-                    elif self._selected_index == len(visible_fields):
+                    # Check if "Reset to Default" is selected (now at index len+1)
+                    elif self._selected_index == len(visible_fields) + 1:
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
                         # Stay in settings to show the reset took effect
-                    elif self._selected_index < len(visible_fields):
+                    elif self._selected_index > 0 and self._selected_index <= len(visible_fields):
                         # toggle section if selected field is a section
-                        current_field = visible_fields[self._selected_index]
+                        current_field = visible_fields[self._selected_index - 1]
                         print(
                             f"[DEBUG] Enter pressed on field: {current_field.get('label')} (type: {current_field.get('type')})"
                         )
@@ -199,8 +199,8 @@ class SettingsScene(BaseScene):
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
-                    # navigate through visible fields + reset button
-                    total_items = len(visible_fields) + 1
+                    # navigate through back button + visible fields + reset button
+                    total_items = len(visible_fields) + 2
                     self._selected_index = (self._selected_index + 1) % total_items
                     # mark key as pressed and reset timer for repeat
                     self._key_down_pressed = True
@@ -209,17 +209,17 @@ class SettingsScene(BaseScene):
                 elif event.key in (pygame.K_UP, pygame.K_w):
                     # Stop key hold when changing selection
                     self._settings.stop_key_hold()
-                    # navigate through visible fields + reset button
-                    total_items = len(visible_fields) + 1
+                    # navigate through back button + visible fields + reset button
+                    total_items = len(visible_fields) + 2
                     self._selected_index = (self._selected_index - 1) % total_items
                     # mark key as pressed and reset timer for repeat
                     self._key_up_pressed = True
                     self._key_down_pressed = False
                     self._key_repeat_timer = 0.0
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
-                    # Only handle left/right on settings fields, not on "Reset to Default"
-                    if self._selected_index < len(visible_fields):
-                        current_field = visible_fields[self._selected_index]
+                    # Only handle left/right on settings fields, not on buttons
+                    if self._selected_index > 0 and self._selected_index <= len(visible_fields):
+                        current_field = visible_fields[self._selected_index - 1]
                         # Skip if field is a section or setting is restricted (locked)
                         if current_field[
                             "type"
@@ -231,9 +231,9 @@ class SettingsScene(BaseScene):
                             # Apply audio settings immediately
                             self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                    # Only handle left/right on settings fields, not on "Reset to Default"
-                    if self._selected_index < len(visible_fields):
-                        current_field = visible_fields[self._selected_index]
+                    # Only handle left/right on settings fields, not on buttons
+                    if self._selected_index > 0 and self._selected_index <= len(visible_fields):
+                        current_field = visible_fields[self._selected_index - 1]
                         # Skip if field is a section or setting is restricted (locked)
                         if current_field[
                             "type"
@@ -280,7 +280,7 @@ class SettingsScene(BaseScene):
                 # handle mouse wheel scroll
                 total_items = (
                     len(visible_fields) + 2
-                )  # +2 for "Reset to Default" and "Back to Menu"
+                )  # +2 for "Back to Menu" and "Reset to Default"
                 if event.y > 0:
                     # scroll up - move selection up
                     self._selected_index = (self._selected_index - 1) % total_items
@@ -291,11 +291,16 @@ class SettingsScene(BaseScene):
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 # handle left mouse click
                 mouse_pos = event.pos
+                # check click on "Back to Menu" button (now first)
+                back_rect = self._get_back_button_rect(len(visible_fields))
+                if back_rect and back_rect.collidepoint(mouse_pos):
+                    self._settings.stop_key_hold()
+                    return "menu"
                 # check click on setting items
                 for i, field in enumerate(visible_fields):
                     rect = self._get_setting_item_rect(i, visible_fields)
                     if rect and rect.collidepoint(mouse_pos):
-                        self._selected_index = i
+                        self._selected_index = i + 1  # +1 because Back to Menu is at index 0
                         # if section, toggle it
                         if field["type"] == "section":
                             self._toggle_section(field["key"])
@@ -326,11 +331,6 @@ class SettingsScene(BaseScene):
                 if reset_rect and reset_rect.collidepoint(mouse_pos):
                     self._settings.reset_to_defaults()
                     self._settings.save_settings()
-                # check click on "Back to Menu" button
-                back_rect = self._get_back_button_rect(len(visible_fields))
-                if back_rect and back_rect.collidepoint(mouse_pos):
-                    self._settings.stop_key_hold()
-                    return "menu"
 
         # Track mouse hover for warning tooltips
         mouse_pos = pygame.mouse.get_pos()
@@ -387,7 +387,8 @@ class SettingsScene(BaseScene):
         else:
             scroll_offset = 0
 
-        current_y = padding_y - scroll_offset + index * row_h
+        # item is after back button, so add 1 to index
+        current_y = padding_y - scroll_offset + (index + 1) * row_h
 
         # only return rect if item is in visible range
         if not (content_start_y - row_h <= current_y <= content_end_y):
@@ -424,8 +425,8 @@ class SettingsScene(BaseScene):
         else:
             scroll_offset = 0
 
-        # button is after all fields
-        current_y = padding_y - scroll_offset + visible_fields_count * row_h
+        # button is after back button + all fields
+        current_y = padding_y - scroll_offset + (visible_fields_count + 1) * row_h
 
         # only return rect if button is in visible range
         if not (content_start_y - row_h <= current_y <= content_end_y):
@@ -460,8 +461,8 @@ class SettingsScene(BaseScene):
         else:
             scroll_offset = 0
 
-        # button is after all fields + reset button
-        current_y = padding_y - scroll_offset + (visible_fields_count + 1) * row_h
+        # button is now first (at index 0)
+        current_y = padding_y - scroll_offset
 
         # only return rect if button is in visible range
         if not (content_start_y - row_h <= current_y <= content_end_y):
@@ -509,6 +510,21 @@ class SettingsScene(BaseScene):
         # Get visible fields (respecting section collapse state)
         visible_fields = self._get_visible_fields()
 
+        # Draw "Back to Menu" button first
+        back_index = 0
+        if content_start_y - row_h <= current_y <= content_end_y:
+            back_text = self._assets.render_custom(
+                "──  Back to Menu  ──",
+                SCORE_COLOR if self._selected_index == back_index else (100, 100, 200),
+                int(self._width / 32),
+            )
+            back_rect = back_text.get_rect()
+            back_rect.left = left_margin - category_indent
+            back_rect.top = current_y
+            self._renderer.blit(back_text, back_rect)
+
+        current_y += row_h
+
         # Draw settings grouped by category
         for field_i, f in enumerate(visible_fields):
             # skip category headers for section headers and their children
@@ -553,7 +569,7 @@ class SettingsScene(BaseScene):
                     # make section headers slightly larger
                     color = (
                         SCORE_COLOR
-                        if field_i == self._selected_index
+                        if field_i + 1 == self._selected_index
                         else MESSAGE_COLOR
                     )
                     text = self._assets.render_custom(
@@ -594,13 +610,13 @@ class SettingsScene(BaseScene):
                         # Restricted settings shown in orange/amber
                         color = (
                             (255, 180, 60)
-                            if field_i == self._selected_index
+                            if field_i + 1 == self._selected_index
                             else (180, 130, 60)
                         )
                     else:
                         color = (
                             SCORE_COLOR
-                            if field_i == self._selected_index
+                            if field_i + 1 == self._selected_index
                             else MESSAGE_COLOR
                         )
                     text = self._assets.render_custom(
@@ -643,7 +659,7 @@ class SettingsScene(BaseScene):
 
         # Draw "Reset to Default" button
         current_y += int(self._height * 0.04)
-        reset_index = len(visible_fields)
+        reset_index = len(visible_fields) + 1
 
         # Only draw if visible
         if content_start_y - row_h <= current_y <= content_end_y:
@@ -656,22 +672,6 @@ class SettingsScene(BaseScene):
             reset_rect.left = left_margin - category_indent
             reset_rect.top = current_y
             self._renderer.blit(reset_text, reset_rect)
-
-        # Draw "Back to Menu" button
-        current_y += row_h
-        back_index = len(visible_fields) + 1
-
-        # Only draw if visible
-        if content_start_y - row_h <= current_y <= content_end_y:
-            back_text = self._assets.render_custom(
-                "──  Back to Menu  ──",
-                SCORE_COLOR if self._selected_index == back_index else (100, 100, 200),
-                int(self._width / 32),
-            )
-            back_rect = back_text.get_rect()
-            back_rect.left = left_margin - category_indent
-            back_rect.top = current_y
-            self._renderer.blit(back_text, back_rect)
 
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"
