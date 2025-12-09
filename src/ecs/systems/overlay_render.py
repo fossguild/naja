@@ -386,7 +386,7 @@ class OverlayRenderSystem(BaseSystem):
             hint_font = pygame.font.Font(None, hint_font_size)
 
         hint_surf = hint_font.render(
-            hint_text, True, Color.from_hex(constants.GRID_COLOR).to_tuple()
+            hint_text, True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
         )
         hint_rect = hint_surf.get_rect(
             center=(surface_width / 2, surface_height * 0.95)
