@@ -48,7 +48,11 @@ from ecs.systems.settings_apply import SettingsApplySystem
 from ecs.systems.trail_generation import TrailGenerationSystem
 from ecs.systems.trail_decay import TrailDecaySystem
 from game.scenes.game_modes import get_resolved_game_mode
-from game.game_modes_registry import CLASSIC_MODE_NAME, BOX_MODE_NAME, PORTAL_BARRIER_MODE_NAME
+from game.game_modes_registry import (
+    CLASSIC_MODE_NAME,
+    BOX_MODE_NAME,
+    PORTAL_BARRIER_MODE_NAME,
+)
 from ecs.systems.hunger import HungerSystem
 from game.settings import GameSettings
 from game.services.game_over_service import GameOverService
@@ -182,6 +186,7 @@ class GameplayScene(BaseScene):
         # add portal barrier spawn system for Portal Barrier Mode
         if self._current_game_mode == PORTAL_BARRIER_MODE_NAME:
             from ecs.systems.portal_barrier_spawn import PortalBarrierSpawnSystem
+
             game_logic_systems.extend(
                 [
                     PortalBarrierSpawnSystem(),  # 5: spawn portal barriers after eating apples
@@ -246,13 +251,14 @@ class GameplayScene(BaseScene):
             )
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
             # overlay_render_system already created earlier (before InputSystem)
-            
+
             # Import portal barrier render system
             from ecs.systems.portal_barrier_render import PortalBarrierRenderSystem
+
             self._portal_barrier_render_system = PortalBarrierRenderSystem(
                 self._renderer
             )
-            
+
             self._systems.extend(
                 [
                     self._board_render_system,

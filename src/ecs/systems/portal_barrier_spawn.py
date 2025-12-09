@@ -130,8 +130,12 @@ class PortalBarrierSpawnSystem(BaseSystem):
         portal_barriers = world.registry.query_by_type(EntityType.PORTAL_BARRIER)
         for _, barrier in portal_barriers.items():
             if hasattr(barrier, "portal_barrier"):
-                occupied_positions.add((barrier.portal_barrier.block1_x, barrier.portal_barrier.block1_y))
-                occupied_positions.add((barrier.portal_barrier.block2_x, barrier.portal_barrier.block2_y))
+                occupied_positions.add(
+                    (barrier.portal_barrier.block1_x, barrier.portal_barrier.block1_y)
+                )
+                occupied_positions.add(
+                    (barrier.portal_barrier.block2_x, barrier.portal_barrier.block2_y)
+                )
 
         # Try to spawn a barrier
         attempts = 0
@@ -165,10 +169,10 @@ class PortalBarrierSpawnSystem(BaseSystem):
                 continue
 
             # Check if positions are not occupied
-            if (
-                (block1_x, block1_y) in occupied_positions
-                or (block2_x, block2_y) in occupied_positions
-            ):
+            if (block1_x, block1_y) in occupied_positions or (
+                block2_x,
+                block2_y,
+            ) in occupied_positions:
                 attempts += 1
                 continue
 
@@ -183,7 +187,9 @@ class PortalBarrierSpawnSystem(BaseSystem):
                 color=(0, 255, 255),  # cyan
             )
 
-            print(f"Portal barrier spawned at ({block1_x}, {block1_y}) <-> ({block2_x}, {block2_y})")
+            print(
+                f"Portal barrier spawned at ({block1_x}, {block1_y}) <-> ({block2_x}, {block2_y})"
+            )
             return
 
         # Could not find a valid position after max attempts
