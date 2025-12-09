@@ -267,7 +267,9 @@ class GameModesScene(BaseScene):
             if content_start_y <= current_y <= content_end_y:
                 # Special color for "Back to Menu" button (blue)
                 if i == 0:  # Back to Menu is now first
-                    color = SCORE_COLOR if i == self._selected_index else (100, 100, 200)
+                    color = (
+                        SCORE_COLOR if i == self._selected_index else (100, 100, 200)
+                    )
                 else:
                     color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
 

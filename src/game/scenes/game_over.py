@@ -394,11 +394,13 @@ class GameOverScene(BaseScene):
             play_again_color = (
                 highlight_color if self._selected_button == 0 else message_color
             )
-            play_again_text_top = small_font.render("Play Again", True, play_again_color)
+            play_again_text_top = small_font.render(
+                "Play Again", True, play_again_color
+            )
             play_again_text_bottom = small_font.render(
                 "(Space/Enter)", True, play_again_color
             )
-            
+
             # Position top line slightly above center
             play_again_rect_top = play_again_text_top.get_rect(
                 center=(self._width // 4, button_y - small_font.get_height() // 2)
@@ -407,7 +409,7 @@ class GameOverScene(BaseScene):
             play_again_rect_bottom = play_again_text_bottom.get_rect(
                 center=(self._width // 4, button_y + small_font.get_height() // 2)
             )
-            
+
             self._renderer.blit(play_again_text_top, play_again_rect_top)
             self._renderer.blit(play_again_text_bottom, play_again_rect_bottom)
 
@@ -423,9 +425,7 @@ class GameOverScene(BaseScene):
                 highlight_color if self._selected_button == 1 else message_color
             )
             menu_text = small_font.render("Menu(Q)", True, menu_color)
-            menu_rect = menu_text.get_rect(
-                center=(self._width * 3 // 4, button_y)
-            )
+            menu_rect = menu_text.get_rect(center=(self._width * 3 // 4, button_y))
             self._renderer.blit(menu_text, menu_rect)
 
         except Exception as e:

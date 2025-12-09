@@ -181,7 +181,9 @@ class SettingsScene(BaseScene):
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
                         # Stay in settings to show the reset took effect
-                    elif self._selected_index > 0 and self._selected_index <= len(visible_fields):
+                    elif self._selected_index > 0 and self._selected_index <= len(
+                        visible_fields
+                    ):
                         # toggle section if selected field is a section
                         current_field = visible_fields[self._selected_index - 1]
                         print(
@@ -218,7 +220,9 @@ class SettingsScene(BaseScene):
                     self._key_repeat_timer = 0.0
                 elif event.key in (pygame.K_LEFT, pygame.K_a):
                     # Only handle left/right on settings fields, not on buttons
-                    if self._selected_index > 0 and self._selected_index <= len(visible_fields):
+                    if self._selected_index > 0 and self._selected_index <= len(
+                        visible_fields
+                    ):
                         current_field = visible_fields[self._selected_index - 1]
                         # Skip if field is a section or setting is restricted (locked)
                         if current_field[
@@ -232,7 +236,9 @@ class SettingsScene(BaseScene):
                             self._apply_audio_setting_if_changed(current_field["key"])
                 elif event.key in (pygame.K_RIGHT, pygame.K_d):
                     # Only handle left/right on settings fields, not on buttons
-                    if self._selected_index > 0 and self._selected_index <= len(visible_fields):
+                    if self._selected_index > 0 and self._selected_index <= len(
+                        visible_fields
+                    ):
                         current_field = visible_fields[self._selected_index - 1]
                         # Skip if field is a section or setting is restricted (locked)
                         if current_field[
@@ -300,7 +306,9 @@ class SettingsScene(BaseScene):
                 for i, field in enumerate(visible_fields):
                     rect = self._get_setting_item_rect(i, visible_fields)
                     if rect and rect.collidepoint(mouse_pos):
-                        self._selected_index = i + 1  # +1 because Back to Menu is at index 0
+                        self._selected_index = (
+                            i + 1
+                        )  # +1 because Back to Menu is at index 0
                         # if section, toggle it
                         if field["type"] == "section":
                             self._toggle_section(field["key"])
