@@ -120,8 +120,8 @@ class SettingsScene(BaseScene):
         visible_fields = self._get_visible_fields()
 
         # Clamp selected index to visible range
-        if self._selected_index >= len(visible_fields):
-            self._selected_index = len(visible_fields) - 1
+        if self._selected_index > len(visible_fields):
+            self._selected_index = len(visible_fields)
         if self._selected_index < 0:
             self._selected_index = 0
 
