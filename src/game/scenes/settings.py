@@ -27,7 +27,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK
+from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK, SCORE_COLOR
 
 
 class SettingsScene(BaseScene):
@@ -70,6 +70,7 @@ class SettingsScene(BaseScene):
         # hover state for warning tooltips
         self._hovered_warning_key = None
         self._warning_icon_rects = {}  # key -> rect for hover detection
+        self._item_rects = []  # rects for mouse interaction
         # key repeat tracking for smooth scrolling
         self._key_down_pressed = False
         self._key_up_pressed = False
@@ -161,6 +162,46 @@ class SettingsScene(BaseScene):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+
+            # Mouse Interaction Logic
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                total_items = len(visible_fields) + 1
+
+                # Scroll Wheel: Maps directly to selection index for consistency
+                if event.button == 4:  # Scroll Up
+                    self._selected_index = (self._selected_index - 1) % total_items
+                elif event.button == 5:  # Scroll Down
+                    self._selected_index = (self._selected_index + 1) % total_items
+
+                # Clicks: Check against rects stored in render
+                elif event.button in (1, 3):  # Left(1) or Right(3) Click
+                    mouse_pos = pygame.mouse.get_pos()
+                    for rect, idx in self._item_rects:
+                        if rect.collidepoint(mouse_pos):
+                            # Move selection to clicked item
+                            self._selected_index = idx
+
+                            # Handle interaction
+                            if idx == len(visible_fields):  # Reset Button
+                                if event.button == 1:
+                                    self._settings.reset_to_defaults()
+                                    self._settings.save_settings()
+                            else:  # Regular Field or Section
+                                field = visible_fields[idx]
+
+                                if field["type"] == "section" and event.button == 1:
+                                    self._toggle_section(field["key"])
+                                elif field["type"] != "section":
+                                    if not self._settings.is_setting_restricted(
+                                        field["key"]
+                                    ):
+                                        # Left click increases, Right click decreases
+                                        change = 1 if event.button == 1 else -1
+                                        self._settings.start_key_hold(field, change)
+                                        self._settings.stop_key_hold()  # Immediate single click
+                                        self._apply_audio_setting_if_changed(
+                                            field["key"]
+                                        )
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -297,6 +338,9 @@ class SettingsScene(BaseScene):
         # Clear warning icon rects for fresh hover detection
         self._warning_icon_rects.clear()
 
+        # Clear interactive rects
+        self._item_rects = []
+
         # Draw title
         title = self._assets.render_custom(
             "Settings", MESSAGE_COLOR_LIGHT, int(self._width / 12)
@@ -324,6 +368,9 @@ class SettingsScene(BaseScene):
 
         # Get visible fields (respecting section collapse state)
         visible_fields = self._get_visible_fields()
+
+        # Get mouse pos for hover effect
+        mouse_pos = pygame.mouse.get_pos()
 
         # Draw settings grouped by category
         for field_i, f in enumerate(visible_fields):
@@ -359,6 +406,14 @@ class SettingsScene(BaseScene):
 
             # Draw setting field only if visible
             if content_start_y - row_h <= current_y <= content_end_y:
+                # Rect for hit detection (width extends to cover the row)
+                hit_rect = pygame.Rect(
+                    left_margin - category_indent, current_y, self._width * 0.7, row_h
+                )
+                self._item_rects.append((hit_rect, field_i))
+
+                is_mouse_hover = hit_rect.collidepoint(mouse_pos)
+
                 # handle section headers specially
                 if f["type"] == "section":
                     # section headers get a collapse indicator
@@ -369,7 +424,7 @@ class SettingsScene(BaseScene):
                     # make section headers slightly larger
                     color = (
                         MESSAGE_COLOR_DARK
-                        if field_i == self._selected_index
+                        if (field_i == self._selected_index or is_mouse_hover)
                         else MESSAGE_COLOR_LIGHT
                     )
                     text = self._assets.render_custom(
@@ -410,13 +465,13 @@ class SettingsScene(BaseScene):
                         # Restricted settings shown in orange/amber
                         color = (
                             (255, 180, 60)
-                            if field_i == self._selected_index
+                            if (field_i == self._selected_index or is_mouse_hover)
                             else (180, 130, 60)
                         )
                     else:
                         color = (
                             MESSAGE_COLOR_LIGHT
-                            if field_i == self._selected_index
+                            if (field_i == self._selected_index or is_mouse_hover)
                             else MESSAGE_COLOR_DARK
                         )
                     text = self._assets.render_custom(
@@ -463,6 +518,16 @@ class SettingsScene(BaseScene):
 
         # Only draw if visible
         if content_start_y - row_h <= current_y <= content_end_y:
+            reset_rect_hit = pygame.Rect(
+                left_margin - category_indent, current_y, self._width * 0.7, row_h
+            )
+            self._item_rects.append((reset_rect_hit, reset_index))
+            is_reset_hover = reset_rect_hit.collidepoint(mouse_pos)
+
+            reset_color = (200, 100, 100)
+            if self._selected_index == reset_index or is_reset_hover:
+                reset_color = SCORE_COLOR
+
             reset_text = self._assets.render_custom(
                 "──  Reset to Default  ──",
                 (
@@ -478,7 +543,7 @@ class SettingsScene(BaseScene):
             self._renderer.blit(reset_text, reset_rect)
 
         # Hint footer
-        hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"
+        hint_text = "[A/D/Click] change   [W/S/Scroll] select   [Enter] toggle/exit   [Esc] back"
         hint = self._assets.render_custom(
             hint_text, MESSAGE_COLOR_LIGHT, int(self._width / 50)
         )
