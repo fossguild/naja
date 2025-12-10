@@ -26,6 +26,7 @@ overlay rendering (pause screen, settings menu) on top of the game.
 import pygame
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
+from ecs.entities.entity import EntityType
 from core.rendering.pygame_surface_renderer import RenderEnqueue
 from core.types.color import Color
 from game import constants
@@ -91,6 +92,172 @@ class OverlayRenderSystem(BaseSystem):
             self._collapsed_sections.remove(section_key)
         else:
             self._collapsed_sections.add(section_key)
+
+    def _get_lights_out_state(self, world: World):
+        entities = world.registry.query_by_component("lights_out_state")
+        if not entities:
+            return None
+        entity = next(iter(entities.values()))
+        return getattr(entity, "lights_out_state", None)
+
+    def _get_game_state(self, world: World):
+        entities = world.registry.query_by_component("game_state")
+        if not entities:
+            return None
+        entity = next(iter(entities.values()))
+        return getattr(entity, "game_state", None)
+
+    def _get_board_offset(self) -> tuple[int, int]:
+        """Match the board offset used by render systems."""
+        surface = pygame.display.get_surface()
+        if not surface:
+            return (0, 0)
+        return (0, 45)
+
+    def _calculate_interpolated_position(
+        self,
+        current_x: float,
+        current_y: float,
+        prev_x: float,
+        prev_y: float,
+        alpha: float,
+        wrapped_axis: str,
+        cell_size: int,
+        grid_width: int,
+        grid_height: int,
+    ) -> tuple[float, float]:
+        """Interpolate between previous and current positions handling wraparound."""
+        # Adjust for wraparound so interpolation follows the shorter path
+        if wrapped_axis in ("x", "both"):
+            if current_x < prev_x:
+                current_x += grid_width
+            else:
+                prev_x += grid_width
+
+        if wrapped_axis in ("y", "both"):
+            if current_y < prev_y:
+                current_y += grid_height
+            else:
+                prev_y += grid_height
+
+        interp_x = prev_x + (current_x - prev_x) * alpha
+        interp_y = prev_y + (current_y - prev_y) * alpha
+
+        # Wrap back into the grid range
+        interp_x %= grid_width
+        interp_y %= grid_height
+
+        return interp_x, interp_y
+
+    def _get_snake_head_screen_position(self, world: World):
+        snakes = world.registry.query_by_type_and_components(
+            EntityType.SNAKE, "position", "interpolation"
+        )
+        if not snakes:
+            snakes = world.registry.query_by_component("position", "interpolation")
+        if not snakes:
+            return None
+
+        snake = next(iter(snakes.values()))
+        position = getattr(snake, "position", None)
+        interpolation = getattr(snake, "interpolation", None)
+        if not position:
+            return None
+
+        cell_size = getattr(world.board, "cell_size", 20)
+        grid_width = getattr(world.board, "width", 0) * cell_size
+        grid_height = getattr(world.board, "height", 0) * cell_size
+
+        draw_x = position.x * cell_size
+        draw_y = position.y * cell_size
+
+        if interpolation:
+            draw_x, draw_y = self._calculate_interpolated_position(
+                position.x * cell_size,
+                position.y * cell_size,
+                position.prev_x * cell_size,
+                position.prev_y * cell_size,
+                interpolation.alpha,
+                interpolation.wrapped_axis,
+                cell_size,
+                grid_width,
+                grid_height,
+            )
+
+        offset_x, offset_y = self._get_board_offset()
+        return (
+            int(draw_x + offset_x + cell_size / 2),
+            int(draw_y + offset_y + cell_size / 2),
+        )
+
+    def _draw_lights_out_timer(
+        self, surface_width: int, surface_height: int, remaining: float, is_active: bool
+    ) -> None:
+        """Draw the countdown text for Lights Out mode."""
+        font_path = "assets/font/GetVoIP-Grotesque.ttf"
+        font_size = int(surface_width / 55)
+        try:
+            font = pygame.font.Font(font_path, font_size)
+        except Exception:
+            font = pygame.font.Font(None, font_size)
+
+        label_prefix = "Lights return in" if is_active else "Blackout in"
+        text_color = (255, 255, 255)
+        timer_text = font.render(f"{label_prefix} {remaining:.1f}s", True, text_color)
+        timer_rect = timer_text.get_rect()
+        padding = int(surface_width * 0.02)
+        timer_rect.topright = (
+            surface_width - padding,
+            padding + int(surface_height * 0.03),
+        )
+        self._renderer.blit(timer_text, timer_rect)
+
+    def draw_lights_out_overlay(self, world: World) -> None:
+        """Render blackout mask and timer for Lights Out mode."""
+        try:
+            game_state = self._get_game_state(world)
+            lights_out_state = self._get_lights_out_state(world)
+
+            if (
+                not game_state
+                or not lights_out_state
+                or not game_state.lights_out_enabled
+            ):
+                return
+
+            surface = pygame.display.get_surface()
+            if not surface:
+                return
+
+            surface_width, surface_height = surface.get_size()
+            remaining = max(0.0, float(lights_out_state.timer))
+
+            # Always draw the timer when mode is enabled
+            self._draw_lights_out_timer(
+                surface_width, surface_height, remaining, game_state.lights_out_active
+            )
+
+            if not game_state.lights_out_active:
+                return
+
+            overlay = pygame.Surface((surface_width, surface_height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 240))
+
+            center = self._get_snake_head_screen_position(world)
+            radius_px = max(
+                8,
+                int(lights_out_state.radius * getattr(world.board, "cell_size", 16)),
+            )
+
+            if center:
+                # carve a hole around the snake head
+                pygame.draw.circle(overlay, (0, 0, 0, 0), center, radius_px)
+
+            self._renderer.blit(overlay, (0, 0))
+
+        except Exception:
+            # Avoid breaking rendering if anything goes wrong
+            pass
 
     def draw_pause_overlay(self, surface_width: int, surface_height: int) -> None:
         """Draw pause overlay with semi-transparent background and text.
@@ -396,11 +563,10 @@ class OverlayRenderSystem(BaseSystem):
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
 
-        Renders overlays based on game state.
-        Note: This system is called manually from GameplayScene,
-        not in the regular system update loop.
+        Renders the Lights Out overlay based on game state. Pause/settings
+        overlays are still drawn explicitly by GameplayScene.
 
         Args:
             world: Game world
         """
-        pass  # overlays are drawn manually by GameplayScene
+        self.draw_lights_out_overlay(world)

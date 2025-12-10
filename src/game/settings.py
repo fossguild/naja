@@ -46,6 +46,9 @@ class GameSettings:
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
         "game_mode": "Classic",  # current game mode
+        "lights_out_interval": 12.0,
+        "lights_out_duration": 4.0,
+        "lights_out_radius": 4,
     }
 
     # Settings that are restricted/forced for Autoplay mode
@@ -152,6 +155,36 @@ class GameSettings:
             "key": "electric_walls",
             "label": "Electric walls",
             "type": "bool",
+            "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "lights_out_interval",
+            "label": "Lights-out interval (s)",
+            "type": "float",
+            "min": 3.0,
+            "max": 30.0,
+            "step": 0.5,
+            "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "lights_out_duration",
+            "label": "Lights-out duration (s)",
+            "type": "float",
+            "min": 1.0,
+            "max": 10.0,
+            "step": 0.5,
+            "requires_reset": True,
+            "category": "Gameplay",
+        },
+        {
+            "key": "lights_out_radius",
+            "label": "Lights-out radius (cells)",
+            "type": "int",
+            "min": 2,
+            "max": 10,
+            "step": 1,
             "requires_reset": True,
             "category": "Gameplay",
         },

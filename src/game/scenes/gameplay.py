@@ -47,6 +47,7 @@ from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
 from ecs.systems.trail_generation import TrailGenerationSystem
 from ecs.systems.trail_decay import TrailDecaySystem
+from ecs.systems.lights_out import LightsOutSystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import CLASSIC_MODE_NAME, BOX_MODE_NAME
 from ecs.systems.hunger import HungerSystem
@@ -206,29 +207,30 @@ class GameplayScene(BaseScene):
                     if self._settings and bool(self._settings.get("enable_hunger"))
                     else []
                 ),
-                scoring_system,  # 8: track score and high score
+                LightsOutSystem(self._settings),  # 8: manage blackout timer toggles
+                scoring_system,  # 9: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 9: generate obstacles with connectivity guarantees
-                settings_apply_system,  # 10: apply runtime settings changes
+                ),  # 10: generate obstacles with connectivity guarantees
+                settings_apply_system,  # 11: apply runtime settings changes
             ]
         )
 
         self._systems.extend(game_logic_systems)
 
-        # rendering and audio systems (indices 10+, always run even when paused)
+        # rendering and audio systems (indices 12+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 10: calculate smooth positions for rendering
+                ),  # 12: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 11: play sounds and music
+                ),  # 13: play sounds and music
             ]
         )
 
-        # render systems (11-14: draw board, entities, snake, UI)
+        # render systems (14-18: draw board, entities, snake, UI, overlays)
         if self._renderer:
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
@@ -243,6 +245,7 @@ class GameplayScene(BaseScene):
                     self._entity_render_system,
                     self._snake_render_system,
                     self._ui_render_system,
+                    self._overlay_render_system,
                 ]
             )
 
@@ -272,9 +275,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-9) but keep input (0) and rendering (10+) running
+        # pause game logic systems (1-11) but keep input (0) and rendering (12+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 9
+        GAME_LOGIC_END = 11
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)

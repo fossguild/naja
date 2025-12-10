@@ -30,6 +30,7 @@ SHRINKING_MODE_NAME = "Shrinking Mode"
 GAME_MODE_TELEPORT = "Teleport"
 BOX_MODE_NAME = "Box Mode"
 TRAIL_MODE_NAME = "Trail Mode"
+LIGHTS_OUT_MODE_NAME = "Lights Out"
 
 ACTUAL_GAME_MODES = [
     {
@@ -77,6 +78,11 @@ ACTUAL_GAME_MODES = [
         "description": "Every tile the snake moves through becomes a permanent obstacle.",
         "detailed_info": "Leave your mark - permanently! Every tile you move through becomes a solid obstacle that remains for the rest of the game. The board fills up as you play, creating an ever-shrinking maze. Requires careful path planning to avoid trapping yourself. How long can you survive?",
     },
+    {
+        "name": LIGHTS_OUT_MODE_NAME,
+        "description": "Periodic blackouts with a small vision circle around the head.",
+        "detailed_info": "Every interval the arena goes dark for a short duration. Only a small circle around the snake's head stays lit; plan routes from memory. A small on-screen timer shows blackout time remaining.",
+    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -90,6 +96,7 @@ __all__ = [
     "GAME_MODE_TELEPORT",
     "BOX_MODE_NAME",
     "TRAIL_MODE_NAME",
+    "LIGHTS_OUT_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",

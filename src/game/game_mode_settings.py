@@ -27,6 +27,7 @@ appear when that mode is selected.
 # Available game modes
 GAME_MODES = [
     "Classic",
+    "Lights Out",
     # future modes can be added here:
     # "Box Mode",
     # "Cheese Mode",
@@ -44,6 +45,38 @@ GAME_MODE_SETTINGS = {
         "settings": [
             # no mode-specific settings for classic mode yet
             # future settings can be added here
+        ],
+    },
+    "Lights Out": {
+        "description": "Periodic blackout; only a small circle around the head is visible.",
+        "settings": [
+            {
+                "key": "lights_out_interval",
+                "label": "  Blackout every (s)",
+                "type": "float",
+                "min": 3.0,
+                "max": 30.0,
+                "step": 0.5,
+                "default": 12.0,
+            },
+            {
+                "key": "lights_out_duration",
+                "label": "  Blackout duration (s)",
+                "type": "float",
+                "min": 1.0,
+                "max": 10.0,
+                "step": 0.5,
+                "default": 4.0,
+            },
+            {
+                "key": "lights_out_radius",
+                "label": "  Vision radius (cells)",
+                "type": "int",
+                "min": 2,
+                "max": 10,
+                "step": 1,
+                "default": 4,
+            },
         ],
     },
     # example of how to add mode-specific settings in the future:
