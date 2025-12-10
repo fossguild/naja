@@ -172,9 +172,13 @@ class SnakeRenderSystem(BaseSystem):
         # Draw head (get direction from velocity or position change)
         head_direction = self._get_head_direction(position)
         if is_rainbow:
-            head_color = Color.from_hex(get_rainbow_color(0)).to_tuple()
-        # Use tail_color for head when sprites enabled (same brightness as body sprites)
-        sprite_head_color = tail_color if self._use_sprites else head_color
+            # In rainbow mode, head uses first rainbow color
+            sprite_head_color = Color.from_hex(get_rainbow_color(0)).to_tuple()
+        elif self._use_sprites:
+            # Use tail_color for head when sprites enabled (same brightness as body)
+            sprite_head_color = tail_color
+        else:
+            sprite_head_color = head_color
         self._draw_snake_head(
             position,
             interpolation,
