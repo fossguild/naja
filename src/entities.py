@@ -36,7 +36,6 @@ from .constants import CLOCK_TICKS, APPLE_COLOR, OBSTACLE_COLOR
 
 
 class Snake:
-
     def __init__(self, width: int, height: int, grid_size: int):
         """Initialize the Snake.
 
@@ -171,6 +170,50 @@ class Snake:
                     apple.ensure_valid_position(self, obstacles)
 
         return died
+
+    def toggle_head(self):
+        """
+        Swap the snake's head and tail and change it's movement direction.
+        """
+        # Snake does not have a tail yet
+        if not self.tail:
+            # Only changes the direction of the movement
+            self.xmov *= -1
+            self.ymov *= -1
+            return
+
+        # Reverses the snake's body
+        self.positions = [(self.head.x, self.head.y)] + self.tail
+        self.positions.reverse()
+        self.tail = self.positions[1:]
+        self.x = self.positions[0][0]
+        self.y = self.positions[0][1]
+        self.head = pygame.Rect(self.x, self.y, self.grid_size, self.grid_size)
+
+        # Determine direction of the reversed snake's movement
+        diff_x = self.head.x - self.positions[1][0]
+        diff_y = self.head.y - self.positions[1][1]
+        if diff_x > 0:
+            self.xmov = 1
+        elif diff_x < 0:
+            self.xmov = -1
+        else:
+            self.xmov = 0
+        if diff_y > 0:
+            self.ymov = 1
+        elif diff_y < 0:
+            self.ymov = -1
+        else:
+            self.ymov = 0
+
+        # Apply changes
+        self.move_progress = 0.0
+        self.target_x = self.head.x + self.xmov * self.grid_size
+        self.target_y = self.head.y + self.ymov * self.grid_size
+        self.draw_x = self.x
+        self.draw_y = self.y
+        self.prev_head_x = self.x
+        self.prev_head_y = self.y
 
 
 ##

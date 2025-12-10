@@ -105,7 +105,7 @@ The game is implemented in a single file (`naja.py`) with the following structur
 2. **Commit Messages**: Use tag-based format
    ```
    tag: short imperative description
-   
+
    Optional longer explanation with proper punctuation.
    ```
    Tags: `code`, `doc`, `build`, `repo`, `minor`, `other`
@@ -246,4 +246,3 @@ Don't:
 - Use unclear variable names
 - Skip pre-commit checks
 - Add features without issue tracking
-

@@ -793,6 +793,10 @@ def main():
                         new_apple.ensure_valid_position(state.snake, state.obstacles)
                     state.apples.append(new_apple)
 
+                # Toggle snake's head
+                if settings.get("double_headed"):
+                    state.snake.toggle_head()
+
                 break  # Only eat one apple per frame
 
         # Update display

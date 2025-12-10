@@ -34,6 +34,7 @@ class GameSettings:
         "background_music": True,
         "reset_game_on_apply": False,
         "eat_sound": True,
+        "double_headed": False,
     }
 
     # Declarative menu field definitions
@@ -84,6 +85,12 @@ class GameSettings:
             "label": "eat sound",
             "type": "bool",
             "default": True,
+        },
+        {
+            "key": "double_headed",
+            "label": "Double Headed Snake",
+            "type": "bool",
+            "default": False,
         },
     ]
 
