@@ -315,6 +315,7 @@ class GameplayScene(BaseScene):
 
     def on_exit(self) -> None:
         """Called when exiting gameplay scene."""
+        self._audio_service.play_music("assets/sound/menu.mp3")
         self.on_detach()
 
     def render(self) -> None:

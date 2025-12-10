@@ -176,6 +176,9 @@ class SettingsScene(BaseScene):
                     if self._selected_index == len(visible_fields):
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
+                        # if background music was off, return music
+                        if not pygame.mixer.music.get_busy():
+                            pygame.mixer.music.unpause()
                         # Stay in settings to show the reset took effect
                     elif self._selected_index < len(visible_fields):
                         # toggle section if selected field is a section
