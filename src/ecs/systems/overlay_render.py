@@ -134,7 +134,7 @@ class OverlayRenderSystem(BaseSystem):
             hint_text = hint_font.render(
                 "Press P to resume or ESC/M for settings",
                 True,
-                Color.from_hex(constants.MESSAGE_COLOR).to_tuple(),
+                Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple(),
             )
             hint_rect = hint_text.get_rect()
             hint_rect.midtop = (surface_width // 2, pause_rect.bottom + 20)
@@ -192,7 +192,7 @@ class OverlayRenderSystem(BaseSystem):
             title_font = pygame.font.Font(None, title_font_size)
 
         title_text = title_font.render(
-            "Settings", True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+            "Settings", True, Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
         )
         title_rect = title_text.get_rect(
             center=(surface_width / 2, surface_height / 10)
@@ -287,7 +287,7 @@ class OverlayRenderSystem(BaseSystem):
                     text_color = (
                         Color.from_hex(constants.SCORE_COLOR).to_tuple()
                         if field_i == selected_index
-                        else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                        else Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
                     )
                     text = section_font.render(label_text, True, text_color)
                     rect = text.get_rect()
@@ -319,7 +319,7 @@ class OverlayRenderSystem(BaseSystem):
                     text_color = (
                         Color.from_hex(constants.SCORE_COLOR).to_tuple()
                         if field_i == selected_index
-                        else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                        else Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
                     )
                     text = item_font.render(
                         f"{f['label']}: {formatted_val}", True, text_color
@@ -386,7 +386,7 @@ class OverlayRenderSystem(BaseSystem):
             hint_font = pygame.font.Font(None, hint_font_size)
 
         hint_surf = hint_font.render(
-            hint_text, True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+            hint_text, True, Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
         )
         hint_rect = hint_surf.get_rect(
             center=(surface_width / 2, surface_height * 0.95)

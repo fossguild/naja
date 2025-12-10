@@ -32,6 +32,7 @@ class GameAssets:
     SPEAKER_MUTED_SPRITE_PATH = "assets/sprites/speaker-muted.png"
     FONT_PATH = "assets/font/LilitaOne-Regular.ttf"
     BUTTON_PATH = "assets/buttons/"
+    SNAKE_ICONS_PATH = "assets/snake-icons"
 
     # track currently loaded music to avoid unnecessary reloads
     _current_music_track = None
@@ -65,6 +66,7 @@ class GameAssets:
         self.load_sprites()
         self.load_sounds()
         self.load_buttons()
+        self.load_snake_icons()
 
     def load_fonts(self) -> None:
         """Load game fonts with sizes based on window width."""
@@ -108,6 +110,23 @@ class GameAssets:
         except pygame.error as e:
             print(f"Warning: Could not load eat sound: {e}")
             self.eat_sound = None
+
+    def load_snake_icons(self) -> None:
+        """Load snake icons (used on selected text)"""
+        try:
+            self.snake_icons_left = pygame.image.load(
+                f"{self.SNAKE_ICONS_PATH}/snake-icons-left.png",
+            )
+        except pygame.error as e:
+            print(f"Warning: Could not load snake icon (left): {e}")
+            self.snake_icons_left = None
+        try:
+            self.snake_icons_right = pygame.image.load(
+                f"{self.SNAKE_ICONS_PATH}/snake-icons-right.png",
+            )
+        except pygame.error as e:
+            print(f"Warning: Could not load snake icon (right): {e}")
+            self.snake_icons_right = None
 
     def load_buttons(self) -> None:
         """Load button images"""

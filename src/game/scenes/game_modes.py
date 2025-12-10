@@ -28,7 +28,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR
+from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK
 from game.game_modes_registry import (
     ACTUAL_GAME_MODES,
     CLASSIC_MODE_NAME,
@@ -119,6 +119,10 @@ class GameModesScene(BaseScene):
         self._menu_items = [
             *[mode["name"] for mode in ACTUAL_GAME_MODES],
             RANDOM_MODE_LABEL,
+        ]
+        self._assets.snake_icons = [
+            self._assets.snake_icons_left,
+            self._assets.snake_icons_right,
         ]
         self._showing_info_modal = False  # track if modal is open
         self._info_modal_index = -1  # which mode's info to show
@@ -272,7 +276,7 @@ class GameModesScene(BaseScene):
 
         # Draw title
         title = self._assets.render_custom(
-            "Game Modes", MESSAGE_COLOR, int(self._width / 12)
+            "Game Modes", MESSAGE_COLOR_LIGHT, int(self._width / 12)
         )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
         self._renderer.blit(title, title_rect)
@@ -302,7 +306,11 @@ class GameModesScene(BaseScene):
         for i, item in enumerate(self._menu_items):
             # Only draw if in visible range
             if content_start_y <= current_y <= content_end_y:
-                color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
+                color = (
+                    MESSAGE_COLOR_LIGHT
+                    if i == self._selected_index
+                    else MESSAGE_COLOR_DARK
+                )
 
                 # add arrow indicator if this mode is selected (confirmed)
                 display_text = item
@@ -318,6 +326,26 @@ class GameModesScene(BaseScene):
 
                 # Draw description for currently navigated mode (centered, wrapped)
                 if i == self._selected_index:
+                    # Snake icons
+                    img_size = 20
+                    img_y_center = current_y
+
+                    # Left img
+                    left_img = self._assets.snake_icons_left
+                    left_img_x = rect.left - 20 - img_size
+                    left_rect = left_img.get_rect(
+                        center=(left_img_x + (img_size / 2), img_y_center)
+                    )
+                    self._renderer.blit(left_img, left_rect)
+
+                    # Right img
+                    right_img = self._assets.snake_icons_right
+                    right_img_x = rect.right + 20
+                    right_rect = right_img.get_rect(
+                        center=(right_img_x + (img_size / 2), img_y_center)
+                    )
+                    self._renderer.blit(right_img, right_rect)
+
                     description = self._get_description_for_index(i)
                     if description:
                         desc_y = current_y + int(self._height * 0.04)
@@ -342,7 +370,7 @@ class GameModesScene(BaseScene):
 
         # Draw hint footer (always at fixed bottom position)
         hint_text = self._assets.render_custom(
-            "Press ESC to go back", MESSAGE_COLOR, int(self._width / 50)
+            "Press ESC to go back", MESSAGE_COLOR_LIGHT, int(self._width / 50)
         )
         hint_rect = hint_text.get_rect(center=(self._width / 2, self._height * 0.95))
         self._renderer.blit(hint_text, hint_rect)
