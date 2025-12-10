@@ -311,23 +311,36 @@ class SnakeRenderSystem(BaseSystem):
         # Get board offset
         offset_x, offset_y = self.get_board_offset()
 
+        # Check if Cheese Mode is enabled (segments should be stationary)
+        cheese_mode = False
+        if world:
+            for entity in world.registry.get_all().values():
+                if hasattr(entity, "game_state") and entity.game_state:
+                    cheese_mode = entity.game_state.cheese_mode_enabled
+                    break
+
         # Draw each tail segment
         for i, segment in enumerate(body.segments):
-            draw_x, draw_y = self._calculate_interpolated_position(
-                segment.x * cell_size,
-                segment.y * cell_size,
-                segment.prev_x * cell_size,
-                segment.prev_y * cell_size,
-                interpolation.alpha,
-                interpolation.wrapped_axis,
-                cell_size,
-                grid_width,
-                grid_height,
-            )
-
-            # Apply board offset
-            draw_x += offset_x
-            draw_y += offset_y
+            if cheese_mode:
+                # Cheese Mode: segments stay at fixed grid positions (no interpolation)
+                draw_x = segment.x * cell_size + offset_x
+                draw_y = segment.y * cell_size + offset_y
+            else:
+                # Classic Mode: smooth interpolation between positions
+                draw_x, draw_y = self._calculate_interpolated_position(
+                    segment.x * cell_size,
+                    segment.y * cell_size,
+                    segment.prev_x * cell_size,
+                    segment.prev_y * cell_size,
+                    interpolation.alpha,
+                    interpolation.wrapped_axis,
+                    cell_size,
+                    grid_width,
+                    grid_height,
+                )
+                # Apply board offset
+                draw_x += offset_x
+                draw_y += offset_y
 
             # Determine segment color (rainbow cycles through colors)
             if is_rainbow:
@@ -339,7 +352,7 @@ class SnakeRenderSystem(BaseSystem):
             if self._use_sprites and self._assets:
                 # Determine segment type and rotation
                 segment_type, rotation, flip_x, flip_y = self._get_segment_info(
-                    body.segments, i, head_position
+                    body.segments, i, head_position, cheese_mode, body
                 )
 
                 sprite = self._assets.get_tinted_snake_sprite(
@@ -383,13 +396,17 @@ class SnakeRenderSystem(BaseSystem):
         segments: list,
         index: int,
         head_position: Position,
-    ) -> tuple[str, int]:
+        cheese_mode: bool = False,
+        body=None,
+    ) -> tuple[str, int, bool, bool]:
         """Determine segment type and rotation angle.
 
         Args:
             segments: List of body segments
             index: Current segment index
             head_position: Position of the snake head
+            cheese_mode: Whether Cheese Mode is enabled (uses history for directions)
+            body: SnakeBody component (needed for cheese mode history)
 
         Returns:
             Tuple of (segment_type, rotation_angle, flip_x, flip_y)
@@ -399,6 +416,57 @@ class SnakeRenderSystem(BaseSystem):
         """
         curr = segments[index]
 
+        # For Cheese Mode with history, use previous_head_positions to find directions
+        if cheese_mode and body and hasattr(body, "previous_head_positions"):
+            history = body.previous_head_positions
+            # Find this segment's position in history to get neighbors
+            segment_pos = (curr.x, curr.y)
+
+            # Find index in history matching this segment
+            history_idx = None
+            for h_idx, h_pos in enumerate(history):
+                if (h_pos.x, h_pos.y) == segment_pos:
+                    history_idx = h_idx
+                    break
+
+            if history_idx is not None:
+                # Get previous and next positions in history
+                prev_pos = (
+                    history[history_idx - 1] if history_idx > 0 else head_position
+                )
+                next_pos = (
+                    history[history_idx + 1] if history_idx < len(history) - 1 else None
+                )
+
+                # TAIL (last segment or no next in history)
+                if index == len(segments) - 1 or next_pos is None:
+                    direction = self._normalize_direction(
+                        curr.x - prev_pos.x, curr.y - prev_pos.y
+                    )
+                    rotation = (DIRECTION_TO_ROTATION.get(direction, 0) + 180) % 360
+                    return ("tail", rotation, False, False)
+
+                # Calculate directions from history
+                dir_in = self._normalize_direction(
+                    curr.x - prev_pos.x, curr.y - prev_pos.y
+                )
+                dir_out = self._normalize_direction(
+                    next_pos.x - curr.x, next_pos.y - curr.y
+                )
+
+                if dir_in == dir_out:
+                    if dir_in[0] != 0:
+                        rotation = 0
+                    else:
+                        rotation = 90
+                    return ("body", rotation, False, False)
+
+                rotation, flip_x, flip_y = self._calculate_turn_rotation(
+                    dir_in, dir_out
+                )
+                return ("turn", rotation, flip_x, flip_y)
+
+        # Classic mode: use adjacent segments for direction
         # TAIL (last segment)
         if index == len(segments) - 1:
             if index == 0:
