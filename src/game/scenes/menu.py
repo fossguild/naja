@@ -46,7 +46,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, WINDOW_TITLE
+from game.constants import ARENA_PRIMARY_COLOR, WINDOW_TITLE, MESSAGE_COLOR_LIGHT
 
 
 class MenuScene(BaseScene):
@@ -143,7 +143,7 @@ class MenuScene(BaseScene):
 
         # Draw title (bigger and more prominent)
         title = self._assets.render_custom(
-            WINDOW_TITLE, "#27CA9E", int(self._width / 7)
+            WINDOW_TITLE, MESSAGE_COLOR_LIGHT, int(self._width / 7)
         )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 5))
         self._renderer.blit(title, title_rect)
@@ -151,7 +151,7 @@ class MenuScene(BaseScene):
         # Draw selected game mode below title
         mode_text = self._get_selected_mode_text()
         mode_surface = self._assets.render_custom(
-            mode_text, "#27CA9E", int(self._width / 40)
+            mode_text, MESSAGE_COLOR_LIGHT, int(self._width / 40)
         )
         mode_rect = mode_surface.get_rect(
             center=(self._width / 2, self._height / 5 + self._height * 0.10)
@@ -172,7 +172,7 @@ class MenuScene(BaseScene):
 
         # Draw creators text
         footer_surface = self._assets.render_custom(
-            self.footer_text, "#27CA9E", int(self._width / 40)
+            self.footer_text, MESSAGE_COLOR_LIGHT, int(self._width / 40)
         )
         footer_rect = footer_surface.get_rect(
             center=(self._width / 2, self._height / 1.1)
@@ -181,7 +181,7 @@ class MenuScene(BaseScene):
 
         # Draw ICMC text
         icmc_surface = self._assets.render_custom(
-            self.icmc_text, "#27CA9E", int(self._width / 40)
+            self.icmc_text, MESSAGE_COLOR_LIGHT, int(self._width / 40)
         )
         icmc_rect = icmc_surface.get_rect(
             center=(self._width / 2, self._height / 1.1 + (self._height * 0.03))

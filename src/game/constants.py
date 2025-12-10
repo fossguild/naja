@@ -19,14 +19,14 @@ APPLE_COLOR = "#aa0000"  # Color of the apple.
 ARENA_PRIMARY_COLOR = "#202020"
 # Secondary color for the ground (used to render a checkerboard pattern)
 ARENA_SECONDARY_COLOR = "#2c2c2c"
-# Color of the game-over message, also used for the score counter.
-MESSAGE_COLOR = "#808080"
+# Message colors
+MESSAGE_COLOR_LIGHT = "#27CA9E"
+MESSAGE_COLOR_DARK = "#0C8061"  # Selected text
 # Color of the grid, also used for footer hint text.
 GRID_COLOR = "#3c3c3b"
 # ARENA_COLOR = "#202020"  # Color of the ground.
 # GRID_COLOR = "#3c3c3b"  # Color of the grid lines.
 SCORE_COLOR = "#ffffff"  # Color of the scoreboard.
-MESSAGE_COLOR = "#808080"  # Color of the game-over message.
 HUNGER_COLOR = "#ffaa00"  # Color of the hunger bar (orange/yellow).
 
 # Game over screen colors

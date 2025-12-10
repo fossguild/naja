@@ -27,7 +27,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR
+from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK
 
 
 class SettingsScene(BaseScene):
@@ -296,7 +296,7 @@ class SettingsScene(BaseScene):
 
         # Draw title
         title = self._assets.render_custom(
-            "Settings", MESSAGE_COLOR, int(self._width / 12)
+            "Settings", MESSAGE_COLOR_LIGHT, int(self._width / 12)
         )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
         self._renderer.blit(title, title_rect)
@@ -344,7 +344,7 @@ class SettingsScene(BaseScene):
                 if content_start_y - category_h <= current_y <= content_end_y:
                     category_text = self._assets.render_custom(
                         f"─── {current_category} ───",
-                        (180, 180, 180),
+                        MESSAGE_COLOR_LIGHT,
                         int(self._width / 32),
                     )
                     category_rect = category_text.get_rect()
@@ -365,9 +365,9 @@ class SettingsScene(BaseScene):
 
                     # make section headers slightly larger
                     color = (
-                        SCORE_COLOR
+                        MESSAGE_COLOR_DARK
                         if field_i == self._selected_index
-                        else MESSAGE_COLOR
+                        else MESSAGE_COLOR_LIGHT
                     )
                     text = self._assets.render_custom(
                         label_text,
@@ -412,9 +412,9 @@ class SettingsScene(BaseScene):
                         )
                     else:
                         color = (
-                            SCORE_COLOR
+                            MESSAGE_COLOR_LIGHT
                             if field_i == self._selected_index
-                            else MESSAGE_COLOR
+                            else MESSAGE_COLOR_DARK
                         )
                     text = self._assets.render_custom(
                         f"{f['label']}: {formatted_val}",
@@ -462,7 +462,11 @@ class SettingsScene(BaseScene):
         if content_start_y - row_h <= current_y <= content_end_y:
             reset_text = self._assets.render_custom(
                 "──  Reset to Default  ──",
-                SCORE_COLOR if self._selected_index == reset_index else (200, 100, 100),
+                (
+                    MESSAGE_COLOR_LIGHT
+                    if self._selected_index == reset_index
+                    else (200, 100, 100)
+                ),
                 int(self._width / 32),
             )
             reset_rect = reset_text.get_rect()
@@ -473,7 +477,7 @@ class SettingsScene(BaseScene):
         # Hint footer
         hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"
         hint = self._assets.render_custom(
-            hint_text, MESSAGE_COLOR, int(self._width / 50)
+            hint_text, MESSAGE_COLOR_LIGHT, int(self._width / 50)
         )
         self._renderer.blit(
             hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))

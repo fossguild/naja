@@ -372,7 +372,7 @@ class UIRenderSystem(BaseSystem):
         # colors
         bar_color = Color.from_hex(constants.HUNGER_COLOR).to_tuple()
         border_color = Color.from_hex(constants.GRID_COLOR).to_tuple()
-        text_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+        text_color = Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
 
         # position: draw below speed bar (a bit lower)
         bar_x = padding_x
