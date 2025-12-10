@@ -48,6 +48,12 @@ class AssetsSystem(BaseSystem):
     GAMEOVER_SOUND_PATH = "assets/sound/gameover.wav"
     EAT_SOUND_PATH = "assets/sound/eat.flac"
 
+    # Snake sprite paths
+    SNAKE_HEAD_SPRITE_PATH = "assets/sprites/snake-head.png"
+    SNAKE_BODY_SPRITE_PATH = "assets/sprites/snake-body.png"
+    SNAKE_TURN_SPRITE_PATH = "assets/sprites/snake-turn.png"
+    SNAKE_TAIL_SPRITE_PATH = "assets/sprites/snake-tail.png"
+
     def __init__(self, window_width: int):
         """Initialize the AssetsSystem.
 
@@ -58,6 +64,7 @@ class AssetsSystem(BaseSystem):
         self._fonts: dict[str, pygame.font.Font] = {}
         self._sprites: dict[str, pygame.Surface] = {}
         self._sounds: dict[str, pygame.mixer.Sound] = {}
+        self._tinted_cache: dict[tuple, pygame.Surface] = {}  # Cache for tinted sprites
         self._load_all_assets()
 
     def _load_all_assets(self) -> None:
@@ -85,6 +92,7 @@ class AssetsSystem(BaseSystem):
 
     def _load_sprites(self) -> None:
         """Load sprite images."""
+        # UI sprites
         try:
             self._sprites["speaker_on"] = pygame.image.load(self.SPEAKER_ON_SPRITE_PATH)
         except pygame.error as e:
@@ -98,6 +106,22 @@ class AssetsSystem(BaseSystem):
         except pygame.error as e:
             print(f"Warning: Could not load speaker-muted sprite: {e}")
             self._sprites["speaker_muted"] = None
+
+        # Snake sprites
+        snake_sprites = {
+            "snake_head": self.SNAKE_HEAD_SPRITE_PATH,
+            "snake_body": self.SNAKE_BODY_SPRITE_PATH,
+            "snake_turn": self.SNAKE_TURN_SPRITE_PATH,
+            "snake_tail": self.SNAKE_TAIL_SPRITE_PATH,
+        }
+        for name, path in snake_sprites.items():
+            try:
+                # Load with alpha channel and convert for performance
+                sprite = pygame.image.load(path).convert_alpha()
+                self._sprites[name] = sprite
+            except pygame.error as e:
+                print(f"Warning: Could not load {name} sprite: {e}")
+                self._sprites[name] = None
 
     def _load_sounds(self) -> None:
         """Load sound effects."""
@@ -154,6 +178,79 @@ class AssetsSystem(BaseSystem):
             pygame.Surface or None: The sprite surface, or None if not loaded
         """
         return self._sprites.get(sprite_name)
+
+    def get_snake_sprite(self, part: str) -> Optional[pygame.Surface]:
+        """Get a snake sprite by part name.
+
+        Args:
+            part: Part name ("head", "body", "turn", or "tail")
+
+        Returns:
+            pygame.Surface or None: The sprite surface, or None if not loaded
+        """
+        return self._sprites.get(f"snake_{part}")
+
+    def tint_sprite(
+        self, sprite: pygame.Surface, color: tuple[int, int, int]
+    ) -> pygame.Surface:
+        """Apply color tint to a sprite for skin customization.
+
+        Works best when base sprite is white/grayscale:
+        - White pixels become the tint color
+        - Gray pixels become darker versions of tint
+        - Black pixels stay black (preserves outlines)
+
+        Args:
+            sprite: Base sprite surface to tint
+            color: RGB color tuple to apply
+
+        Returns:
+            New tinted sprite surface
+        """
+        tinted = sprite.copy()
+        # Create a colored overlay and multiply blend
+        tinted.fill(color, special_flags=pygame.BLEND_MULT)
+        return tinted
+
+    def get_tinted_snake_sprite(
+        self, part: str, color: tuple[int, int, int], cell_size: int = 0
+    ) -> Optional[pygame.Surface]:
+        """Get a tinted and scaled snake sprite (cached).
+
+        Caches tinted sprites to avoid re-processing every frame.
+
+        Args:
+            part: Part name ("head", "body", "turn", or "tail")
+            color: RGB color tuple for tinting
+            cell_size: Target size to scale sprite to (0 = no scaling)
+
+        Returns:
+            Tinted (and optionally scaled) sprite, or None if unavailable
+        """
+        cache_key = (part, color, cell_size)
+
+        if cache_key not in self._tinted_cache:
+            base = self.get_snake_sprite(part)
+            if base is None:
+                return None
+
+            # Tint the sprite
+            tinted = self.tint_sprite(base, color)
+
+            # Scale if cell_size specified
+            if cell_size > 0:
+                tinted = pygame.transform.scale(tinted, (cell_size, cell_size))
+
+            self._tinted_cache[cache_key] = tinted
+
+        return self._tinted_cache.get(cache_key)
+
+    def clear_tint_cache(self) -> None:
+        """Clear the tinted sprite cache.
+
+        Call when skin colors change or window resizes.
+        """
+        self._tinted_cache.clear()
 
     def get_sound(self, sound_name: str) -> Optional[pygame.mixer.Sound]:
         """Get a sound effect by name.
