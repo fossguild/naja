@@ -266,11 +266,6 @@ class SnakeRenderSystem(BaseSystem):
             rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
             self._renderer.draw_rect(color, rect, 0)
 
-            # Draw dark border for visual clarity at high speeds (if enabled)
-            if self._settings and self._settings.get("segment_borders"):
-                border_color = tuple(max(0, c - 60) for c in color)
-                self._renderer.draw_rect(border_color, rect, 2)
-
         # Draw wraparound duplicate for smooth portal effect
         if interpolation.wrapped_axis != "none":
             self._draw_wraparound_duplicate(
@@ -370,11 +365,6 @@ class SnakeRenderSystem(BaseSystem):
                     int(draw_x), int(draw_y), cell_size, cell_size
                 )
                 self._renderer.draw_rect(segment_color, segment_rect, 0)
-
-                # Draw dark border for visual clarity
-                if self._settings and self._settings.get("segment_borders"):
-                    border_color = tuple(max(0, c - 60) for c in segment_color)
-                    self._renderer.draw_rect(border_color, segment_rect, 2)
 
             # Draw wraparound duplicate
             if interpolation.wrapped_axis != "none":
