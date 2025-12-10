@@ -138,7 +138,7 @@ class MovementSystem(BaseSystem):
             position.x = new_x
             position.y = new_y
 
-            # Check if Cheese mode is enabled
+            # Check if Cheese mode is enabled (for gaps/holes feature)
             game_state_entities = world.registry.query_by_component("game_state")
             cheese_mode = False
             if game_state_entities:
@@ -146,125 +146,73 @@ class MovementSystem(BaseSystem):
                 if hasattr(entity, "game_state"):
                     cheese_mode = entity.game_state.cheese_mode_enabled
 
+            # ===== UNIVERSAL STATIONARY SEGMENTS =====
+            # All modes now use stationary segment placement for sprite support
+            # Segments are placed at head's previous position and DON'T MOVE
+            # This is better for sprites because each segment has a fixed grid cell
+
+            # Track move history (used for cheese mode gaps)
+            move_number = len(body.previous_head_positions)
+
+            # Record this move in history
+            body.previous_head_positions.insert(
+                0,
+                Position(
+                    x=position.prev_x,
+                    y=position.prev_y,
+                    prev_x=position.prev_x,
+                    prev_y=position.prev_y,
+                ),
+            )
+
+            # Determine if we should add a segment this frame
             if cheese_mode:
-                # ===== CHEESE MODE: Stationary segments =====
-                # Segments only appear every OTHER move
-                # This creates gaps (holes) and the jumping effect
-
-                # Track if this is an odd or even move using history length
-                move_number = len(body.previous_head_positions)
-
-                # Record this move in history
-                body.previous_head_positions.insert(
-                    0,
-                    Position(
-                        x=position.prev_x,
-                        y=position.prev_y,
-                        prev_x=position.prev_x,
-                        prev_y=position.prev_y,
-                    ),
-                )
-
-                # Only add a segment every OTHER move (on even move numbers)
-                # move_number starts at 0, so: 0, 2, 4, 6... = even = add segment
+                # Cheese mode: Only add segment every OTHER move (creates gaps)
                 should_add_segment = move_number % 2 == 0
+            else:
+                # All other modes: Add segment every move (no gaps)
+                should_add_segment = True
 
-                # Handle growth
+            # Handle growth differently based on mode
+            if cheese_mode:
+                # CHEESE MODE: pending_growth controls when to NOT remove tail
+                # +2 pending_growth per apple = 2 frames of not removing tail
+                # But since we only add segments every other frame, this = 1 new solid segment
                 is_growing = hasattr(body, "pending_growth") and body.pending_growth > 0
                 if is_growing:
                     body.pending_growth -= 1
-                    # Don't remove tail when growing
-
-                if should_add_segment:
-                    # Create new STATIONARY segment at head's previous position
-                    new_segment = Position(
-                        x=position.prev_x,
-                        y=position.prev_y,
-                        prev_x=position.prev_x,
-                        prev_y=position.prev_y,
-                    )
-                    body.segments.insert(0, new_segment)
-
-                    # Remove oldest segment UNLESS we're growing
-                    if not is_growing:
-                        if len(body.segments) > 0:
-                            body.segments.pop()
-
-                # Track actual size (head + segments)
-                body.size = len(body.segments) + 1
-
             else:
-                # ===== CLASSIC MODE: Segment-following logic =====
-                # Keep original implementation for Classic and other modes
-
-                # Update all segment positions to follow the one ahead
-                # Work backwards to avoid overwriting positions we still need
-                # This creates the "caterpillar" following effect
-
-                # Save the old positions before shifting
-                if body.segments:
-                    # Shift all segments backward (each takes the position ahead)
-                    for i in range(len(body.segments) - 1, 0, -1):
-                        # Save where this segment currently is (for prev)
-                        old_x = body.segments[i].x
-                        old_y = body.segments[i].y
-
-                        # Move this segment to where the segment ahead is
-                        body.segments[i].x = body.segments[i - 1].x
-                        body.segments[i].y = body.segments[i - 1].y
-
-                        # Set prev to where it was before moving
-                        body.segments[i].prev_x = old_x
-                        body.segments[i].prev_y = old_y
-
-                    # First segment follows the head
-                    old_x = body.segments[0].x
-                    old_y = body.segments[0].y
-                    body.segments[0].x = position.prev_x  # Head's OLD position
-                    body.segments[0].y = position.prev_y
-                    body.segments[0].prev_x = old_x
-                    body.segments[0].prev_y = old_y
-
-                # Process pending growth (for Cheese mode +2 mechanic)
-                # Transfer one pending growth to actual size per frame for smooth growth
+                # CLASSIC/OTHER MODES: pending_growth adds to size immediately
                 if hasattr(body, "pending_growth") and body.pending_growth > 0:
                     body.size += 1
                     body.pending_growth -= 1
+                is_growing = False  # Classic mode doesn't use is_growing flag
 
-                # Maintain correct number of segments based on body size
-                desired_tail_len = max(0, body.size - 1)
+            # Calculate desired number of segments (size - 1 because head isn't a segment)
+            desired_segments = max(0, body.size - 1)
 
-                # Add or remove segments as needed
-                if len(body.segments) > desired_tail_len:
-                    # Snake shrunk - remove excess segments from the end
-                    body.segments = body.segments[:desired_tail_len]
-                elif len(body.segments) < desired_tail_len:
-                    # Snake grew - add new segments at the end
-                    if body.segments:
-                        # Add segments at the last segment's PREVIOUS position
-                        # This allows them to interpolate smoothly as they follow the tail
-                        last_segment = body.segments[-1]
-                        for _ in range(desired_tail_len - len(body.segments)):
-                            # New segment starts at last segment's previous position
-                            # and will interpolate to the last segment's current position
-                            new_seg = Position(
-                                x=last_segment.prev_x,  # Start at prev position
-                                y=last_segment.prev_y,
-                                prev_x=last_segment.prev_x,  # No interpolation on first frame
-                                prev_y=last_segment.prev_y,
-                            )
-                            body.segments.append(new_seg)
-                            # Update reference for next segment (if adding multiple)
-                            last_segment = new_seg
-                    else:
-                        # First segment - create at head's position
-                        new_seg = Position(
-                            x=position.prev_x,
-                            y=position.prev_y,
-                            prev_x=position.prev_x,
-                            prev_y=position.prev_y,
-                        )
-                        body.segments.append(new_seg)
+            if should_add_segment:
+                # Create new STATIONARY segment at head's previous position
+                new_segment = Position(
+                    x=position.prev_x,
+                    y=position.prev_y,
+                    prev_x=position.prev_x,
+                    prev_y=position.prev_y,
+                )
+                body.segments.insert(0, new_segment)
+
+            # Trim/grow segments based on mode
+            if cheese_mode:
+                # Cheese mode: remove oldest segment unless growing
+                if not is_growing and should_add_segment:
+                    if len(body.segments) > 0:
+                        body.segments.pop()
+                # Update size to reflect actual segments
+                body.size = len(body.segments) + 1
+            else:
+                # Classic mode: trim excess segments to match desired size
+                while len(body.segments) > desired_segments:
+                    body.segments.pop()
 
             # Reset interpolation alpha to 0.0 for smooth animation from old to new position
             if hasattr(snake, "interpolation"):
