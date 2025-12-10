@@ -233,7 +233,7 @@ class GameplayScene(BaseScene):
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
             self._snake_render_system = SnakeRenderSystem(
-                self._renderer, self._settings
+                self._renderer, self._settings, self._assets
             )
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
             # overlay_render_system already created earlier (before InputSystem)
