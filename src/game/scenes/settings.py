@@ -76,6 +76,9 @@ class SettingsScene(BaseScene):
         self._hovered_warning_key = None
         self._warning_icon_rects = {}  # key -> rect for hover detection
         self._item_rects = []  # rects for mouse interaction
+        self._slider_fields = {"initial_speed", "max_speed"}
+        self._slider_hit_rects: dict[str, dict] = {}
+        self._active_slider_key: Optional[str] = None
         # key repeat tracking for smooth scrolling
         self._key_down_pressed = False
         self._key_up_pressed = False
@@ -171,6 +174,20 @@ class SettingsScene(BaseScene):
             # Mouse Interaction Logic
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 total_items = len(visible_fields) + 1
+                mouse_pos = pygame.mouse.get_pos()
+
+                if event.button == 1:
+                    slider_hit = self._get_slider_hit(mouse_pos)
+                    if slider_hit:
+                        key, slider_info = slider_hit
+                        if not self._settings.is_setting_restricted(key):
+                            self._selected_index = slider_info["index"]
+                            self._active_slider_key = key
+                            self._settings.stop_key_hold()
+                            self._set_slider_value_from_mouse(
+                                slider_info["field"], mouse_pos[0]
+                            )
+                        continue
 
                 # Scroll Wheel: Maps directly to selection index for consistency
                 if event.button == 4:  # Scroll Up
@@ -180,7 +197,6 @@ class SettingsScene(BaseScene):
 
                 # Clicks: Check against rects stored in render
                 elif event.button in (1, 3):  # Left(1) or Right(3) Click
-                    mouse_pos = pygame.mouse.get_pos()
                     for rect, idx in self._item_rects:
                         if rect.collidepoint(mouse_pos):
                             # Move selection to clicked item
@@ -207,6 +223,27 @@ class SettingsScene(BaseScene):
                                         self._apply_audio_setting_if_changed(
                                             field["key"]
                                         )
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self._active_slider_key = None
+
+            elif event.type == pygame.MOUSEMOTION:
+                if self._active_slider_key:
+                    buttons = pygame.mouse.get_pressed()
+                    if buttons[0]:
+                        slider_info = self._slider_hit_rects.get(
+                            self._active_slider_key
+                        )
+                        if slider_info and not self._settings.is_setting_restricted(
+                            self._active_slider_key
+                        ):
+                            self._set_slider_value_from_mouse(
+                                slider_info["field"], event.pos[0]
+                            )
+                        else:
+                            self._active_slider_key = None
+                    else:
+                        self._active_slider_key = None
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -345,6 +382,7 @@ class SettingsScene(BaseScene):
 
         # Clear interactive rects
         self._item_rects = []
+        self._slider_hit_rects.clear()
 
         # Draw title
         title = self._assets.render_custom(
@@ -489,6 +527,23 @@ class SettingsScene(BaseScene):
                     rect.top = current_y
                     self._renderer.blit(text, rect)
 
+                    if f["key"] in self._slider_fields:
+                        slider_rect = self._draw_slider(
+                            field=f,
+                            value=val,
+                            row_rect=hit_rect,
+                            label_rect=rect,
+                            is_selected=field_i == self._selected_index,
+                            is_hover=is_mouse_hover,
+                            is_restricted=is_restricted,
+                        )
+                        if slider_rect:
+                            self._slider_hit_rects[f["key"]] = {
+                                "rect": slider_rect,
+                                "field": f,
+                                "index": field_i,
+                            }
+
                     # Draw warning indicator if restricted
                     if is_restricted:
                         # Draw [!] warning icon
@@ -615,6 +670,98 @@ class SettingsScene(BaseScene):
 
                 # Draw tooltip text
                 self._renderer.blit(tooltip_surface, tooltip_rect)
+
+    def _get_slider_hit(self, mouse_pos: tuple[int, int]) -> Optional[tuple[str, dict]]:
+        """Return slider info if the pointer is over a slider."""
+        for key, info in self._slider_hit_rects.items():
+            rect = info.get("rect")
+            if rect and rect.collidepoint(mouse_pos):
+                return key, info
+        return None
+
+    def _set_slider_value_from_mouse(self, field: dict, mouse_x: int) -> None:
+        """Update a slider value based on mouse position."""
+        slider_info = self._slider_hit_rects.get(field["key"])
+        if not slider_info:
+            return
+        rect: pygame.Rect = slider_info["rect"]
+        if rect.width <= 0:
+            return
+
+        ratio = (mouse_x - rect.left) / rect.width
+        ratio = max(0.0, min(1.0, ratio))
+
+        min_val = field.get("min", 0.0)
+        max_val = field.get("max", min_val)
+        if max_val <= min_val:
+            return
+
+        raw_value = min_val + ratio * (max_val - min_val)
+        self._settings.set_field_value(field, raw_value)
+
+    def _draw_slider(
+        self,
+        field: dict,
+        value: float,
+        row_rect: pygame.Rect,
+        label_rect: pygame.Rect,
+        is_selected: bool,
+        is_hover: bool,
+        is_restricted: bool,
+    ) -> Optional[pygame.Rect]:
+        """Draw a horizontal slider for speed settings."""
+        row_right = row_rect.left + row_rect.width
+        gap = int(self._width * 0.01)
+        slider_left = max(
+            label_rect.right + gap, row_rect.left + int(row_rect.width * 0.45)
+        )
+        slider_right = row_right - gap
+        slider_width = max(60, slider_right - slider_left)
+        slider_height = max(6, int(row_rect.height * 0.25))
+        slider_center_y = label_rect.centery
+        slider_top = slider_center_y - slider_height // 2
+
+        slider_rect = pygame.Rect(slider_left, slider_top, slider_width, slider_height)
+
+        track_color = pygame.Color("#2c2c2c")
+        border_color = pygame.Color(MESSAGE_COLOR_DARK)
+        fill_color = pygame.Color(MESSAGE_COLOR_LIGHT)
+        handle_color = pygame.Color(SCORE_COLOR)
+
+        if is_restricted:
+            fill_color = pygame.Color((90, 90, 90))
+            handle_color = pygame.Color((180, 130, 60))
+        elif not (is_selected or is_hover):
+            # Dim when not focused
+            fill_color = pygame.Color(MESSAGE_COLOR_DARK)
+
+        self._renderer.draw_rect(track_color, slider_rect)
+
+        min_val = field.get("min", 0.0)
+        max_val = field.get("max", min_val + 1)
+        span = max(0.0001, max_val - min_val)
+        ratio = (value - min_val) / span
+        ratio = max(0.0, min(1.0, ratio))
+        fill_width = int(slider_width * ratio)
+        if fill_width > 0:
+            fill_rect = pygame.Rect(slider_left, slider_top, fill_width, slider_height)
+            self._renderer.draw_rect(fill_color, fill_rect)
+
+        border_rect = slider_rect.inflate(2, 2)
+        self._renderer.draw_rect(border_color, border_rect, 2)
+
+        handle_width = max(8, slider_height + 6)
+        handle_height = slider_height + 8
+        handle_rect = pygame.Rect(0, 0, handle_width, handle_height)
+        handle_center_x = slider_left + int(slider_width * ratio)
+        handle_center_x = max(
+            slider_left, min(handle_center_x, slider_left + slider_width)
+        )
+        handle_rect.centerx = handle_center_x
+        handle_rect.centery = slider_rect.centery
+        self._renderer.draw_rect(handle_color, handle_rect)
+
+        return slider_rect
 
     def on_enter(self) -> None:
         """Called when entering settings."""

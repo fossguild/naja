@@ -531,6 +531,53 @@ class GameSettings:
         else:  # float
             self.settings[key] = float(self.clamp(new_val, lo, hi))
 
+    @save_on_exit
+    def set_field_value(self, field: dict | None, raw_value: float) -> None:
+        """Set a numeric field directly (used by sliders).
+
+        Args:
+            field: Menu field definition
+            raw_value: Desired value from slider input
+        """
+        if not field:
+            return
+
+        key = field["key"]
+        kind = field["type"]
+
+        # Only numeric fields are supported for slider adjustments
+        if kind not in ("int", "float"):
+            return
+
+        step = field.get("step", 1 if kind == "int" else 1.0)
+        if step <= 0:
+            step = 1 if kind == "int" else 0.1
+
+        lo = field.get("min", raw_value)
+        hi = field.get("max", raw_value)
+
+        # Maintain the same relationship rules as step_setting
+        if key == "initial_speed":
+            max_speed = self.settings.get("max_speed", hi)
+            hi = min(hi, max_speed - 0.5)
+        elif key == "max_speed":
+            initial_speed = self.settings.get("initial_speed", lo)
+            lo = max(lo, initial_speed + 0.5)
+
+        if hi < lo:
+            # Nothing to do if bounds collapsed
+            return
+
+        # Snap to the closest step
+        steps_from_min = round((raw_value - lo) / step)
+        snapped_value = lo + (steps_from_min * step)
+        snapped_value = self.clamp(snapped_value, lo, hi)
+
+        if kind == "int":
+            self.settings[key] = int(snapped_value)
+        else:
+            self.settings[key] = float(snapped_value)
+
     def validate_apples_count(self, width: int, grid_size: int, height: int) -> int:
         """Calculate and validate the maximum number of apples allowed.
 
