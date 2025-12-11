@@ -1093,6 +1093,43 @@ class CollisionSystem(BaseSystem):
         else:
             print(f"☠️ DEATH CAUSE: {reason} (Service missing)")
 
+    def _determine_winner_by_score(self, world: World) -> int | None:
+        """Determine the winner based on final score (points - deaths).
+        
+        Args:
+            world: ECS world
+            
+        Returns:
+            Player number of the winner, or None if it's a draw
+        """
+        from ecs.entities.entity import EntityType
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        
+        player_scores = []
+        for _, snake in snakes.items():
+            if hasattr(snake, "player_id") and hasattr(snake, "lives"):
+                player_num = snake.player_id.player_number
+                points = snake.player_id.score
+                deaths = 3 - snake.lives.remaining
+                final_score = points - deaths
+                player_scores.append((player_num, final_score))
+        
+        if not player_scores:
+            return None
+        
+        # Sort by final score (descending)
+        player_scores.sort(key=lambda x: x[1], reverse=True)
+        
+        # Check if there's a clear winner (no tie)
+        if len(player_scores) == 1:
+            return player_scores[0][0]
+        
+        if player_scores[0][1] > player_scores[1][1]:
+            return player_scores[0][0]
+        
+        # It's a tie
+        return None
+    
     def _handle_snake_death(self, world: World, snake, reason: str) -> None:
         """Handle death of a specific snake in PvP mode.
 
@@ -1127,7 +1164,7 @@ class CollisionSystem(BaseSystem):
             from ecs.entities.entity import EntityType
             snakes = world.registry.query_by_type(EntityType.SNAKE)
             alive_count = 0
-            winner = None
+            alive_snakes = []
             all_dead = True
             
             for _, s in snakes.items():
@@ -1135,15 +1172,21 @@ class CollisionSystem(BaseSystem):
                     if s.lives.remaining > 0:
                         alive_count += 1
                         all_dead = False
-                        if hasattr(s, "player_id"):
-                            winner = s.player_id.player_number
+                        alive_snakes.append(s)
             
-            # Only trigger game over if all snakes are dead
+            # Determine game over condition
             if all_dead:
-                self._handle_death(world, "Draw! All players eliminated")
-            elif alive_count == 1 and winner:
-                # One winner remains - game over
-                self._handle_death(world, f"Player {winner} wins!")
+                # All snakes dead - determine winner by score
+                winner = self._determine_winner_by_score(world)
+                if winner:
+                    self._handle_death(world, f"Player {winner} WINS!!")
+                else:
+                    self._handle_death(world, "Draw! All players eliminated")
+            elif alive_count == 1:
+                # One survivor - determine winner by score
+                winner = self._determine_winner_by_score(world)
+                if winner:
+                    self._handle_death(world, f"Player {winner} WINS!!")
             # If alive_count > 1, game continues with remaining players
         else:
             # trigger respawn

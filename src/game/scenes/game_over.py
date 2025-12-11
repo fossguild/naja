@@ -100,28 +100,30 @@ class GameOverScene(BaseScene):
                 return game_state.game_mode == PLAYER_VS_PLAYER_MODE_NAME
         return False
 
-    def _get_pvp_player_scores(self) -> list[tuple[int, int]]:
-        """Get player scores from PvP mode.
+    def _get_pvp_player_scores(self) -> list[tuple[int, int, int]]:
+        """Get player scores and deaths from PvP mode.
         
         Returns:
-            List of (player_number, score) tuples
+            List of (player_number, score, deaths) tuples
         """
         if not self._world:
             return []
         
         from ecs.entities.entity import EntityType
         snakes = self._world.registry.query_by_type(EntityType.SNAKE)
-        player_scores = []
+        player_data = []
         
         for snake_id, snake in snakes.items():
-            if hasattr(snake, "player_id"):
+            if hasattr(snake, "player_id") and hasattr(snake, "lives"):
                 player_num = snake.player_id.player_number
                 score = snake.player_id.score
-                player_scores.append((player_num, score))
+                # Calculate deaths from initial lives (3) minus remaining lives
+                deaths = 3 - snake.lives.remaining
+                player_data.append((player_num, score, deaths))
         
         # Sort by player number
-        player_scores.sort(key=lambda x: x[0])
-        return player_scores
+        player_data.sort(key=lambda x: x[0])
+        return player_data
 
     @property
     def _is_victory(self) -> bool:
@@ -136,8 +138,12 @@ class GameOverScene(BaseScene):
         This allows new game modes to automatically use their custom message
         by setting death_reason to 'Win: <their message>'.
         """
-        if self._is_victory and len(self._death_reason) > 5:
-            return self._death_reason[5:].strip()  # Remove 'Win: ' prefix
+        if self._is_victory:
+            if self._death_reason.startswith("Win: "):
+                return self._death_reason[5:].strip()  # Remove 'Win: ' prefix
+            else:
+                # Return the whole message for PvP mode (e.g., "Player 2 wins!")
+                return self._death_reason
         return "You completed the game!"  # Default fallback for others
 
     def update(self, dt_ms: float) -> Optional[str]:
@@ -227,14 +233,16 @@ class GameOverScene(BaseScene):
             # Display victory message or "NEW HIGH SCORE!" below title
             y_offset = self._height / 3.5
             
-            # In PvP mode, show player scores
+            # In PvP mode, show player scores and deaths
             if is_pvp:
-                player_scores = self._get_pvp_player_scores()
-                if player_scores:
-                    for player_num, score in player_scores:
+                player_data = self._get_pvp_player_scores()
+                if player_data:
+                    for player_num, score, deaths in player_data:
                         player_color = (100, 255, 100) if player_num == 1 else (100, 150, 255)
+                        # Calculate final score (points - deaths)
+                        final_score = score - deaths
                         player_text = medium_font.render(
-                            f"Player {player_num}: {score} points", True, player_color
+                            f"Player {player_num}: {score} pts | {deaths} deaths | Score: {final_score}", True, player_color
                         )
                         player_rect = player_text.get_rect(
                             center=(self._width // 2, y_offset)
