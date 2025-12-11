@@ -126,6 +126,11 @@ class GameOverScene(BaseScene):
         return player_data
 
     @property
+    def _is_draw(self) -> bool:
+        """Check if this is a draw/tie."""
+        return "draw" in self._death_reason.lower() or "tied" in self._death_reason.lower()
+    
+    @property
     def _is_victory(self) -> bool:
         """Check if this is a victory (win) instead of a death (loss)."""
         return self._death_reason.startswith("Win:") or "wins" in self._death_reason.lower()
@@ -207,8 +212,16 @@ class GameOverScene(BaseScene):
             # Check if this is PvP mode
             is_pvp = self._is_pvp_mode()
             
-            # Use victory or game over colors based on win/loss
-            if self._is_victory:
+            # Use victory or game over colors based on win/loss/draw
+            if self._is_draw:
+                # Draw/tie - use neutral/highlight colors
+                title_color = VICTORY_HIGHLIGHT_COLOR
+                message_color = GAME_OVER_MESSAGE_COLOR
+                highlight_color = GAME_OVER_HIGHLIGHT_COLOR
+                high_score_color = GAME_OVER_HIGH_SCORE_COLOR
+                new_score_color = GAME_OVER_NEW_SCORE_COLOR
+                title_text = "DRAW!!" if is_pvp else "Game Over"
+            elif self._is_victory:
                 title_color = VICTORY_TITLE_COLOR
                 message_color = VICTORY_MESSAGE_COLOR
                 highlight_color = VICTORY_HIGHLIGHT_COLOR
@@ -223,9 +236,9 @@ class GameOverScene(BaseScene):
                 new_score_color = GAME_OVER_NEW_SCORE_COLOR
                 title_text = "Game Over"
 
-            # Title text (either "You Win!" or "Game Over") centered
+            # Title text (either "You Win!", "DRAW!!" or "Game Over") centered
             # Use medium font for longer PvP victory messages to ensure they fit
-            if is_pvp and self._is_victory and len(title_text) > 10:
+            if is_pvp and (self._is_victory or self._is_draw) and len(title_text) > 10:
                 title_surface = medium_font.render(title_text, True, title_color)
             else:
                 title_surface = big_font.render(title_text, True, title_color)

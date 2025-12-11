@@ -1182,12 +1182,15 @@ class CollisionSystem(BaseSystem):
                 if winner:
                     self._handle_death(world, f"Player {winner} WINS!!")
                 else:
-                    self._handle_death(world, "Draw! All players eliminated")
+                    self._handle_death(world, "DRAW!! Tied Score")
             elif alive_count == 1:
                 # One survivor - determine winner by score
                 winner = self._determine_winner_by_score(world)
                 if winner:
                     self._handle_death(world, f"Player {winner} WINS!!")
+                else:
+                    # Tie in score, no clear winner
+                    self._handle_death(world, "DRAW!! Tied Score")
             # If alive_count > 1, game continues with remaining players
         else:
             # trigger respawn
