@@ -147,20 +147,20 @@ class RespawnSystem(BaseSystem):
         print(f"Snake respawned successfully at {spawn_pos}")
 
     def _get_grid(self, world: World):
-        """Get the grid component."""
-        grids = world.registry.query_by_component("grid")
-        for _, entity in grids.items():
-            return entity.grid
+        """Get the grid component from world.board."""
+        # Use world.board directly instead of querying components
+        if hasattr(world, "board"):
+            return world.board
         return None
 
     def _find_valid_spawn_position(
-        self, world: World, grid
+        self, world: World, board
     ) -> Optional[tuple[int, int]]:
         """Find a valid position to spawn a snake.
 
         Args:
             world: ECS world
-            grid: Grid component
+            board: Board object with width and height
 
         Returns:
             Tuple of (x, y) coordinates, or None if no valid position found
@@ -171,11 +171,11 @@ class RespawnSystem(BaseSystem):
         # add snake positions
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
-            if hasattr(snake, "position"):
+            if hasattr(snake, "position") and hasattr(snake, "body") and snake.body.alive:
                 occupied.add((snake.position.x, snake.position.y))
-            if hasattr(snake, "body"):
-                for segment in snake.body.segments:
-                    occupied.add((segment.x, segment.y))
+                if hasattr(snake, "body"):
+                    for segment in snake.body.segments:
+                        occupied.add((segment.x, segment.y))
 
         # add apple positions
         apples = world.registry.query_by_type(EntityType.APPLE)
@@ -195,8 +195,8 @@ class RespawnSystem(BaseSystem):
         max_attempts = 100
 
         while attempts < max_attempts:
-            x = random.randint(margin, grid.width - margin - 1)
-            y = random.randint(margin, grid.height - margin - 1)
+            x = random.randint(margin, board.width - margin - 1)
+            y = random.randint(margin, board.height - margin - 1)
 
             if (x, y) not in occupied:
                 return (x, y)
@@ -206,8 +206,8 @@ class RespawnSystem(BaseSystem):
         # if we couldn't find a position with margin, try anywhere
         attempts = 0
         while attempts < max_attempts:
-            x = random.randint(0, grid.width - 1)
-            y = random.randint(0, grid.height - 1)
+            x = random.randint(0, board.width - 1)
+            y = random.randint(0, board.height - 1)
 
             if (x, y) not in occupied:
                 return (x, y)
