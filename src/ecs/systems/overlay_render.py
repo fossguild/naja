@@ -213,10 +213,6 @@ class OverlayRenderSystem(BaseSystem):
                 return
 
             surface_width, surface_height = surface.get_size()
-
-            if not game_state.lights_out_active:
-                return
-
             # Create overlay only for the board area so the top UI/scoreboard
             # remains visible and is not blacked out.
             cell_size = getattr(world.board, "cell_size", 16)

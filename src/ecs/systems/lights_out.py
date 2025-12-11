@@ -21,9 +21,9 @@
 """Lights Out system (Google-style always-on variant).
 
 This system is intentionally minimal: when the Lights Out mode is enabled it
-keeps `game_state.lights_out_active` set and enforces a constant vision radius
-around snake heads. There are no timers or temporary boosts here — the
-visual behaviour is driven by the renderer using `lights_out_state.radius`.
+enforces a constant vision radius around snake heads. There are no timers or
+temporary boosts here — the visual behaviour is driven by the renderer using
+`lights_out_state.radius`.
 """
 
 from ecs.systems.base_system import BaseSystem
@@ -61,13 +61,9 @@ class LightsOutSystem(BaseSystem):
         if not game_state or not lights_out_state:
             return
 
-        # Mode off -> ensure inactive
+        # If the mode is not enabled, do nothing
         if not game_state.lights_out_enabled:
-            game_state.lights_out_active = False
             return
-
-        # Mode enabled -> always active
-        game_state.lights_out_active = True
 
         # Desired fixed radius in tiles
         desired_radius = 4
