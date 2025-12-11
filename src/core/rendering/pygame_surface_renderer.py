@@ -75,6 +75,13 @@ class RenderEnqueue(Protocol):
     def draw_rect(
         self, color: tuple[int, int, int], rect: pygame.Rect, width: int = 0
     ) -> None: ...
+    def draw_circle(
+        self,
+        color: tuple[int, int, int],
+        center: tuple[int, int],
+        radius: int,
+        width: int = 0,
+    ) -> None: ...
 
 
 class _RendererView(RenderEnqueue):
@@ -135,6 +142,15 @@ class _RendererView(RenderEnqueue):
         self, color: tuple[int, int, int], rect: pygame.Rect, width: int = 0
     ) -> None:
         self._impl.draw_rect(color, rect, width)
+
+    def draw_circle(
+        self,
+        color: tuple[int, int, int],
+        center: tuple[int, int],
+        radius: int,
+        width: int = 0,
+    ) -> None:
+        self._impl.draw_circle(color, center, radius, width)
 
 
 class PygameSurfaceRenderer:
@@ -276,6 +292,29 @@ class PygameSurfaceRenderer:
             DrawCommand(
                 operation=pygame.draw.rect,
                 args=(self._surface, color, rect, width),
+                kwargs={},
+            )
+        )
+
+    def draw_circle(
+        self,
+        color: tuple[int, int, int],
+        center: tuple[int, int],
+        radius: int,
+        width: int = 0,
+    ) -> None:
+        """Queue a circle drawing operation.
+
+        Args:
+            color: RGB color tuple
+            center: Center position (x, y)
+            radius: Circle radius in pixels
+            width: Line width (0 for filled circle)
+        """
+        self._command_queue.append(
+            DrawCommand(
+                operation=pygame.draw.circle,
+                args=(self._surface, color, center, radius, width),
                 kwargs={},
             )
         )
