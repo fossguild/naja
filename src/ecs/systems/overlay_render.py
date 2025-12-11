@@ -217,45 +217,61 @@ class OverlayRenderSystem(BaseSystem):
             if not game_state.lights_out_active:
                 return
 
-            overlay = pygame.Surface((surface_width, surface_height), pygame.SRCALPHA)
-            # Pure black outside illuminated areas (user requested fully black)
-            overlay.fill((0, 0, 0, 255))
+            # Create overlay only for the board area so the top UI/scoreboard
+            # remains visible and is not blacked out.
+            cell_size = getattr(world.board, "cell_size", 16)
+            board_px_w = getattr(world.board, "width", 0) * cell_size
+            board_px_h = getattr(world.board, "height", 0) * cell_size
+            offset_x, offset_y = self._get_board_offset()
+
+            # If board has zero size, fall back to full-surface overlay
+            if board_px_w <= 0 or board_px_h <= 0:
+                overlay = pygame.Surface((surface_width, surface_height), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 255))
+                overlay_blit_pos = (0, 0)
+            else:
+                overlay = pygame.Surface((board_px_w, board_px_h), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 255))
+                overlay_blit_pos = (offset_x, offset_y)
 
             center = self._get_snake_head_screen_position(world)
-            radius_px = max(
-                8,
-                int(lights_out_state.radius * getattr(world.board, "cell_size", 16)),
-            )
+            radius_px = max(8, int(lights_out_state.radius * cell_size))
 
-            if center:
-                # carve a hole around the snake head
-                pygame.draw.circle(overlay, (0, 0, 0, 0), center, radius_px)
+            # Convert center to overlay-local coordinates
+            if center is not None and overlay_blit_pos is not None:
+                local_center = (center[0] - overlay_blit_pos[0], center[1] - overlay_blit_pos[1])
+            else:
+                local_center = None
+
+            if local_center:
+                # carve a hole around the snake head (local coords)
+                pygame.draw.circle(overlay, (0, 0, 0, 0), local_center, radius_px)
 
             # Reveal apples only when their glow overlaps the snake's vision.
             try:
                 from ecs.entities.entity import EntityType
 
-                cell_size = getattr(world.board, "cell_size", 16)
                 # Apple glow radius: 2 cells
                 apple_radius_px = max(4, int(2 * cell_size))
                 apples = world.registry.query_by_type(EntityType.APPLE)
-                offset_x, offset_y = self._get_board_offset()
                 for _, apple in apples.items():
                     pos = getattr(apple, "position", None)
                     if not pos:
                         continue
-                    ax = int(pos.x * cell_size + offset_x + cell_size / 2)
-                    ay = int(pos.y * cell_size + offset_y + cell_size / 2)
+                    # apple position relative to board (local coords)
+                    local_ax = int(pos.x * cell_size + cell_size / 2)
+                    local_ay = int(pos.y * cell_size + cell_size / 2)
                     # Only carve apple hole if apple glow intersects snake vision
-                    if center:
-                        dx = ax - center[0]
-                        dy = ay - center[1]
+                    if local_center:
+                        dx = local_ax - local_center[0]
+                        dy = local_ay - local_center[1]
                         if dx * dx + dy * dy <= (radius_px + apple_radius_px) ** 2:
-                            pygame.draw.circle(overlay, (0, 0, 0, 0), (ax, ay), apple_radius_px)
+                            pygame.draw.circle(overlay, (0, 0, 0, 0), (local_ax, local_ay), apple_radius_px)
             except Exception:
                 pass
 
-            self._renderer.blit(overlay, (0, 0))
+            # Blit overlay at board offset so UI above it remains visible
+            self._renderer.blit(overlay, overlay_blit_pos)
 
         except Exception:
             # Avoid breaking rendering if anything goes wrong
