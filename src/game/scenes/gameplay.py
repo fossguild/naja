@@ -207,7 +207,9 @@ class GameplayScene(BaseScene):
                     if self._settings and bool(self._settings.get("enable_hunger"))
                     else []
                 ),
-                LightsOutSystem(self._settings),  # 8: enforce always-on Lights Out vision radius
+                LightsOutSystem(
+                    self._settings
+                ),  # 8: enforce always-on Lights Out vision radius
                 scoring_system,  # 9: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
