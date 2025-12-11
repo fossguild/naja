@@ -83,6 +83,7 @@ class MenuScene(BaseScene):
         ]
         self.footer_text = "Created by: 2025.2 Open Source class"
         self.icmc_text = "ICMC"
+        self._menu_item_rects = []
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update menu logic.
@@ -98,7 +99,23 @@ class MenuScene(BaseScene):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_pos = pygame.mouse.get_pos()
+                for i, rect in enumerate(self._menu_item_rects):
+                    if rect.collidepoint(mouse_pos):
+                        self._selected_index = i
+                        break
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left mouse button
+                    if self._selected_index == 0:  # Start Game
+                        return "gameplay"
+                    elif self._selected_index == 1:  # Game Modes
+                        return "game_modes"
+                    elif self._selected_index == 2:  # Settings
+                        return "settings"
+                    elif self._selected_index == 3:  # Quit
+                        pygame.quit()
+                        exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_UP, pygame.K_w):
                     self._selected_index = (self._selected_index - 1) % len(
@@ -159,6 +176,7 @@ class MenuScene(BaseScene):
         self._renderer.blit(mode_surface, mode_rect)
 
         # Draw menu items
+        self._menu_item_rects.clear()
         for i, item in enumerate(self._menu_items):
             img = (
                 self._menu_items[i][1]
@@ -169,6 +187,7 @@ class MenuScene(BaseScene):
                 center=(self._width / 2, self._height / 2 + i * (self._height * 0.096))
             )
             self._renderer.blit(img, rect)
+            self._menu_item_rects.append(rect)
 
         # Draw creators text
         footer_surface = self._assets.render_custom(
@@ -187,6 +206,7 @@ class MenuScene(BaseScene):
             center=(self._width / 2, self._height / 1.1 + (self._height * 0.03))
         )
         self._renderer.blit(icmc_surface, icmc_rect)
+        self._menu_item_rects.append(rect)
 
     def on_enter(self) -> None:
         """Called when entering menu."""

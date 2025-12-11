@@ -122,6 +122,12 @@ class GameOverScene(BaseScene):
                 pygame.quit()
                 sys.exit()
 
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left Click -> Play Again
+                    return "gameplay"
+                elif event.button == 3:  # Right Click -> Menu
+                    return "menu"
+
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     return "gameplay"  # restart game directly
@@ -306,7 +312,7 @@ class GameOverScene(BaseScene):
 
             # "Press Enter/Space to restart • Q to menu" text at bottom
             restart_text = small_font.render(
-                "Press Enter/Space to play again  •  Q to menu", True, message_color
+                "Left Click/Enter: Play  •  Right Click/Q: Menu", True, message_color
             )
             restart_rect = restart_text.get_rect(
                 center=(self._width // 2, self._height - 50)
@@ -315,7 +321,7 @@ class GameOverScene(BaseScene):
             # If text doesn't fit, make it shorter
             if restart_rect.width > self._width * 0.95:
                 restart_text = small_font.render(
-                    "Enter/Space: play  •  Q: menu", True, message_color
+                    "L-Click: Play  •  R-Click: Menu", True, message_color
                 )
                 restart_rect = restart_text.get_rect(
                     center=(self._width // 2, self._height - 50)

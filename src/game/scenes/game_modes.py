@@ -28,7 +28,11 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK
+from game.constants import (
+    ARENA_PRIMARY_COLOR,
+    MESSAGE_COLOR_LIGHT,
+    MESSAGE_COLOR_DARK,
+)
 from game.game_modes_registry import (
     ACTUAL_GAME_MODES,
     CLASSIC_MODE_NAME,
@@ -127,14 +131,91 @@ class GameModesScene(BaseScene):
         self._showing_info_modal = False  # track if modal is open
         self._info_modal_index = -1  # which mode's info to show
         self._modal_selected_button = 0  # 0 = Apply, 1 = Cancel
+        self._item_rects = []
+
+        # Variável para guardar a posição do scroll
+        self._scroll_offset = 0
+        self._ignore_next_hover = False
+
+    def _update_scroll_position(self):
+        """Update scroll based on selected index."""
+        row_h = int(self._height * 0.10)
+        padding_y = int(self._height * 0.25)
+        content_end_y = int(self._height * 0.88)
+
+        total_items_height = len(self._menu_items) * row_h
+        available_height = content_end_y - padding_y
+
+        if total_items_height > available_height:
+            self._scroll_offset = max(0, (self._selected_index - 2) * row_h)
+        else:
+            self._scroll_offset = 0
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update game modes menu logic."""
+
         # Handle input
         for event in self._pygame_adapter.get_events():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:  # Scroll Up
+                    self._selected_index = (self._selected_index - 1) % len(
+                        self._menu_items
+                    )
+                    self._update_scroll_position()
+                    self._ignore_next_hover = True
+                elif event.button == 5:  # Scroll Down
+                    self._selected_index = (self._selected_index + 1) % len(
+                        self._menu_items
+                    )
+                    self._update_scroll_position()
+                    self._ignore_next_hover = True
+                elif event.button == 1:  # Left Click
+                    mouse_pos = event.pos
+
+                    # 1. Se o modal estiver aberto, prioriza cliques nele
+                    if self._showing_info_modal:
+                        apply_rect, cancel_rect = self._get_modal_button_rects()
+
+                        if apply_rect and apply_rect.collidepoint(mouse_pos):
+                            # Apply button clicked
+                            set_selected_game_mode(self._info_modal_index)
+                            resolved_mode = get_resolved_game_mode()
+                            self._settings.set_game_mode(resolved_mode)
+
+                            # Reset settings regardless of mode choice
+                            self._settings.reset_to_defaults()
+                            self._settings.save_settings()
+
+                            self._showing_info_modal = False
+                            self._info_modal_index = -1
+                            self._modal_selected_button = 0
+                            return "menu"
+
+                        elif cancel_rect and cancel_rect.collidepoint(mouse_pos):
+                            # Cancel button clicked
+                            self._showing_info_modal = False
+                            self._info_modal_index = -1
+                            self._modal_selected_button = 0
+
+                        else:
+                            # check if clicking outside modal to close
+                            modal_rect = self._get_modal_rect()
+                            if modal_rect and not modal_rect.collidepoint(mouse_pos):
+                                self._showing_info_modal = False
+                                self._info_modal_index = -1
+                                self._modal_selected_button = 0
+                        continue
+
+                    # 2. Se o modal NÃO estiver aberto, verifica clique nos itens do menu
+                    for rect, idx in self._item_rects:
+                        if rect.collidepoint(mouse_pos):
+                            self._selected_index = idx
+                            # Execute selection
+                            return self._process_selection()
 
             elif event.type == pygame.KEYDOWN:
                 # if modal is open, handle modal navigation
@@ -154,20 +235,13 @@ class GameModesScene(BaseScene):
                             # save the selected game mode
                             set_selected_game_mode(self._info_modal_index)
 
-                            # Get the resolved mode name and set on settings for restriction tracking
+                            # Get the resolved mode name and set on settings
                             resolved_mode = get_resolved_game_mode()
                             self._settings.set_game_mode(resolved_mode)
 
-                            # if Classic Snake Game is selected, reset settings to default
-                            if self._info_modal_index == 0:  # Classic mode
-                                self._settings.reset_to_defaults()
-                                self._settings.save_settings()
-                            elif self._info_modal_index == 1:  # Random
-                                self._settings.reset_to_defaults()
-                                self._settings.save_settings()
-                            elif self._info_modal_index == 2:  # Head-Tail Swap mode
-                                self._settings.reset_to_defaults()
-                                self._settings.save_settings()
+                            # Reset to defaults
+                            self._settings.reset_to_defaults()
+                            self._settings.save_settings()
 
                             # close modal and go back to main menu
                             self._showing_info_modal = False
@@ -186,29 +260,26 @@ class GameModesScene(BaseScene):
                     self._selected_index = (self._selected_index - 1) % len(
                         self._menu_items
                     )
+                    self._update_scroll_position()
+                    self._ignore_next_hover = True
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     self._selected_index = (self._selected_index + 1) % len(
                         self._menu_items
                     )
+                    self._update_scroll_position()
+                    self._ignore_next_hover = True
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    # show modal for actual game modes
-                    if self._selected_index < len(ACTUAL_GAME_MODES):
-                        self._showing_info_modal = True
-                        self._info_modal_index = self._selected_index
-                        self._modal_selected_button = 0
-                    # Random mode doesn't need modal, just apply directly
-                    elif self._selected_index == RANDOM_MODE_INDEX:
-                        set_selected_game_mode(self._selected_index)
-                        resolved_mode = get_resolved_game_mode()
-                        self._settings.set_game_mode(resolved_mode)
-                        self._settings.reset_to_defaults()
-                        self._settings.save_settings()
-                        return "menu"
+                    return self._process_selection()
+
                 elif event.key == pygame.K_ESCAPE:
                     # go back to main menu
                     return "menu"
 
             elif event.type == pygame.MOUSEMOTION:
+                if self._ignore_next_hover:
+                    self._ignore_next_hover = False
+                    continue
+
                 # handle mouse hover
                 mouse_pos = event.pos
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -222,57 +293,41 @@ class GameModesScene(BaseScene):
                     elif cancel_rect and cancel_rect.collidepoint(mouse_pos):
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                         self._modal_selected_button = 1
+                else:
+                    # Hover over menu items (if modal is closed)
+                    for rect, idx in self._item_rects:
+                        if rect.collidepoint(mouse_pos):
+                            self._selected_index = idx
+                            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                            break
 
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                # handle left mouse click
-                mouse_pos = event.pos
+        return None
 
-                # if modal is open, check button clicks
-                if self._showing_info_modal:
-                    apply_rect, cancel_rect = self._get_modal_button_rects()
-
-                    if apply_rect and apply_rect.collidepoint(mouse_pos):
-                        # Apply button clicked
-                        set_selected_game_mode(self._info_modal_index)
-                        resolved_mode = get_resolved_game_mode()
-                        self._settings.set_game_mode(resolved_mode)
-
-                        if self._info_modal_index == 0:  # Classic mode
-                            self._settings.reset_to_defaults()
-                            self._settings.save_settings()
-                        elif self._info_modal_index == 1:  # Random
-                            self._settings.reset_to_defaults()
-                            self._settings.save_settings()
-                        elif self._info_modal_index == 2:  # Head-Tail Swap mode
-                            self._settings.reset_to_defaults()
-                            self._settings.save_settings()
-
-                        self._showing_info_modal = False
-                        self._info_modal_index = -1
-                        self._modal_selected_button = 0
-                        return "menu"
-
-                    elif cancel_rect and cancel_rect.collidepoint(mouse_pos):
-                        # Cancel button clicked
-                        self._showing_info_modal = False
-                        self._info_modal_index = -1
-                        self._modal_selected_button = 0
-
-                    else:
-                        # check if clicking outside modal to close
-                        modal_rect = self._get_modal_rect()
-                        if modal_rect and not modal_rect.collidepoint(mouse_pos):
-                            self._showing_info_modal = False
-                            self._info_modal_index = -1
-                            self._modal_selected_button = 0
-                    continue
-
+    def _process_selection(self) -> Optional[str]:
+        """Handle selection logic: Show modal or apply immediately."""
+        # show modal for actual game modes
+        if self._selected_index < len(ACTUAL_GAME_MODES):
+            self._showing_info_modal = True
+            self._info_modal_index = self._selected_index
+            self._modal_selected_button = 0
+            return None
+        # Random mode doesn't need modal, just apply directly
+        elif self._selected_index == RANDOM_MODE_INDEX:
+            set_selected_game_mode(self._selected_index)
+            resolved_mode = get_resolved_game_mode()
+            self._settings.set_game_mode(resolved_mode)
+            self._settings.reset_to_defaults()
+            self._settings.save_settings()
+            return "menu"
         return None
 
     def render(self) -> None:
         """Render the game modes menu with proper spacing like settings."""
         # Clear screen
         self._renderer.fill(ARENA_PRIMARY_COLOR)
+        self._item_rects = []
+        # Get mouse pos for hover effect
+        mouse_pos = pygame.mouse.get_pos()
 
         # Draw title
         title = self._assets.render_custom(
@@ -289,26 +344,35 @@ class GameModesScene(BaseScene):
         content_start_y = padding_y
         content_end_y = int(self._height * 0.88)
 
-        # Calculate if all items fit without scrolling
-        # Total height needed = number of items * row height
-        total_items_height = len(self._menu_items) * row_h
-        available_height = content_end_y - padding_y
-
-        # Only scroll if items don't fit
-        if total_items_height > available_height:
-            scroll_offset = max(0, (self._selected_index - 2) * row_h)
-        else:
-            scroll_offset = 0
-
-        current_y = padding_y - scroll_offset
+        # Use persistent scroll offset
+        current_y = padding_y - self._scroll_offset
 
         # Draw menu items with scrolling
         for i, item in enumerate(self._menu_items):
             # Only draw if in visible range
             if content_start_y <= current_y <= content_end_y:
+                # Define hit rect for mouse interaction (wide strip)
+                hit_rect = pygame.Rect(
+                    self._width * 0.1, current_y - row_h // 2, self._width * 0.8, row_h
+                )
+                self._item_rects.append((hit_rect, i))
+                is_mouse_hover = hit_rect.collidepoint(mouse_pos)
+
+                # Check hover (only highlight if modal is NOT open)
+                if is_mouse_hover and not self._showing_info_modal:
+                    if not self._ignore_next_hover:
+                        self._selected_index = i
+
                 color = (
                     MESSAGE_COLOR_LIGHT
-                    if i == self._selected_index
+                    if (
+                        i == self._selected_index
+                        or (
+                            is_mouse_hover
+                            and not self._showing_info_modal
+                            and not self._ignore_next_hover
+                        )
+                    )
                     else MESSAGE_COLOR_DARK
                 )
 
@@ -454,6 +518,13 @@ class GameModesScene(BaseScene):
         """Called when entering game modes menu."""
         # start with cursor on currently selected game mode
         self._selected_index = get_selected_game_mode()
+        # Reset modal state
+        self._showing_info_modal = False
+        self._info_modal_index = -1
+        self._modal_selected_button = 0
+
+        # Garante que a posição inicial do scroll esteja correta
+        self._update_scroll_position()
 
         # play menu music when entering game modes menu
         if self._settings.get("background_music"):
