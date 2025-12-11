@@ -101,6 +101,31 @@ class LightsOutSystem(BaseSystem):
                 # start blackout duration
                 lights_out_state.timer = max(lights_out_state.duration, 0.1)
 
-        # Clamp timer to avoid runaway negatives
+        # Minimal runtime sanitization to ensure safe operation
+        # enforce positive interval and duration
+        if (
+            not isinstance(lights_out_state.interval, (int, float))
+            or lights_out_state.interval <= 0
+        ):
+            lights_out_state.interval = 12.0
+        if (
+            not isinstance(lights_out_state.duration, (int, float))
+            or lights_out_state.duration <= 0
+        ):
+            lights_out_state.duration = 4.0
+        # clamp radius to board bounds
+        max_radius = max(1, min(world.board.width, world.board.height))
+        if not isinstance(lights_out_state.radius, int):
+            try:
+                lights_out_state.radius = int(lights_out_state.radius)
+            except Exception:
+                lights_out_state.radius = 4
+        if lights_out_state.radius < 1:
+            lights_out_state.radius = 1
+        if lights_out_state.radius > max_radius:
+            lights_out_state.radius = max_radius
+        # ensure timer is valid and non-negative
+        if not isinstance(lights_out_state.timer, (int, float)):
+            lights_out_state.timer = lights_out_state.interval
         if lights_out_state.timer < 0:
             lights_out_state.timer = 0.0

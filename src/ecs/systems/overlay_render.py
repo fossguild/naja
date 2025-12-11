@@ -241,7 +241,7 @@ class OverlayRenderSystem(BaseSystem):
                 return
 
             overlay = pygame.Surface((surface_width, surface_height), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 240))
+            overlay.fill((0, 0, 0, 252))
 
             center = self._get_snake_head_screen_position(world)
             radius_px = max(
