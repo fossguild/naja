@@ -36,7 +36,7 @@ from ecs.world import World
 from ecs.systems.scoring import ScoringSystem
 from game.settings import GameSettings
 from game.services.audio_service import AudioService
-from game.game_modes_registry import GAME_MODE_TELEPORT
+from game.game_modes_registry import GAME_MODE_TELEPORT, PLAYER_VS_PLAYER_MODE_NAME
 from game.services.game_over_service import GameOverService
 
 
@@ -71,6 +71,7 @@ class CollisionSystem(BaseSystem):
         audio_service: Optional[AudioService] = None,
         scoring_system: Optional[ScoringSystem] = None,
         game_over_service: Optional[GameOverService] = None,
+        respawn_system: Optional["RespawnSystem"] = None,
     ):
         """Initialize the CollisionSystem.
 
@@ -78,20 +79,24 @@ class CollisionSystem(BaseSystem):
             settings: Game settings for electric_walls, max_speed (GameSettings)
             audio_service: Audio service for playing sounds (AudioService)
             scoring_system: Scoring system for tracking score (ScoringSystem)
+            game_over_service: Game over service for handling game over
+            respawn_system: Respawn system for handling snake respawns in PvP
         """
         self._settings = settings
         self._audio_service = audio_service
         self._scoring_system = scoring_system
         self._game_over_service = game_over_service
+        self._respawn_system = respawn_system
 
     def update(self, world: World) -> None:
         """Check for all collision types in priority order.
 
-        Priority (same as old code):
+        Priority:
         1. Wall collision (electric mode only)
         2. Self-bite collision
-        3. Obstacle collision
-        4. Apple collision
+        3. Player-vs-player collision (PvP mode)
+        4. Obstacle collision
+        5. Apple collision
 
         Args:
             world: ECS world to query entities
@@ -105,6 +110,9 @@ class CollisionSystem(BaseSystem):
         if self._check_self_bite(world):
             self._handle_death(world, "Self-bite collision")
             return
+
+        # Check player-vs-player collision (PvP mode)
+        self._check_player_vs_player_collision(world)
 
         # Check obstacle collision
         if self._check_obstacle_collision(world):
@@ -330,6 +338,68 @@ class CollisionSystem(BaseSystem):
                     return True
 
         return False
+
+    def _check_player_vs_player_collision(self, world: World) -> None:
+        """Check collision between players in PvP mode.
+
+        In PvP mode, if a snake's head collides with another snake's
+        body or head, the colliding snake loses a life and respawns.
+
+        Args:
+            world: ECS world
+        """
+        # only run in Player vs Player mode
+        game_state = self._get_game_state(world)
+        if not game_state or game_state.game_mode != PLAYER_VS_PLAYER_MODE_NAME:
+            return
+
+        from ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        snake_list = list(snakes.items())
+
+        # check each snake against all other snakes
+        for snake_id, snake in snake_list:
+            # skip if snake is not alive or respawning
+            if hasattr(snake, "body") and not snake.body.alive:
+                continue
+            if hasattr(snake, "respawn_timer") and snake.respawn_timer.is_respawning:
+                continue
+            if not hasattr(snake, "position"):
+                continue
+
+            head_x = snake.position.x
+            head_y = snake.position.y
+
+            # check collision with other snakes
+            for other_id, other_snake in snake_list:
+                if snake_id == other_id:
+                    continue  # don't check against self
+
+                # skip if other snake is not alive or respawning
+                if hasattr(other_snake, "body") and not other_snake.body.alive:
+                    continue
+                if (
+                    hasattr(other_snake, "respawn_timer")
+                    and other_snake.respawn_timer.is_respawning
+                ):
+                    continue
+
+                # check collision with other snake's head
+                if hasattr(other_snake, "position"):
+                    if head_x == other_snake.position.x and head_y == other_snake.position.y:
+                        # head-to-head collision - both snakes die
+                        self._handle_snake_death(world, snake, "Player collision")
+                        self._handle_snake_death(world, other_snake, "Player collision")
+                        return
+
+                # check collision with other snake's body
+                if hasattr(other_snake, "body"):
+                    for segment in other_snake.body.segments:
+                        if head_x == segment.x and head_y == segment.y:
+                            # this snake hit the other snake's body
+                            self._handle_snake_death(world, snake, "Player collision")
+                            return
 
     def _check_obstacle_collision(self, world: World) -> bool:
         """Check collision with obstacles.
@@ -838,6 +908,57 @@ class CollisionSystem(BaseSystem):
             self._game_over_service.handle_death(world, reason)
         else:
             print(f"☠️ DEATH CAUSE: {reason} (Service missing)")
+
+    def _handle_snake_death(self, world: World, snake, reason: str) -> None:
+        """Handle death of a specific snake in PvP mode.
+
+        Args:
+            world: ECS world
+            snake: Snake entity that died
+            reason: Death reason
+        """
+        # check if snake has lives component (PvP mode)
+        if not hasattr(snake, "lives") or not hasattr(snake, "respawn_timer"):
+            # not in PvP mode, use normal death handling
+            self._handle_death(world, reason)
+            return
+
+        # play death sound
+        if self._audio_service:
+            self._audio_service.play_sound("assets/sound/gameover.wav")
+
+        # decrease lives
+        snake.lives.remaining -= 1
+
+        player_name = f"Player {snake.player_id.player_number}" if hasattr(snake, "player_id") else "Snake"
+        print(f"☠️ {player_name} died: {reason}. Lives remaining: {snake.lives.remaining}")
+
+        # check if snake has lives left
+        if snake.lives.remaining <= 0:
+            # no lives left for this snake
+            snake.body.alive = False
+            print(f"☠️ {player_name} has no lives left!")
+            
+            # check if all snakes are dead
+            from ecs.entities.entity import EntityType
+            snakes = world.registry.query_by_type(EntityType.SNAKE)
+            winner = None
+            for _, s in snakes.items():
+                if hasattr(s, "lives") and s.lives.remaining > 0:
+                    if hasattr(s, "player_id"):
+                        winner = s.player_id.player_number
+                    break
+            
+            if winner:
+                # game over - we have a winner
+                self._handle_death(world, f"Player {winner} wins!")
+            else:
+                # all snakes dead
+                self._handle_death(world, "Draw! All players eliminated")
+        else:
+            # trigger respawn
+            if self._respawn_system:
+                self._respawn_system.trigger_respawn(snake)
 
     def _check_board_fill_victory(self, world: World) -> bool:
         """Check if snake has filled the entire board (victory for Classic mode).
