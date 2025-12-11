@@ -36,6 +36,7 @@ from game.game_modes_registry import (
     AUTOPLAY_MODE_NAME,
     BOX_MODE_NAME,
     TRAIL_MODE_NAME,
+    PLAYER_VS_PLAYER_MODE_NAME,
 )
 
 
@@ -141,15 +142,23 @@ class GameInitializer:
         # create color scheme entity for rendering systems
         self._create_color_scheme(world)
 
-        # create snake at center of board
-        self._create_snake(world, grid_size)
+        # create snake(s) at center of board
+        if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME:
+            # create 2 snakes for PvP mode
+            self._create_pvp_snakes(world, grid_size)
+        else:
+            # create single snake for other modes
+            self._create_snake(world, grid_size)
 
         # create apple config entity (skip for Box Mode)
         if self._game_mode != BOX_MODE_NAME:
             self._create_apple_config(world)
 
-            # create initial apples
-            self._create_initial_apples(world, grid_size)
+            # create initial apples (2 for PvP, normal count for others)
+            if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME:
+                self._create_pvp_apples(world, grid_size)
+            else:
+                self._create_initial_apples(world, grid_size)
 
         # create obstacles based on difficulty
         self._create_obstacles(world, grid_size)
@@ -275,6 +284,106 @@ class GameInitializer:
             shrinking_mode=(self._game_mode == SHRINKING_MODE_NAME),
             autoplay_mode=(self._game_mode == AUTOPLAY_MODE_NAME),
         )
+
+    def _create_pvp_snakes(self, world: World, grid_size: int) -> None:
+        """Create two snakes for Player vs Player mode.
+
+        Args:
+            world: ECS world instance
+            grid_size: Size of grid cells in pixels
+        """
+        from ecs.prefabs.snake import create_snake
+        from ecs.components.lives import Lives
+        from ecs.components.respawn_timer import RespawnTimer
+        from ecs.components.player_id import PlayerID
+        from ecs.entities.entity import EntityType
+
+        # Player 1 (left side) - Green
+        player1_x = world.board.width // 4
+        player1_y = world.board.height // 2
+        player1_id = create_snake(
+            world=world,
+            grid_size=grid_size,
+            initial_speed=float(self._settings.get("initial_speed")),
+            head_color=(0, 200, 0),  # Green
+            tail_color=(0, 255, 0),  # Light green
+            enable_hunger=False,  # Disable hunger in PvP
+            cheese_mode=False,
+            shrinking_mode=False,
+            autoplay_mode=False,
+            initial_x=player1_x,
+            initial_y=player1_y,
+        )
+
+        # Add PvP components to Player 1
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for snake_id, snake in snakes.items():
+            if snake_id == player1_id:
+                snake.lives = Lives(remaining=3, max_lives=3)
+                snake.respawn_timer = RespawnTimer()
+                snake.player_id = PlayerID(player_number=1, score=0)
+                break
+
+        # Player 2 (right side) - Blue
+        player2_x = (world.board.width * 3) // 4
+        player2_y = world.board.height // 2
+        player2_id = create_snake(
+            world=world,
+            grid_size=grid_size,
+            initial_speed=float(self._settings.get("initial_speed")),
+            head_color=(0, 100, 255),  # Blue
+            tail_color=(100, 150, 255),  # Light blue
+            enable_hunger=False,  # Disable hunger in PvP
+            cheese_mode=False,
+            shrinking_mode=False,
+            autoplay_mode=False,
+            initial_x=player2_x,
+            initial_y=player2_y,
+        )
+
+        # Add PvP components to Player 2
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for snake_id, snake in snakes.items():
+            if snake_id == player2_id:
+                snake.lives = Lives(remaining=3, max_lives=3)
+                snake.respawn_timer = RespawnTimer()
+                snake.player_id = PlayerID(player_number=2, score=0)
+                break
+
+    def _create_pvp_apples(self, world: World, grid_size: int) -> None:
+        """Create 2 apples for Player vs Player mode.
+
+        Args:
+            world: ECS world instance
+            grid_size: Size of grid cells in pixels
+        """
+        from ecs.prefabs.apple import create_apple
+        from ecs.entities.entity import EntityType
+
+        # Get occupied positions (both snakes)
+        occupied_positions = set()
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "position"):
+                occupied_positions.add((snake.position.x, snake.position.y))
+                if hasattr(snake, "body"):
+                    for segment in snake.body.segments:
+                        occupied_positions.add((segment.x, segment.y))
+
+        # Spawn 2 apples
+        for _ in range(2):
+            attempts = 0
+            max_attempts = 1000
+            while attempts < max_attempts:
+                x = random.randint(0, world.board.width - 1)
+                y = random.randint(0, world.board.height - 1)
+
+                if (x, y) not in occupied_positions:
+                    create_apple(world, x=x, y=y, grid_size=grid_size, color=None)
+                    occupied_positions.add((x, y))
+                    break
+
+                attempts += 1
 
     def _create_apple_config(self, world: World) -> None:
         """Create AppleConfig entity to track desired apple count.
