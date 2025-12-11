@@ -190,8 +190,6 @@ class OverlayRenderSystem(BaseSystem):
             int(draw_y + offset_y + cell_size / 2),
         )
 
-    # Timer-based UI removed: Lights Out is always-on in this build.
-
     def draw_lights_out_overlay(self, world: World) -> None:
         """Render blackout mask for Lights Out mode (always-on).
 

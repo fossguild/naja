@@ -239,13 +239,15 @@ class GameplayScene(BaseScene):
             )
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
             # overlay_render_system already created earlier (before InputSystem)
+            # Draw order: board, entities, snake, overlay, UI
+            # Overlay must be blitted before UI so HUD elements remain visible above it.
             self._systems.extend(
                 [
                     self._board_render_system,
                     self._entity_render_system,
                     self._snake_render_system,
-                    self._ui_render_system,
                     self._overlay_render_system,
+                    self._ui_render_system,
                 ]
             )
 

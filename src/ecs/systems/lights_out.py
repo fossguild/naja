@@ -18,12 +18,11 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Lights Out system (Google-style always-on variant).
+"""Lights Out system
 
 This system is intentionally minimal: when the Lights Out mode is enabled it
-enforces a constant vision radius around snake heads. There are no timers or
-temporary boosts here — the visual behaviour is driven by the renderer using
-`lights_out_state.radius`.
+enforces a constant vision radius around snake heads. The visual behaviour is
+driven by the renderer using `lights_out_state.radius`.
 """
 
 from ecs.systems.base_system import BaseSystem
@@ -51,7 +50,6 @@ class LightsOutSystem(BaseSystem):
 
     def update(self, world) -> None:
         """Enforce always-on blackout and constant vision radius.
-
         The radius is set to 4 tiles by design. Defensive clamping prevents
         unrealistic values that could break rendering.
         """

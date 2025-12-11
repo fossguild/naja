@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
@@ -20,7 +21,7 @@
 """Lights Out mode state component.
 
 Minimal state used by renderer and systems. Lights Out is an always-on
-mode in this branch; only `radius` is required by runtime logic.
+mode, only `radius` is required by runtime logic.
 """
 
 from dataclasses import dataclass
