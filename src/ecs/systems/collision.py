@@ -101,32 +101,38 @@ class CollisionSystem(BaseSystem):
         Args:
             world: ECS world to query entities
         """
-        # Check wall collision first (highest priority)
-        if self._check_wall_collision(world):
-            self._handle_death(world, "Wall collision")
-            return
+        # Check if we're in PvP mode
+        game_state = self._get_game_state(world)
+        is_pvp_mode = game_state and game_state.game_mode == PLAYER_VS_PLAYER_MODE_NAME
 
-        # Check self-bite collision
-        if self._check_self_bite(world):
-            self._handle_death(world, "Self-bite collision")
-            return
+        if is_pvp_mode:
+            # In PvP mode, check collisions for each snake individually
+            self._check_all_snakes_collisions(world)
+        else:
+            # Single player mode - check collisions for the single snake
+            # Check wall collision first (highest priority)
+            if self._check_wall_collision(world):
+                self._handle_death(world, "Wall collision")
+                return
 
-        # Check player-vs-player collision (PvP mode)
-        self._check_player_vs_player_collision(world)
+            # Check self-bite collision
+            if self._check_self_bite(world):
+                self._handle_death(world, "Self-bite collision")
+                return
 
-        # Check obstacle collision
-        if self._check_obstacle_collision(world):
-            self._handle_death(world, "Obstacle collision")
-            return
+            # Check obstacle collision
+            if self._check_obstacle_collision(world):
+                self._handle_death(world, "Obstacle collision")
+                return
 
-        # Check box collision and push logic (Box Mode)
-        self._check_box_collision(world)
+            # Check box collision and push logic (Box Mode)
+            self._check_box_collision(world)
 
-        # Check if any box is on a hole (Box Mode)
-        self._check_all_box_hole_collisions(world)
+            # Check if any box is on a hole (Box Mode)
+            self._check_all_box_hole_collisions(world)
 
-        # Check apple collision (doesn't kill)
-        self._check_apple_collision(world)
+            # Check apple collision (doesn't kill)
+            self._check_apple_collision(world)
 
     def _get_snake_entity(self, world: World):
         """Get the snake entity from the world.
@@ -338,6 +344,184 @@ class CollisionSystem(BaseSystem):
                     return True
 
         return False
+
+    def _check_all_snakes_collisions(self, world: World) -> None:
+        """Check collisions for all snakes in PvP mode.
+
+        Args:
+            world: ECS world
+        """
+        from ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+
+        for snake_id, snake in snakes.items():
+            # skip if snake is not alive or respawning
+            if hasattr(snake, "body") and not snake.body.alive:
+                continue
+            if hasattr(snake, "respawn_timer") and snake.respawn_timer.is_respawning:
+                continue
+
+            # check wall collision for this snake
+            if self._check_wall_collision_for_snake(world, snake):
+                self._handle_snake_death(world, snake, "Wall collision")
+                continue
+
+            # check self-bite for this snake
+            if self._check_self_bite_for_snake(world, snake):
+                self._handle_snake_death(world, snake, "Self-bite collision")
+                continue
+
+            # check obstacle collision for this snake
+            if self._check_obstacle_collision_for_snake(world, snake):
+                self._handle_snake_death(world, snake, "Obstacle collision")
+                continue
+
+        # check player-vs-player collisions
+        self._check_player_vs_player_collision(world)
+
+        # check apple collisions for all snakes
+        self._check_apple_collision_all_snakes(world)
+
+    def _check_wall_collision_for_snake(self, world: World, snake) -> bool:
+        """Check wall collision for a specific snake.
+
+        Args:
+            world: ECS world
+            snake: Snake entity to check
+
+        Returns:
+            bool: True if collision detected
+        """
+        if not hasattr(snake, "position"):
+            return False
+
+        # get electric walls setting
+        electric_walls = (
+            self._settings.get("electric_walls") if self._settings else True
+        )
+
+        if not electric_walls:
+            return False
+
+        current_x = snake.position.x
+        current_y = snake.position.y
+        grid_width = world.board.width
+        grid_height = world.board.height
+
+        if (
+            current_x < 0
+            or current_x >= grid_width
+            or current_y < 0
+            or current_y >= grid_height
+        ):
+            return True
+
+        return False
+
+    def _check_self_bite_for_snake(self, world: World, snake) -> bool:
+        """Check self-bite collision for a specific snake.
+
+        Args:
+            world: ECS world
+            snake: Snake entity to check
+
+        Returns:
+            bool: True if collision detected
+        """
+        if not hasattr(snake, "position") or not hasattr(snake, "body"):
+            return False
+
+        head_x = snake.position.x
+        head_y = snake.position.y
+
+        # wrap if electric walls are disabled
+        electric_walls = (
+            self._settings.get("electric_walls") if self._settings else True
+        )
+        if not electric_walls:
+            head_x = head_x % world.board.width
+            head_y = head_y % world.board.height
+
+        # check collision with tail segments
+        for segment in snake.body.segments:
+            if head_x == segment.x and head_y == segment.y:
+                return True
+
+        return False
+
+    def _check_obstacle_collision_for_snake(self, world: World, snake) -> bool:
+        """Check obstacle collision for a specific snake.
+
+        Args:
+            world: ECS world
+            snake: Snake entity to check
+
+        Returns:
+            bool: True if collision detected
+        """
+        if not hasattr(snake, "position"):
+            return False
+
+        current_x = snake.position.x
+        current_y = snake.position.y
+
+        from ecs.entities.entity import EntityType
+
+        obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
+
+        for _, obstacle in obstacles.items():
+            if hasattr(obstacle, "position"):
+                if (
+                    current_x == obstacle.position.x
+                    and current_y == obstacle.position.y
+                ):
+                    return True
+
+        return False
+
+    def _check_apple_collision_all_snakes(self, world: World) -> None:
+        """Check apple collisions for all snakes in PvP mode.
+
+        Args:
+            world: ECS world
+        """
+        from ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        apples = world.registry.query_by_type(EntityType.APPLE)
+
+        for snake_id, snake in snakes.items():
+            # skip if snake is not alive or respawning
+            if hasattr(snake, "body") and not snake.body.alive:
+                continue
+            if hasattr(snake, "respawn_timer") and snake.respawn_timer.is_respawning:
+                continue
+            if not hasattr(snake, "position"):
+                continue
+
+            head_x = snake.position.x
+            head_y = snake.position.y
+
+            # check collision with apples
+            for apple_id, apple in list(apples.items()):
+                if hasattr(apple, "position"):
+                    if head_x == apple.position.x and head_y == apple.position.y:
+                        # play eating sound
+                        if self._audio_service:
+                            self._audio_service.play_sound("assets/sound/eat.flac")
+
+                        # grow snake
+                        if hasattr(snake, "body"):
+                            snake.body.size += 1
+
+                        # update player score
+                        if hasattr(snake, "player_id"):
+                            snake.player_id.score += 1
+
+                        # remove apple
+                        world.registry.remove(apple_id)
+                        break
 
     def _check_player_vs_player_collision(self, world: World) -> None:
         """Check collision between players in PvP mode.
