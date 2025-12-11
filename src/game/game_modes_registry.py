@@ -81,7 +81,7 @@ ACTUAL_GAME_MODES = [
     {
         "name": LIGHTS_OUT_MODE_NAME,
         "description": "Map completely black. Limited vision around the snake head.",
-        "detailed_info": "The arena is completely dark. Each snake has a constant 4-tile vision radius around its head. Apples emit a 2-tile glow and are visible only when that glow intersects your vision. No timers or periodic blackouts.",
+        "detailed_info": "The arena is completely dark. Each snake has a constant 4-tile vision radius around its head. Apples emit a 2-tile glow and are visible only when that glow intersects your vision. Choose your next move carefully!",
     },
 ]
 
