@@ -110,20 +110,20 @@ class CollisionSystem(BaseSystem):
             self._check_all_snakes_collisions(world)
         else:
             # Single player mode - check collisions for the single snake
-            # Check wall collision first (highest priority)
-            if self._check_wall_collision(world):
-                self._handle_death(world, "Wall collision")
-                return
+        # Check wall collision first (highest priority)
+        if self._check_wall_collision(world):
+            self._handle_death(world, "Wall collision")
+            return
 
-            # Check self-bite collision
-            if self._check_self_bite(world):
-                self._handle_death(world, "Self-bite collision")
-                return
+        # Check self-bite collision
+        if self._check_self_bite(world):
+            self._handle_death(world, "Self-bite collision")
+            return
 
-            # Check obstacle collision
-            if self._check_obstacle_collision(world):
-                self._handle_death(world, "Obstacle collision")
-                return
+        # Check obstacle collision
+        if self._check_obstacle_collision(world):
+            self._handle_death(world, "Obstacle collision")
+            return
 
             # Check box collision and push logic (Box Mode)
             self._check_box_collision(world)
@@ -131,8 +131,8 @@ class CollisionSystem(BaseSystem):
             # Check if any box is on a hole (Box Mode)
             self._check_all_box_hole_collisions(world)
 
-            # Check apple collision (doesn't kill)
-            self._check_apple_collision(world)
+        # Check apple collision (doesn't kill)
+        self._check_apple_collision(world)
 
     def _get_snake_entity(self, world: World):
         """Get the snake entity from the world.
@@ -965,12 +965,12 @@ class CollisionSystem(BaseSystem):
                                         pass
                                 self._handle_death(world, "Win: shrunk to head")
                         else:
-                            if cheese_mode:
-                                # Cheese mode: +2 growth via pending_growth
-                                snake.body.pending_growth += 2
-                            else:
-                                # Classic/other modes: +1 immediate growth
-                                snake.body.size += 1
+                        if cheese_mode:
+                            # Cheese mode: +2 growth via pending_growth
+                            snake.body.pending_growth += 2
+                        else:
+                            # Classic/other modes: +1 immediate growth
+                            snake.body.size += 1
 
                         if self._should_swap_head_and_tail(world):
                             self._swap_head_and_tail(snake)
@@ -1123,22 +1123,28 @@ class CollisionSystem(BaseSystem):
             snake.body.alive = False
             print(f"☠️ {player_name} has no lives left!")
             
-            # check if all snakes are dead
+            # check if all snakes are dead or only one remains
             from ecs.entities.entity import EntityType
             snakes = world.registry.query_by_type(EntityType.SNAKE)
+            alive_count = 0
             winner = None
-            for _, s in snakes.items():
-                if hasattr(s, "lives") and s.lives.remaining > 0:
-                    if hasattr(s, "player_id"):
-                        winner = s.player_id.player_number
-                    break
+            all_dead = True
             
-            if winner:
-                # game over - we have a winner
-                self._handle_death(world, f"Player {winner} wins!")
-            else:
-                # all snakes dead
+            for _, s in snakes.items():
+                if hasattr(s, "lives"):
+                    if s.lives.remaining > 0:
+                        alive_count += 1
+                        all_dead = False
+                        if hasattr(s, "player_id"):
+                            winner = s.player_id.player_number
+            
+            # Only trigger game over if all snakes are dead
+            if all_dead:
                 self._handle_death(world, "Draw! All players eliminated")
+            elif alive_count == 1 and winner:
+                # One winner remains - game over
+                self._handle_death(world, f"Player {winner} wins!")
+            # If alive_count > 1, game continues with remaining players
         else:
             # trigger respawn
             if self._respawn_system:

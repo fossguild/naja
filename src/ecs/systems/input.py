@@ -168,7 +168,7 @@ class InputSystem(BaseSystem):
         if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME and player_id is not None:
             snake = self._get_snake_by_player_id(world, player_id)
         else:
-            snake = self._get_snake_entity(world)
+        snake = self._get_snake_entity(world)
         
         if not snake:
             return
@@ -244,14 +244,14 @@ class InputSystem(BaseSystem):
                     self._buffer_direction(world, -1, 0, player_id=2)
             else:
                 # Single player mode (both WASD and arrows control the same snake)
-                if key in (pygame.K_DOWN, pygame.K_s):
-                    self._buffer_direction(world, 0, 1)
-                elif key in (pygame.K_UP, pygame.K_w):
-                    self._buffer_direction(world, 0, -1)
-                elif key in (pygame.K_RIGHT, pygame.K_d):
-                    self._buffer_direction(world, 1, 0)
-                elif key in (pygame.K_LEFT, pygame.K_a):
-                    self._buffer_direction(world, -1, 0)
+            if key in (pygame.K_DOWN, pygame.K_s):
+                self._buffer_direction(world, 0, 1)
+            elif key in (pygame.K_UP, pygame.K_w):
+                self._buffer_direction(world, 0, -1)
+            elif key in (pygame.K_RIGHT, pygame.K_d):
+                self._buffer_direction(world, 1, 0)
+            elif key in (pygame.K_LEFT, pygame.K_a):
+                self._buffer_direction(world, -1, 0)
 
         # control keys
         if key == pygame.K_q:
@@ -314,7 +314,7 @@ class InputSystem(BaseSystem):
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
             if hasattr(snake, "player_id") and snake.player_id.player_number == player_id:
-                return snake
+            return snake
         return None
 
     def _get_game_state(self, world: World):
