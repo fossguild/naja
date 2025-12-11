@@ -25,7 +25,6 @@ from typing import Optional
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
 from ecs.entities.entity import EntityType
-from ecs.components.position import Position
 from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
 
 
@@ -58,7 +57,7 @@ class RespawnSystem(BaseSystem):
         """
         # assume 16ms per frame (60 FPS)
         dt_ms = 16.0
-        
+
         # only run in Player vs Player mode
         game_state = self._get_game_state(world)
         if not game_state or game_state.game_mode != PLAYER_VS_PLAYER_MODE_NAME:
@@ -66,25 +65,32 @@ class RespawnSystem(BaseSystem):
 
         # query all snakes with respawn timers
         snakes = world.registry.query_by_type(EntityType.SNAKE)
-        
+
         respawning_count = 0
         for snake_id, snake in snakes.items():
             if not hasattr(snake, "respawn_timer") or not hasattr(snake, "lives"):
                 continue
 
             respawn_timer = snake.respawn_timer
-            lives = snake.lives
 
             # if snake is respawning, count down the timer
             if respawn_timer.is_respawning:
                 respawning_count += 1
-                player_name = f"Player {snake.player_id.player_number}" if hasattr(snake, "player_id") else f"Snake {snake_id}"
-                
+                player_name = (
+                    f"Player {snake.player_id.player_number}"
+                    if hasattr(snake, "player_id")
+                    else f"Snake {snake_id}"
+                )
+
                 old_time = respawn_timer.time_remaining_ms
                 respawn_timer.time_remaining_ms -= dt_ms
-                
-                if respawning_count == 1:  # Only print for first respawning snake to avoid spam
-                    print(f"{player_name} respawn timer: {old_time:.0f}ms -> {respawn_timer.time_remaining_ms:.0f}ms")
+
+                if (
+                    respawning_count == 1
+                ):  # Only print for first respawning snake to avoid spam
+                    print(
+                        f"{player_name} respawn timer: {old_time:.0f}ms -> {respawn_timer.time_remaining_ms:.0f}ms"
+                    )
 
                 # time to respawn?
                 if respawn_timer.time_remaining_ms <= 0:
@@ -109,7 +115,7 @@ class RespawnSystem(BaseSystem):
             snake: Snake entity
         """
         print(f"Respawning snake {snake_id}...")
-        
+
         # find a valid spawn position
         grid = self._get_grid(world)
         if not grid:
@@ -143,7 +149,7 @@ class RespawnSystem(BaseSystem):
             dx, dy = random.choice(directions)
             snake.velocity.dx = dx
             snake.velocity.dy = dy
-            
+
         print(f"Snake respawned successfully at {spawn_pos}")
 
     def _get_grid(self, world: World):
@@ -171,7 +177,11 @@ class RespawnSystem(BaseSystem):
         # add snake positions
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
-            if hasattr(snake, "position") and hasattr(snake, "body") and snake.body.alive:
+            if (
+                hasattr(snake, "position")
+                and hasattr(snake, "body")
+                and snake.body.alive
+            ):
                 occupied.add((snake.position.x, snake.position.y))
                 if hasattr(snake, "body"):
                     for segment in snake.body.segments:
@@ -225,9 +235,15 @@ class RespawnSystem(BaseSystem):
         if hasattr(snake, "respawn_timer") and hasattr(snake, "lives"):
             # check if snake has lives left
             if snake.lives.remaining > 0:
-                player_name = f"Player {snake.player_id.player_number}" if hasattr(snake, "player_id") else "Snake"
-                print(f"Triggering respawn for {player_name}. Timer: {self.RESPAWN_TIME_MS}ms")
-                
+                player_name = (
+                    f"Player {snake.player_id.player_number}"
+                    if hasattr(snake, "player_id")
+                    else "Snake"
+                )
+                print(
+                    f"Triggering respawn for {player_name}. Timer: {self.RESPAWN_TIME_MS}ms"
+                )
+
                 snake.respawn_timer.is_respawning = True
                 snake.respawn_timer.time_remaining_ms = self.RESPAWN_TIME_MS
 
@@ -235,4 +251,3 @@ class RespawnSystem(BaseSystem):
                 if hasattr(snake, "body"):
                     snake.body.alive = False
                     print(f"{player_name} set to not alive during respawn countdown")
-

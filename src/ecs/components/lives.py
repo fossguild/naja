@@ -31,4 +31,3 @@ class Lives:
 
     remaining: int = 3  # number of lives left
     max_lives: int = 3  # maximum lives
-

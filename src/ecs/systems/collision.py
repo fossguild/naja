@@ -28,7 +28,10 @@ This system detects collisions between the snake and:
 Follows proper ECS architecture by querying world directly.
 """
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from ecs.systems.respawn import RespawnSystem
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
@@ -571,7 +574,10 @@ class CollisionSystem(BaseSystem):
 
                 # check collision with other snake's head
                 if hasattr(other_snake, "position"):
-                    if head_x == other_snake.position.x and head_y == other_snake.position.y:
+                    if (
+                        head_x == other_snake.position.x
+                        and head_y == other_snake.position.y
+                    ):
                         # head-to-head collision - both snakes die
                         self._handle_snake_death(world, snake, "Player collision")
                         self._handle_snake_death(world, other_snake, "Player collision")
@@ -1096,16 +1102,17 @@ class CollisionSystem(BaseSystem):
 
     def _determine_winner_by_score(self, world: World) -> int | None:
         """Determine the winner based on final score (points - deaths).
-        
+
         Args:
             world: ECS world
-            
+
         Returns:
             Player number of the winner, or None if it's a draw
         """
         from ecs.entities.entity import EntityType
+
         snakes = world.registry.query_by_type(EntityType.SNAKE)
-        
+
         player_scores = []
         for _, snake in snakes.items():
             if hasattr(snake, "player_id") and hasattr(snake, "lives"):
@@ -1114,23 +1121,23 @@ class CollisionSystem(BaseSystem):
                 deaths = 3 - snake.lives.remaining
                 final_score = points - deaths
                 player_scores.append((player_num, final_score))
-        
+
         if not player_scores:
             return None
-        
+
         # Sort by final score (descending)
         player_scores.sort(key=lambda x: x[1], reverse=True)
-        
+
         # Check if there's a clear winner (no tie)
         if len(player_scores) == 1:
             return player_scores[0][0]
-        
+
         if player_scores[0][1] > player_scores[1][1]:
             return player_scores[0][0]
-        
+
         # It's a tie
         return None
-    
+
     def _handle_snake_death(self, world: World, snake, reason: str) -> None:
         """Handle death of a specific snake in PvP mode.
 
@@ -1152,29 +1159,36 @@ class CollisionSystem(BaseSystem):
         # decrease lives
         snake.lives.remaining -= 1
 
-        player_name = f"Player {snake.player_id.player_number}" if hasattr(snake, "player_id") else "Snake"
-        print(f"☠️ {player_name} died: {reason}. Lives remaining: {snake.lives.remaining}")
+        player_name = (
+            f"Player {snake.player_id.player_number}"
+            if hasattr(snake, "player_id")
+            else "Snake"
+        )
+        print(
+            f"☠️ {player_name} died: {reason}. Lives remaining: {snake.lives.remaining}"
+        )
 
         # check if snake has lives left
         if snake.lives.remaining <= 0:
             # no lives left for this snake
             snake.body.alive = False
             print(f"☠️ {player_name} has no lives left!")
-            
+
             # check if all snakes are dead or only one remains
             from ecs.entities.entity import EntityType
+
             snakes = world.registry.query_by_type(EntityType.SNAKE)
             alive_count = 0
             alive_snakes = []
             all_dead = True
-            
+
             for _, s in snakes.items():
                 if hasattr(s, "lives"):
                     if s.lives.remaining > 0:
                         alive_count += 1
                         all_dead = False
                         alive_snakes.append(s)
-            
+
             # Determine game over condition
             if all_dead:
                 # All snakes dead - determine winner by score

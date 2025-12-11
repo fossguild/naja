@@ -151,7 +151,9 @@ class InputSystem(BaseSystem):
         if game_state:
             game_state.next_scene = "menu"
 
-    def _buffer_direction(self, world: World, dx: int, dy: int, player_id: Optional[int] = None) -> None:
+    def _buffer_direction(
+        self, world: World, dx: int, dy: int, player_id: Optional[int] = None
+    ) -> None:
         """Append a new direction to the snake's input buffer if valid.
 
         This method ensures that rapid direction changes are stored in order
@@ -169,7 +171,7 @@ class InputSystem(BaseSystem):
             snake = self._get_snake_by_player_id(world, player_id)
         else:
             snake = self._get_snake_entity(world)
-        
+
         if not snake:
             return
 
@@ -313,7 +315,10 @@ class InputSystem(BaseSystem):
 
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
-            if hasattr(snake, "player_id") and snake.player_id.player_number == player_id:
+            if (
+                hasattr(snake, "player_id")
+                and snake.player_id.player_number == player_id
+            ):
                 return snake
         return None
 

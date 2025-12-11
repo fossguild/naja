@@ -93,6 +93,7 @@ class GameOverScene(BaseScene):
     def _is_pvp_mode(self) -> bool:
         """Check if the game was in PvP mode."""
         from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+
         if self._world:
             game_states = self._world.registry.query_by_component("game_state")
             if game_states:
@@ -102,17 +103,18 @@ class GameOverScene(BaseScene):
 
     def _get_pvp_player_scores(self) -> list[tuple[int, int, int]]:
         """Get player scores and deaths from PvP mode.
-        
+
         Returns:
             List of (player_number, score, deaths) tuples
         """
         if not self._world:
             return []
-        
+
         from ecs.entities.entity import EntityType
+
         snakes = self._world.registry.query_by_type(EntityType.SNAKE)
         player_data = []
-        
+
         for snake_id, snake in snakes.items():
             if hasattr(snake, "player_id") and hasattr(snake, "lives"):
                 player_num = snake.player_id.player_number
@@ -120,7 +122,7 @@ class GameOverScene(BaseScene):
                 # Calculate deaths from initial lives (3) minus remaining lives
                 deaths = 3 - snake.lives.remaining
                 player_data.append((player_num, score, deaths))
-        
+
         # Sort by player number
         player_data.sort(key=lambda x: x[0])
         return player_data
@@ -128,12 +130,17 @@ class GameOverScene(BaseScene):
     @property
     def _is_draw(self) -> bool:
         """Check if this is a draw/tie."""
-        return "draw" in self._death_reason.lower() or "tied" in self._death_reason.lower()
-    
+        return (
+            "draw" in self._death_reason.lower() or "tied" in self._death_reason.lower()
+        )
+
     @property
     def _is_victory(self) -> bool:
         """Check if this is a victory (win) instead of a death (loss)."""
-        return self._death_reason.startswith("Win:") or "wins" in self._death_reason.lower()
+        return (
+            self._death_reason.startswith("Win:")
+            or "wins" in self._death_reason.lower()
+        )
 
     @property
     def _victory_message(self) -> str:
@@ -211,7 +218,7 @@ class GameOverScene(BaseScene):
 
             # Check if this is PvP mode
             is_pvp = self._is_pvp_mode()
-            
+
             # Use victory or game over colors based on win/loss/draw
             if self._is_draw:
                 # Draw/tie - use neutral/highlight colors
@@ -242,12 +249,12 @@ class GameOverScene(BaseScene):
                 title_surface = medium_font.render(title_text, True, title_color)
             else:
                 title_surface = big_font.render(title_text, True, title_color)
-            
+
             # Check if text is too wide and scale down if needed
             if title_surface.get_width() > self._width * 0.9:
                 # Text too wide, use medium font
                 title_surface = medium_font.render(title_text, True, title_color)
-            
+
             title_rect = title_surface.get_rect(
                 center=(self._width // 2, self._height / 5)
             )
@@ -255,16 +262,18 @@ class GameOverScene(BaseScene):
 
             # Display victory message or "NEW HIGH SCORE!" below title
             y_offset = self._height / 3.5
-            
+
             # In PvP mode, show player scores and deaths
             if is_pvp:
                 player_data = self._get_pvp_player_scores()
                 if player_data:
                     for player_num, score, deaths in player_data:
-                        player_color = (100, 255, 100) if player_num == 1 else (100, 150, 255)
+                        player_color = (
+                            (100, 255, 100) if player_num == 1 else (100, 150, 255)
+                        )
                         # Calculate final score (points - deaths)
                         final_score = score - deaths
-                        
+
                         # Display player info on two lines for better fit
                         # Line 1: Player name and points
                         player_text = small_font.render(
@@ -275,10 +284,12 @@ class GameOverScene(BaseScene):
                         )
                         self._renderer.blit(player_text, player_rect)
                         y_offset += 35
-                        
+
                         # Line 2: Deaths and final score
                         stats_text = small_font.render(
-                            f"Deaths: {deaths} | Final Score: {final_score}", True, player_color
+                            f"Deaths: {deaths} | Final Score: {final_score}",
+                            True,
+                            player_color,
                         )
                         stats_rect = stats_text.get_rect(
                             center=(self._width // 2, y_offset)

@@ -30,5 +30,6 @@ class RespawnTimer:
     """
 
     time_remaining_ms: float = 0.0  # milliseconds until respawn
-    is_respawning: bool = False  # whether snake is currently dead and waiting to respawn
-
+    is_respawning: bool = (
+        False  # whether snake is currently dead and waiting to respawn
+    )

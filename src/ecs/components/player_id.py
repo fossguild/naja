@@ -31,4 +31,3 @@ class PlayerID:
 
     player_number: int  # 1 for Player 1 (WASD), 2 for Player 2 (Arrows)
     score: int = 0  # individual player score
-

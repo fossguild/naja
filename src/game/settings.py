@@ -508,13 +508,13 @@ class GameSettings:
         elif kind == "select":
             options = field["options"]
             current_value = self.settings[key]
-            
+
             # Handle invalid saved value (e.g., "Classic Blue" which doesn't exist)
             if current_value not in options:
                 # Reset to first valid option
                 self.settings[key] = options[0]
                 current_value = options[0]
-            
+
             current_index = options.index(current_value)
             new_index = (current_index + direction) % len(options)
             self.settings[key] = options[new_index]
@@ -681,10 +681,10 @@ class GameSettings:
         """
         from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
         from game.scenes.game_modes import get_resolved_game_mode
-        
+
         current_mode = get_resolved_game_mode()
         is_pvp = current_mode == PLAYER_VS_PLAYER_MODE_NAME
-        
+
         return [
             field
             for field in self.MENU_FIELDS

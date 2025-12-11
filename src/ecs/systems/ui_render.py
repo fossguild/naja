@@ -523,7 +523,9 @@ class UIRenderSystem(BaseSystem):
         # draw lives and scores for PvP mode
         self.draw_pvp_ui(world, surface_width, surface_height)
 
-    def draw_pvp_ui(self, world: World, surface_width: int, surface_height: int) -> None:
+    def draw_pvp_ui(
+        self, world: World, surface_width: int, surface_height: int
+    ) -> None:
         """Draw lives and scores for both players in PvP mode.
 
         Args:
@@ -543,7 +545,7 @@ class UIRenderSystem(BaseSystem):
         # query all snakes with player_id
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         players = []
-        
+
         for snake_id, snake in snakes.items():
             if hasattr(snake, "player_id") and hasattr(snake, "lives"):
                 players.append(snake)
@@ -557,7 +559,9 @@ class UIRenderSystem(BaseSystem):
         # font for player info
         font_size = int(surface_width / 35)
         try:
-            player_font = pygame.font.Font("assets/font/GetVoIP-Grotesque.ttf", font_size)
+            player_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", font_size
+            )
         except Exception:
             player_font = pygame.font.Font(None, font_size)
 
@@ -583,8 +587,10 @@ class UIRenderSystem(BaseSystem):
                 color = (100, 150, 255)
 
             # check if player is respawning
-            is_respawning = hasattr(player, "respawn_timer") and player.respawn_timer.is_respawning
-            
+            is_respawning = (
+                hasattr(player, "respawn_timer") and player.respawn_timer.is_respawning
+            )
+
             if is_respawning:
                 # show respawn timer
                 time_left = player.respawn_timer.time_remaining_ms / 1000.0
@@ -592,9 +598,9 @@ class UIRenderSystem(BaseSystem):
             else:
                 # show normal info
                 label = f"P{player_num}: {lives_remaining}♥ | {score} pts"
-            
+
             player_text = player_font.render(label, True, color)
-            
+
             if align == "right":
                 player_rect = player_text.get_rect()
                 player_rect.bottomright = (x_pos, bottom_y + font_size * 2)

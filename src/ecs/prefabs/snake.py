@@ -82,7 +82,7 @@ def create_snake(
         start_x = world.board.width // 2
     else:
         start_x = initial_x
-    
+
     if initial_y is None:
         start_y = world.board.height // 2
     else:
