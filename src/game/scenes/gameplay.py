@@ -48,8 +48,9 @@ from ecs.systems.settings_apply import SettingsApplySystem
 from ecs.systems.trail_generation import TrailGenerationSystem
 from ecs.systems.trail_decay import TrailDecaySystem
 from game.scenes.game_modes import get_resolved_game_mode
-from game.game_modes_registry import CLASSIC_MODE_NAME, BOX_MODE_NAME
+from game.game_modes_registry import CLASSIC_MODE_NAME, BOX_MODE_NAME, PLAYER_VS_PLAYER_MODE_NAME
 from ecs.systems.hunger import HungerSystem
+from ecs.systems.respawn import RespawnSystem
 from game.settings import GameSettings
 from game.services.game_over_service import GameOverService
 
@@ -168,6 +169,9 @@ class GameplayScene(BaseScene):
                 ]
             )
 
+        # create respawn system for PvP mode
+        respawn_system = RespawnSystem() if self._current_game_mode == PLAYER_VS_PLAYER_MODE_NAME else None
+
         game_logic_systems.extend(
             [
                 CollisionSystem(
@@ -175,7 +179,8 @@ class GameplayScene(BaseScene):
                     self._audio_service,
                     scoring_system,
                     game_over_service,
-                ),  # 4: detect collisions (wall, self-bite, obstacles, apples, boxes)
+                    respawn_system,
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples, boxes, player-vs-player)
             ]
         )
 
@@ -204,6 +209,12 @@ class GameplayScene(BaseScene):
                 *(
                     [HungerSystem(game_over_service=game_over_service)]
                     if self._settings and bool(self._settings.get("enable_hunger"))
+                    else []
+                ),
+                # 7.5: add respawn system for PvP mode
+                *(
+                    [respawn_system]
+                    if respawn_system is not None
                     else []
                 ),
                 scoring_system,  # 8: track score and high score
