@@ -298,15 +298,23 @@ class GameInitializer:
         from ecs.components.player_id import PlayerID
         from ecs.entities.entity import EntityType
 
-        # Player 1 (left side) - Green
+        # Player 1 (left side) - use color from settings
+        from core.types.color_utils import hex_to_rgb
+        
         player1_x = world.board.width // 4
         player1_y = world.board.height // 2
+        
+        # Get player 1 colors from settings
+        p1_colors = self._settings.get_snake_colors()
+        p1_head_color = hex_to_rgb(p1_colors["head"])
+        p1_tail_color = hex_to_rgb(p1_colors["tail"])
+        
         player1_id = create_snake(
             world=world,
             grid_size=grid_size,
             initial_speed=float(self._settings.get("initial_speed")),
-            head_color=(0, 200, 0),  # Green
-            tail_color=(0, 255, 0),  # Light green
+            head_color=p1_head_color,
+            tail_color=p1_tail_color,
             enable_hunger=False,  # Disable hunger in PvP
             cheese_mode=False,
             shrinking_mode=False,
@@ -324,15 +332,21 @@ class GameInitializer:
                 snake.player_id = PlayerID(player_number=1, score=0)
                 break
 
-        # Player 2 (right side) - Blue
+        # Player 2 (right side) - use color from settings
         player2_x = (world.board.width * 3) // 4
         player2_y = world.board.height // 2
+        
+        # Get player 2 colors from settings
+        p2_colors = self._settings.get_player2_colors()
+        p2_head_color = hex_to_rgb(p2_colors["head"])
+        p2_tail_color = hex_to_rgb(p2_colors["tail"])
+        
         player2_id = create_snake(
             world=world,
             grid_size=grid_size,
             initial_speed=float(self._settings.get("initial_speed")),
-            head_color=(0, 100, 255),  # Blue
-            tail_color=(100, 150, 255),  # Light blue
+            head_color=p2_head_color,
+            tail_color=p2_tail_color,
             enable_hunger=False,  # Disable hunger in PvP
             cheese_mode=False,
             shrinking_mode=False,

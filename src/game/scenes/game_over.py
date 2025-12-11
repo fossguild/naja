@@ -90,10 +90,43 @@ class GameOverScene(BaseScene):
         self._is_new_high_score = False
         self._new_score_timestamp = None
 
+    def _is_pvp_mode(self) -> bool:
+        """Check if the game was in PvP mode."""
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+        if self._world:
+            game_states = self._world.registry.query_by_component("game_state")
+            if game_states:
+                game_state = list(game_states.values())[0].game_state
+                return game_state.game_mode == PLAYER_VS_PLAYER_MODE_NAME
+        return False
+
+    def _get_pvp_player_scores(self) -> list[tuple[int, int]]:
+        """Get player scores from PvP mode.
+        
+        Returns:
+            List of (player_number, score) tuples
+        """
+        if not self._world:
+            return []
+        
+        from ecs.entities.entity import EntityType
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        player_scores = []
+        
+        for snake_id, snake in snakes.items():
+            if hasattr(snake, "player_id"):
+                player_num = snake.player_id.player_number
+                score = snake.player_id.score
+                player_scores.append((player_num, score))
+        
+        # Sort by player number
+        player_scores.sort(key=lambda x: x[0])
+        return player_scores
+
     @property
     def _is_victory(self) -> bool:
         """Check if this is a victory (win) instead of a death (loss)."""
-        return self._death_reason.startswith("Win:")
+        return self._death_reason.startswith("Win:") or "wins" in self._death_reason.lower()
 
     @property
     def _victory_message(self) -> str:
@@ -165,6 +198,9 @@ class GameOverScene(BaseScene):
                 small_font = pygame.font.Font(None, small_font_size)
                 tiny_font = pygame.font.Font(None, tiny_font_size)
 
+            # Check if this is PvP mode
+            is_pvp = self._is_pvp_mode()
+            
             # Use victory or game over colors based on win/loss
             if self._is_victory:
                 title_color = VICTORY_TITLE_COLOR
@@ -172,7 +208,7 @@ class GameOverScene(BaseScene):
                 highlight_color = VICTORY_HIGHLIGHT_COLOR
                 high_score_color = VICTORY_HIGH_SCORE_COLOR
                 new_score_color = VICTORY_HIGHLIGHT_COLOR
-                title_text = "You Win!"
+                title_text = "You Win!" if not is_pvp else self._victory_message
             else:
                 title_color = GAME_OVER_MESSAGE_COLOR
                 message_color = GAME_OVER_MESSAGE_COLOR
@@ -190,33 +226,49 @@ class GameOverScene(BaseScene):
 
             # Display victory message or "NEW HIGH SCORE!" below title
             y_offset = self._height / 3.5
-            if self._is_victory:
-                # Show victory message (e.g., "Fully Shrunk!", "Board Complete!")
-                victory_text = medium_font.render(
-                    self._victory_message, True, message_color
-                )
-                victory_rect = victory_text.get_rect(
-                    center=(self._width // 2, y_offset)
-                )
-                self._renderer.blit(victory_text, victory_rect)
-                y_offset += 50
+            
+            # In PvP mode, show player scores
+            if is_pvp:
+                player_scores = self._get_pvp_player_scores()
+                if player_scores:
+                    for player_num, score in player_scores:
+                        player_color = (100, 255, 100) if player_num == 1 else (100, 150, 255)
+                        player_text = medium_font.render(
+                            f"Player {player_num}: {score} points", True, player_color
+                        )
+                        player_rect = player_text.get_rect(
+                            center=(self._width // 2, y_offset)
+                        )
+                        self._renderer.blit(player_text, player_rect)
+                        y_offset += 50
+            else:
+                if self._is_victory:
+                    # Show victory message (e.g., "Fully Shrunk!", "Board Complete!")
+                    victory_text = medium_font.render(
+                        self._victory_message, True, message_color
+                    )
+                    victory_rect = victory_text.get_rect(
+                        center=(self._width // 2, y_offset)
+                    )
+                    self._renderer.blit(victory_text, victory_rect)
+                    y_offset += 50
 
-            if self._is_new_high_score:
-                high_score_text = medium_font.render(
-                    "* NEW HIGH SCORE! *", True, high_score_color
-                )
-                high_score_rect = high_score_text.get_rect(
-                    center=(self._width // 2, y_offset)
-                )
-                self._renderer.blit(high_score_text, high_score_rect)
-                y_offset += 50
+                if self._is_new_high_score:
+                    high_score_text = medium_font.render(
+                        "* NEW HIGH SCORE! *", True, high_score_color
+                    )
+                    high_score_rect = high_score_text.get_rect(
+                        center=(self._width // 2, y_offset)
+                    )
+                    self._renderer.blit(high_score_text, high_score_rect)
+                    y_offset += 50
 
-            # Display current score
-            score_text = medium_font.render(
-                f"Your Score: {self._current_score}", True, highlight_color
-            )
-            score_rect = score_text.get_rect(center=(self._width // 2, y_offset))
-            self._renderer.blit(score_text, score_rect)
+                # Display current score
+                score_text = medium_font.render(
+                    f"Your Score: {self._current_score}", True, highlight_color
+                )
+                score_rect = score_text.get_rect(center=(self._width // 2, y_offset))
+                self._renderer.blit(score_text, score_rect)
 
             # Display top scores for current settings
             if self._scoreboard and self._settings:

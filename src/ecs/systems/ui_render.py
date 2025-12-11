@@ -582,8 +582,17 @@ class UIRenderSystem(BaseSystem):
                 align = "right"
                 color = (100, 150, 255)
 
-            # render player info
-            label = f"P{player_num}: {lives_remaining}♥ | {score} pts"
+            # check if player is respawning
+            is_respawning = hasattr(player, "respawn_timer") and player.respawn_timer.is_respawning
+            
+            if is_respawning:
+                # show respawn timer
+                time_left = player.respawn_timer.time_remaining_ms / 1000.0
+                label = f"P{player_num}: {lives_remaining}♥ | Respawning in {time_left:.1f}s"
+            else:
+                # show normal info
+                label = f"P{player_num}: {lives_remaining}♥ | {score} pts"
+            
             player_text = player_font.render(label, True, color)
             
             if align == "right":
