@@ -63,7 +63,7 @@ class LightsOutSystem(BaseSystem):
             return
 
         # Desired fixed radius in tiles
-        desired_radius = 3
+        desired_radius = 2.25
 
         # Defensive clamp against board size
         board_width = getattr(getattr(world, "board", None), "width", 1)
