@@ -212,24 +212,9 @@ class GameInitializer:
         # Create Lights Out state entity if mode is active
         if current_mode == LIGHTS_OUT_MODE_NAME:
 
-            def _get_setting(key: str, default):
-                if self._settings and hasattr(self._settings, "get"):
-                    value = self._settings.get(key)
-                    return default if value is None else value
-                return default
-
-            lights_out_interval = float(_get_setting("lights_out_interval", 12.0))
-            lights_out_duration = float(_get_setting("lights_out_duration", 4.0))
-            lights_out_radius = int(_get_setting("lights_out_radius", 4))
-
             class LightsOutEntity:
                 def __init__(self):
-                    self.lights_out_state = LightsOutState(
-                        interval=lights_out_interval,
-                        duration=lights_out_duration,
-                        radius=lights_out_radius,
-                        timer=lights_out_interval,  # Start with cooldown
-                    )
+                    self.lights_out_state = LightsOutState(radius=4)
 
                 def get_type(self):
                     return None

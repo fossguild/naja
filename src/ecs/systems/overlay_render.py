@@ -190,30 +190,13 @@ class OverlayRenderSystem(BaseSystem):
             int(draw_y + offset_y + cell_size / 2),
         )
 
-    def _draw_lights_out_timer(
-        self, surface_width: int, surface_height: int, remaining: float, is_active: bool
-    ) -> None:
-        """Draw the countdown text for Lights Out mode."""
-        font_path = "assets/font/GetVoIP-Grotesque.ttf"
-        font_size = int(surface_width / 55)
-        try:
-            font = pygame.font.Font(font_path, font_size)
-        except Exception:
-            font = pygame.font.Font(None, font_size)
-
-        label_prefix = "Lights return in" if is_active else "Blackout in"
-        text_color = (255, 255, 255)
-        timer_text = font.render(f"{label_prefix} {remaining:.1f}s", True, text_color)
-        timer_rect = timer_text.get_rect()
-        padding = int(surface_width * 0.02)
-        timer_rect.topright = (
-            surface_width - padding,
-            padding + int(surface_height * 0.03),
-        )
-        self._renderer.blit(timer_text, timer_rect)
+    # Timer-based UI removed: Lights Out is always-on in this build.
 
     def draw_lights_out_overlay(self, world: World) -> None:
-        """Render blackout mask and timer for Lights Out mode."""
+        """Render blackout mask for Lights Out mode (always-on).
+
+        The mode is always-on in this build; no countdown/timers are displayed.
+        """
         try:
             game_state = self._get_game_state(world)
             lights_out_state = self._get_lights_out_state(world)
@@ -230,18 +213,13 @@ class OverlayRenderSystem(BaseSystem):
                 return
 
             surface_width, surface_height = surface.get_size()
-            remaining = max(0.0, float(lights_out_state.timer))
-
-            # Always draw the timer when mode is enabled
-            self._draw_lights_out_timer(
-                surface_width, surface_height, remaining, game_state.lights_out_active
-            )
 
             if not game_state.lights_out_active:
                 return
 
             overlay = pygame.Surface((surface_width, surface_height), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 252))
+            # Pure black outside illuminated areas (user requested fully black)
+            overlay.fill((0, 0, 0, 255))
 
             center = self._get_snake_head_screen_position(world)
             radius_px = max(
@@ -252,6 +230,30 @@ class OverlayRenderSystem(BaseSystem):
             if center:
                 # carve a hole around the snake head
                 pygame.draw.circle(overlay, (0, 0, 0, 0), center, radius_px)
+
+            # Reveal apples only when their glow overlaps the snake's vision.
+            try:
+                from ecs.entities.entity import EntityType
+
+                cell_size = getattr(world.board, "cell_size", 16)
+                # Apple glow radius: 2 cells
+                apple_radius_px = max(4, int(2 * cell_size))
+                apples = world.registry.query_by_type(EntityType.APPLE)
+                offset_x, offset_y = self._get_board_offset()
+                for _, apple in apples.items():
+                    pos = getattr(apple, "position", None)
+                    if not pos:
+                        continue
+                    ax = int(pos.x * cell_size + offset_x + cell_size / 2)
+                    ay = int(pos.y * cell_size + offset_y + cell_size / 2)
+                    # Only carve apple hole if apple glow intersects snake vision
+                    if center:
+                        dx = ax - center[0]
+                        dy = ay - center[1]
+                        if dx * dx + dy * dy <= (radius_px + apple_radius_px) ** 2:
+                            pygame.draw.circle(overlay, (0, 0, 0, 0), (ax, ay), apple_radius_px)
+            except Exception:
+                pass
 
             self._renderer.blit(overlay, (0, 0))
 

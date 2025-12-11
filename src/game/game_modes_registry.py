@@ -80,8 +80,8 @@ ACTUAL_GAME_MODES = [
     },
     {
         "name": LIGHTS_OUT_MODE_NAME,
-        "description": "Periodic blackouts with a small vision circle around the head.",
-        "detailed_info": "Every interval the arena goes dark for a short duration. Only a small circle around the snake's head stays lit; plan routes from memory. A small on-screen timer shows blackout time remaining.",
+        "description": "Map completely black. Limited vision around the snake head.",
+        "detailed_info": "The arena is completely dark. Each snake has a constant 4-tile vision radius around its head. Apples emit a 2-tile glow and are visible only when that glow intersects your vision. No timers or periodic blackouts.",
     },
 ]
 

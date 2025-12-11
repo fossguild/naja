@@ -17,7 +17,11 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Lights Out mode state component."""
+"""Lights Out mode state component.
+
+Minimal state used by renderer and systems. Lights Out is an always-on
+mode in this branch; only `radius` is required by runtime logic.
+"""
 
 from dataclasses import dataclass
 
@@ -26,13 +30,9 @@ from dataclasses import dataclass
 class LightsOutState:
     """State for Lights Out game mode.
 
-    Tracks blackout timing and configuration for the periodic darkness effect.
-    Used by: Game entity (singleton)
-    Read by: LightsOutSystem, OverlayRenderSystem
-    Written by: LightsOutSystem
+    Only `radius` is kept because timing and duration-based fields are
+    removed in favor of an always-on implementation driven by systems
+    and rendering logic.
     """
 
-    interval: float = 12.0  # seconds between blackouts (cooldown duration)
-    duration: float = 4.0  # seconds of darkness per blackout
     radius: int = 4  # grid cells of visible radius around snake head
-    timer: float = 0.0  # time remaining in current state (active or cooldown)
