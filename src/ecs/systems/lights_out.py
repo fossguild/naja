@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 #
 #   Copyright (c) 2023, Monaco F. J. <monaco@usp.br>
@@ -64,7 +63,7 @@ class LightsOutSystem(BaseSystem):
             return
 
         # Desired fixed radius in tiles
-        desired_radius = 4
+        desired_radius = 3
 
         # Defensive clamp against board size
         board_width = getattr(getattr(world, "board", None), "width", 1)
@@ -78,4 +77,3 @@ class LightsOutSystem(BaseSystem):
             radius = max_radius
 
         lights_out_state.radius = radius
-

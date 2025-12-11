@@ -38,6 +38,7 @@ class OverlayRenderSystem(BaseSystem):
     Responsibilities:
     - Render pause overlay (when paused)
     - Render settings overlay (when settings menu is open)
+    - Render Lights Out mode darkness overlay with vision circles
 
     NOT responsible for:
     - Basic HUD rendering (use UIRenderSystem)
@@ -114,82 +115,6 @@ class OverlayRenderSystem(BaseSystem):
             return (0, 0)
         return (0, 45)
 
-    def _calculate_interpolated_position(
-        self,
-        current_x: float,
-        current_y: float,
-        prev_x: float,
-        prev_y: float,
-        alpha: float,
-        wrapped_axis: str,
-        cell_size: int,
-        grid_width: int,
-        grid_height: int,
-    ) -> tuple[float, float]:
-        """Interpolate between previous and current positions handling wraparound."""
-        # Adjust for wraparound so interpolation follows the shorter path
-        if wrapped_axis in ("x", "both"):
-            if current_x < prev_x:
-                current_x += grid_width
-            else:
-                prev_x += grid_width
-
-        if wrapped_axis in ("y", "both"):
-            if current_y < prev_y:
-                current_y += grid_height
-            else:
-                prev_y += grid_height
-
-        interp_x = prev_x + (current_x - prev_x) * alpha
-        interp_y = prev_y + (current_y - prev_y) * alpha
-
-        # Wrap back into the grid range
-        interp_x %= grid_width
-        interp_y %= grid_height
-
-        return interp_x, interp_y
-
-    def _get_snake_head_screen_position(self, world: World):
-        snakes = world.registry.query_by_type_and_components(
-            EntityType.SNAKE, "position", "interpolation"
-        )
-        if not snakes:
-            snakes = world.registry.query_by_component("position", "interpolation")
-        if not snakes:
-            return None
-
-        snake = next(iter(snakes.values()))
-        position = getattr(snake, "position", None)
-        interpolation = getattr(snake, "interpolation", None)
-        if not position:
-            return None
-
-        cell_size = getattr(world.board, "cell_size", 20)
-        grid_width = getattr(world.board, "width", 0) * cell_size
-        grid_height = getattr(world.board, "height", 0) * cell_size
-
-        draw_x = position.x * cell_size
-        draw_y = position.y * cell_size
-
-        if interpolation:
-            draw_x, draw_y = self._calculate_interpolated_position(
-                position.x * cell_size,
-                position.y * cell_size,
-                position.prev_x * cell_size,
-                position.prev_y * cell_size,
-                interpolation.alpha,
-                interpolation.wrapped_axis,
-                cell_size,
-                grid_width,
-                grid_height,
-            )
-
-        offset_x, offset_y = self._get_board_offset()
-        return (
-            int(draw_x + offset_x + cell_size / 2),
-            int(draw_y + offset_y + cell_size / 2),
-        )
-
     def draw_lights_out_overlay(self, world: World) -> None:
         """Render blackout mask for Lights Out mode (always-on).
 
@@ -211,8 +136,6 @@ class OverlayRenderSystem(BaseSystem):
                 return
 
             surface_width, surface_height = surface.get_size()
-            # Create overlay only for the board area so the top UI/scoreboard
-            # remains visible and is not blacked out.
             cell_size = getattr(world.board, "cell_size", 16)
             board_px_w = getattr(world.board, "width", 0) * cell_size
             board_px_h = getattr(world.board, "height", 0) * cell_size
@@ -220,55 +143,202 @@ class OverlayRenderSystem(BaseSystem):
 
             # If board has zero size, fall back to full-surface overlay
             if board_px_w <= 0 or board_px_h <= 0:
-                overlay = pygame.Surface((surface_width, surface_height), pygame.SRCALPHA)
+                overlay = pygame.Surface(
+                    (surface_width, surface_height), pygame.SRCALPHA
+                )
                 overlay.fill((0, 0, 0, 255))
-                overlay_blit_pos = (0, 0)
-            else:
-                overlay = pygame.Surface((board_px_w, board_px_h), pygame.SRCALPHA)
-                overlay.fill((0, 0, 0, 255))
-                overlay_blit_pos = (offset_x, offset_y)
+                self._renderer.blit(overlay, (0, 0))
+                return
+            # Create overlay for board area only
+            overlay = pygame.Surface((board_px_w, board_px_h), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 255))
 
-            center = self._get_snake_head_screen_position(world)
+            # Get snake head position directly from world
+            snakes = world.registry.query_by_type_and_components(
+                EntityType.SNAKE, "position", "interpolation"
+            )
+            if not snakes:
+                snakes = world.registry.query_by_type_and_components(
+                    EntityType.SNAKE, "position"
+                )
+            if not snakes:
+                self._renderer.blit(overlay, (offset_x, offset_y))
+                return
+
+            snake = next(iter(snakes.values()))
+            position = getattr(snake, "position", None)
+            interpolation = getattr(snake, "interpolation", None)
+            if not position:
+                self._renderer.blit(overlay, (offset_x, offset_y))
+                return
+
+            # Calculate vision center in overlay coordinates
+            cx = position.x * cell_size + cell_size / 2
+            cy = position.y * cell_size + cell_size / 2
+
+            # Apply smooth interpolation if available
+            if interpolation:
+                prev_cx = position.prev_x * cell_size + cell_size / 2
+                prev_cy = position.prev_y * cell_size + cell_size / 2
+                # Handle wrapping interpolation
+                if interpolation.wrapped_axis in ("x", "both"):
+                    # Wrapping on X - interpolate in the direction of movement
+                    if abs(cx - prev_cx) > board_px_w / 2:
+                        if cx < prev_cx:
+                            cx += board_px_w
+                        else:
+                            prev_cx += board_px_w
+                if interpolation.wrapped_axis in ("y", "both"):
+                    # Wrapping on Y - interpolate in the direction of movement
+                    if abs(cy - prev_cy) > board_px_h / 2:
+                        if cy < prev_cy:
+                            cy += board_px_h
+                        else:
+                            prev_cy += board_px_h
+                # Linear interpolation
+                cx = prev_cx + (cx - prev_cx) * interpolation.alpha
+                cy = prev_cy + (cy - prev_cy) * interpolation.alpha
+                # Wrap back to board bounds
+                cx = cx % board_px_w
+                cy = cy % board_px_h
             radius_px = max(8, int(lights_out_state.radius * cell_size))
 
-            # Convert center to overlay-local coordinates
-            if center is not None and overlay_blit_pos is not None:
-                local_center = (center[0] - overlay_blit_pos[0], center[1] - overlay_blit_pos[1])
-            else:
-                local_center = None
+            # Check if electric walls are enabled
+            electric_walls = (
+                self._settings.get("electric_walls") if self._settings else True
+            )
 
-            if local_center:
-                # carve a hole around the snake head (local coords)
-                pygame.draw.circle(overlay, (0, 0, 0, 0), local_center, radius_px)
+            # Draw vision circles
+            self._draw_vision_circle(
+                overlay, cx, cy, radius_px, board_px_w, board_px_h, electric_walls
+            )
 
-            # Reveal apples only when their glow overlaps the snake's vision.
-            try:
-                from ecs.entities.entity import EntityType
+            # Reveal apples
+            self._draw_apple_glows(
+                world,
+                overlay,
+                cx,
+                cy,
+                radius_px,
+                cell_size,
+                board_px_w,
+                board_px_h,
+                electric_walls,
+            )
 
-                # Apple glow radius: 2 cells
-                apple_radius_px = max(4, int(2 * cell_size))
-                apples = world.registry.query_by_type(EntityType.APPLE)
-                for _, apple in apples.items():
-                    pos = getattr(apple, "position", None)
-                    if not pos:
-                        continue
-                    # apple position relative to board (local coords)
-                    local_ax = int(pos.x * cell_size + cell_size / 2)
-                    local_ay = int(pos.y * cell_size + cell_size / 2)
-                    # Only carve apple hole if apple glow intersects snake vision
-                    if local_center:
-                        dx = local_ax - local_center[0]
-                        dy = local_ay - local_center[1]
-                        if dx * dx + dy * dy <= (radius_px + apple_radius_px) ** 2:
-                            pygame.draw.circle(overlay, (0, 0, 0, 0), (local_ax, local_ay), apple_radius_px)
-            except Exception:
-                pass
-
-            # Blit overlay at board offset so UI above it remains visible
-            self._renderer.blit(overlay, overlay_blit_pos)
+            # Blit overlay at board offset
+            self._renderer.blit(overlay, (offset_x, offset_y))
 
         except Exception:
-            # Avoid breaking rendering if anything goes wrong
+            pass
+
+    def _draw_vision_circle(
+        self, overlay, cx, cy, radius_px, board_w, board_h, electric_walls
+    ):
+        """Draw vision circle(s) at the given center, handling wrapping if needed."""
+        # Always draw at primary position
+        pygame.draw.circle(overlay, (0, 0, 0, 0), (int(cx), int(cy)), radius_px)
+        # If walls wrap, draw at wrapped positions when near edges
+        if not electric_walls:
+            # Draw wrapped circles for seamless edge wrapping
+            if cx - radius_px < 0:  # Near left
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx + board_w), int(cy)), radius_px
+                )
+            if cx + radius_px > board_w:  # Near right
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx - board_w), int(cy)), radius_px
+                )
+            if cy - radius_px < 0:  # Near top
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx), int(cy + board_h)), radius_px
+                )
+            if cy + radius_px > board_h:  # Near bottom
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx), int(cy - board_h)), radius_px
+                )
+
+            # Corner cases
+            if cx - radius_px < 0 and cy - radius_px < 0:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx + board_w), int(cy + board_h)),
+                    radius_px,
+                )
+            if cx + radius_px > board_w and cy - radius_px < 0:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx - board_w), int(cy + board_h)),
+                    radius_px,
+                )
+            if cx - radius_px < 0 and cy + radius_px > board_h:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx + board_w), int(cy - board_h)),
+                    radius_px,
+                )
+            if cx + radius_px > board_w and cy + radius_px > board_h:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx - board_w), int(cy - board_h)),
+                    radius_px,
+                )
+
+    def _draw_apple_glows(
+        self,
+        world,
+        overlay,
+        cx,
+        cy,
+        radius_px,
+        cell_size,
+        board_w,
+        board_h,
+        electric_walls,
+    ):
+        """Draw apple glows when they're visible in the vision radius."""
+        try:
+            apple_radius_px = max(4, int(1.5 * cell_size))
+            apples = world.registry.query_by_type(EntityType.APPLE)
+            for _, apple in apples.items():
+                pos = getattr(apple, "position", None)
+                if not pos:
+                    continue
+                ax = pos.x * cell_size + cell_size / 2
+                ay = pos.y * cell_size + cell_size / 2
+                # Check if apple is visible from any vision position
+                vision_positions = [(cx, cy)]
+                if not electric_walls:
+                    if cx - radius_px < 0:
+                        vision_positions.append((cx + board_w, cy))
+                    if cx + radius_px > board_w:
+                        vision_positions.append((cx - board_w, cy))
+                    if cy - radius_px < 0:
+                        vision_positions.append((cx, cy + board_h))
+                    if cy + radius_px > board_h:
+                        vision_positions.append((cx, cy - board_h))
+                    if cx - radius_px < 0 and cy - radius_px < 0:
+                        vision_positions.append((cx + board_w, cy + board_h))
+                    if cx + radius_px > board_w and cy - radius_px < 0:
+                        vision_positions.append((cx - board_w, cy + board_h))
+                    if cx - radius_px < 0 and cy + radius_px > board_h:
+                        vision_positions.append((cx + board_w, cy - board_h))
+                    if cx + radius_px > board_w and cy + radius_px > board_h:
+                        vision_positions.append((cx - board_w, cy - board_h))
+
+                for vx, vy in vision_positions:
+                    dx = ax - vx
+                    dy = ay - vy
+                    if dx * dx + dy * dy <= (radius_px + apple_radius_px) ** 2:
+                        pygame.draw.circle(
+                            overlay, (0, 0, 0, 0), (int(ax), int(ay)), apple_radius_px
+                        )
+                        break
+        except Exception:
             pass
 
     def draw_pause_overlay(self, surface_width: int, surface_height: int) -> None:
