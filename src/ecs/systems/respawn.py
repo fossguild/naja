@@ -66,7 +66,8 @@ class RespawnSystem(BaseSystem):
 
         # query all snakes with respawn timers
         snakes = world.registry.query_by_type(EntityType.SNAKE)
-
+        
+        respawning_count = 0
         for snake_id, snake in snakes.items():
             if not hasattr(snake, "respawn_timer") or not hasattr(snake, "lives"):
                 continue
@@ -76,10 +77,18 @@ class RespawnSystem(BaseSystem):
 
             # if snake is respawning, count down the timer
             if respawn_timer.is_respawning:
+                respawning_count += 1
+                player_name = f"Player {snake.player_id.player_number}" if hasattr(snake, "player_id") else f"Snake {snake_id}"
+                
+                old_time = respawn_timer.time_remaining_ms
                 respawn_timer.time_remaining_ms -= dt_ms
+                
+                if respawning_count == 1:  # Only print for first respawning snake to avoid spam
+                    print(f"{player_name} respawn timer: {old_time:.0f}ms -> {respawn_timer.time_remaining_ms:.0f}ms")
 
                 # time to respawn?
                 if respawn_timer.time_remaining_ms <= 0:
+                    print(f"Timer expired for {player_name}! Respawning now...")
                     self._respawn_snake(world, snake_id, snake)
                     respawn_timer.is_respawning = False
                     respawn_timer.time_remaining_ms = 0.0
@@ -99,14 +108,20 @@ class RespawnSystem(BaseSystem):
             snake_id: Entity ID of the snake
             snake: Snake entity
         """
+        print(f"Respawning snake {snake_id}...")
+        
         # find a valid spawn position
         grid = self._get_grid(world)
         if not grid:
+            print("No grid found!")
             return
 
         spawn_pos = self._find_valid_spawn_position(world, grid)
         if not spawn_pos:
+            print("No valid spawn position found!")
             return
+
+        print(f"Spawning at position: {spawn_pos}")
 
         # reset snake position
         if hasattr(snake, "position"):
@@ -115,11 +130,11 @@ class RespawnSystem(BaseSystem):
             snake.position.prev_x = spawn_pos[0]
             snake.position.prev_y = spawn_pos[1]
 
-        # reset snake body
+        # reset snake body - IMPORTANT: Set alive to True
         if hasattr(snake, "body"):
             snake.body.segments = []
             snake.body.size = 1
-            snake.body.alive = True
+            snake.body.alive = True  # Make sure snake is alive
             snake.body.pending_growth = 0
 
         # reset velocity to a random direction
@@ -128,6 +143,8 @@ class RespawnSystem(BaseSystem):
             dx, dy = random.choice(directions)
             snake.velocity.dx = dx
             snake.velocity.dy = dy
+            
+        print(f"Snake respawned successfully at {spawn_pos}")
 
     def _get_grid(self, world: World):
         """Get the grid component."""
@@ -208,10 +225,14 @@ class RespawnSystem(BaseSystem):
         if hasattr(snake, "respawn_timer") and hasattr(snake, "lives"):
             # check if snake has lives left
             if snake.lives.remaining > 0:
+                player_name = f"Player {snake.player_id.player_number}" if hasattr(snake, "player_id") else "Snake"
+                print(f"Triggering respawn for {player_name}. Timer: {self.RESPAWN_TIME_MS}ms")
+                
                 snake.respawn_timer.is_respawning = True
                 snake.respawn_timer.time_remaining_ms = self.RESPAWN_TIME_MS
 
                 # make snake invisible/inactive during respawn
                 if hasattr(snake, "body"):
                     snake.body.alive = False
+                    print(f"{player_name} set to not alive during respawn countdown")
 

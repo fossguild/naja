@@ -115,7 +115,7 @@ class UIRenderSystem(BaseSystem):
                 score_rect = score_text.get_rect()
                 score_rect.midleft = (padding + icon_size + 10, center_y)
             else:
-            score_rect = score_text.get_rect()
+                score_rect = score_text.get_rect()
                 score_rect.midleft = (padding, center_y)
 
             # blit score text

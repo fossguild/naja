@@ -148,17 +148,17 @@ class GameInitializer:
             self._create_pvp_snakes(world, grid_size)
         else:
             # create single snake for other modes
-        self._create_snake(world, grid_size)
+            self._create_snake(world, grid_size)
 
         # create apple config entity (skip for Box Mode)
         if self._game_mode != BOX_MODE_NAME:
-        self._create_apple_config(world)
+            self._create_apple_config(world)
 
             # create initial apples (2 for PvP, normal count for others)
             if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME:
                 self._create_pvp_apples(world, grid_size)
             else:
-        self._create_initial_apples(world, grid_size)
+                self._create_initial_apples(world, grid_size)
 
         # create obstacles based on difficulty
         self._create_obstacles(world, grid_size)

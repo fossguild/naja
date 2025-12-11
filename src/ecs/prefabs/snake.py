@@ -79,12 +79,12 @@ def create_snake(
     # starting position in GRID COORDINATES (not pixels)
     # use provided position or default to board center
     if initial_x is None:
-    start_x = world.board.width // 2
+        start_x = world.board.width // 2
     else:
         start_x = initial_x
     
     if initial_y is None:
-    start_y = world.board.height // 2
+        start_y = world.board.height // 2
     else:
         start_y = initial_y
 

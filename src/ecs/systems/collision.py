@@ -110,20 +110,20 @@ class CollisionSystem(BaseSystem):
             self._check_all_snakes_collisions(world)
         else:
             # Single player mode - check collisions for the single snake
-        # Check wall collision first (highest priority)
-        if self._check_wall_collision(world):
-            self._handle_death(world, "Wall collision")
-            return
+            # Check wall collision first (highest priority)
+            if self._check_wall_collision(world):
+                self._handle_death(world, "Wall collision")
+                return
 
-        # Check self-bite collision
-        if self._check_self_bite(world):
-            self._handle_death(world, "Self-bite collision")
-            return
+            # Check self-bite collision
+            if self._check_self_bite(world):
+                self._handle_death(world, "Self-bite collision")
+                return
 
-        # Check obstacle collision
-        if self._check_obstacle_collision(world):
-            self._handle_death(world, "Obstacle collision")
-            return
+            # Check obstacle collision
+            if self._check_obstacle_collision(world):
+                self._handle_death(world, "Obstacle collision")
+                return
 
             # Check box collision and push logic (Box Mode)
             self._check_box_collision(world)
@@ -131,8 +131,8 @@ class CollisionSystem(BaseSystem):
             # Check if any box is on a hole (Box Mode)
             self._check_all_box_hole_collisions(world)
 
-        # Check apple collision (doesn't kill)
-        self._check_apple_collision(world)
+            # Check apple collision (doesn't kill)
+            self._check_apple_collision(world)
 
     def _get_snake_entity(self, world: World):
         """Get the snake entity from the world.
@@ -964,7 +964,7 @@ class CollisionSystem(BaseSystem):
                                     except Exception:
                                         pass
                                 self._handle_death(world, "Win: shrunk to head")
-                        else:
+                    else:
                         if cheese_mode:
                             # Cheese mode: +2 growth via pending_growth
                             snake.body.pending_growth += 2
