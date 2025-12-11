@@ -28,7 +28,11 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK, SCORE_COLOR
+from game.constants import (
+    ARENA_PRIMARY_COLOR,
+    MESSAGE_COLOR_LIGHT,
+    MESSAGE_COLOR_DARK,
+)
 from game.game_modes_registry import (
     ACTUAL_GAME_MODES,
     CLASSIC_MODE_NAME,
@@ -360,11 +364,9 @@ class GameModesScene(BaseScene):
                         self._selected_index = i
 
                 color = (
-                    (
                     MESSAGE_COLOR_LIGHT
                     if (
                         i == self._selected_index
-                   
                         or (
                             is_mouse_hover
                             and not self._showing_info_modal
@@ -372,7 +374,6 @@ class GameModesScene(BaseScene):
                         )
                     )
                     else MESSAGE_COLOR_DARK
-                )
                 )
 
                 # add arrow indicator if this mode is selected (confirmed)

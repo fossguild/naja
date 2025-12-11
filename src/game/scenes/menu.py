@@ -107,13 +107,13 @@ class MenuScene(BaseScene):
                         break
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button
-                    if self._selected_index == 0:   # Start Game
+                    if self._selected_index == 0:  # Start Game
                         return "gameplay"
-                    elif self._selected_index == 1: # Game Modes
+                    elif self._selected_index == 1:  # Game Modes
                         return "game_modes"
-                    elif self._selected_index == 2: # Settings
+                    elif self._selected_index == 2:  # Settings
                         return "settings"
-                    elif self._selected_index == 3: # Quit
+                    elif self._selected_index == 3:  # Quit
                         pygame.quit()
                         exit()
             elif event.type == pygame.KEYDOWN:

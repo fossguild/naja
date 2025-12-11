@@ -27,7 +27,12 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR_LIGHT, MESSAGE_COLOR_DARK, SCORE_COLOR
+from game.constants import (
+    ARENA_PRIMARY_COLOR,
+    MESSAGE_COLOR_LIGHT,
+    MESSAGE_COLOR_DARK,
+    SCORE_COLOR,
+)
 
 
 class SettingsScene(BaseScene):
@@ -533,7 +538,7 @@ class SettingsScene(BaseScene):
                 (
                     MESSAGE_COLOR_LIGHT
                     if self._selected_index == reset_index
-                    else (200, 100, 100)
+                    else reset_color
                 ),
                 int(self._width / 32),
             )
