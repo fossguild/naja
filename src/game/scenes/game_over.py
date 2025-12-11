@@ -224,7 +224,17 @@ class GameOverScene(BaseScene):
                 title_text = "Game Over"
 
             # Title text (either "You Win!" or "Game Over") centered
-            title_surface = big_font.render(title_text, True, title_color)
+            # Use medium font for longer PvP victory messages to ensure they fit
+            if is_pvp and self._is_victory and len(title_text) > 10:
+                title_surface = medium_font.render(title_text, True, title_color)
+            else:
+                title_surface = big_font.render(title_text, True, title_color)
+            
+            # Check if text is too wide and scale down if needed
+            if title_surface.get_width() > self._width * 0.9:
+                # Text too wide, use medium font
+                title_surface = medium_font.render(title_text, True, title_color)
+            
             title_rect = title_surface.get_rect(
                 center=(self._width // 2, self._height / 5)
             )
@@ -241,14 +251,27 @@ class GameOverScene(BaseScene):
                         player_color = (100, 255, 100) if player_num == 1 else (100, 150, 255)
                         # Calculate final score (points - deaths)
                         final_score = score - deaths
-                        player_text = medium_font.render(
-                            f"Player {player_num}: {score} pts | {deaths} deaths | Score: {final_score}", True, player_color
+                        
+                        # Display player info on two lines for better fit
+                        # Line 1: Player name and points
+                        player_text = small_font.render(
+                            f"Player {player_num}: {score} points", True, player_color
                         )
                         player_rect = player_text.get_rect(
                             center=(self._width // 2, y_offset)
                         )
                         self._renderer.blit(player_text, player_rect)
-                        y_offset += 50
+                        y_offset += 35
+                        
+                        # Line 2: Deaths and final score
+                        stats_text = small_font.render(
+                            f"Deaths: {deaths} | Final Score: {final_score}", True, player_color
+                        )
+                        stats_rect = stats_text.get_rect(
+                            center=(self._width // 2, y_offset)
+                        )
+                        self._renderer.blit(stats_text, stats_rect)
+                        y_offset += 45
             else:
                 if self._is_victory:
                     # Show victory message (e.g., "Fully Shrunk!", "Board Complete!")
@@ -278,8 +301,8 @@ class GameOverScene(BaseScene):
                 score_rect = score_text.get_rect(center=(self._width // 2, y_offset))
                 self._renderer.blit(score_text, score_rect)
 
-            # Display top scores for current settings
-            if self._scoreboard and self._settings:
+            # Display top scores for current settings (not in PvP mode)
+            if self._scoreboard and self._settings and not is_pvp:
                 y_offset += 100  # Increased spacing before high scores section
 
                 # Use shorter text if width is too small

@@ -964,16 +964,17 @@ class CollisionSystem(BaseSystem):
                                     except Exception:
                                         pass
                                 self._handle_death(world, "Win: shrunk to head")
-                    else:
-                        if cheese_mode:
-                            # Cheese mode: +2 growth via pending_growth
-                            snake.body.pending_growth += 2
                         else:
-                            # Classic/other modes: +1 immediate growth
-                            snake.body.size += 1
+                            # Normal mode: grow the snake
+                            if cheese_mode:
+                                # Cheese mode: +2 growth via pending_growth
+                                snake.body.pending_growth += 2
+                            else:
+                                # Classic/other modes: +1 immediate growth
+                                snake.body.size += 1
 
-                        if self._should_swap_head_and_tail(world):
-                            self._swap_head_and_tail(snake)
+                            if self._should_swap_head_and_tail(world):
+                                self._swap_head_and_tail(snake)
 
                     # increment score using scoring system
                     if self._scoring_system:
