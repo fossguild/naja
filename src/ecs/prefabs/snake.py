@@ -115,12 +115,8 @@ def create_snake(
         initial_segments = []
         initial_size = 1
 
-    # In autoplay mode, start with zero velocity so autoplay can set the first direction
-    # Otherwise start moving right
-    if autoplay_mode:
-        initial_dx, initial_dy = 0, 0
-    else:
-        initial_dx, initial_dy = 1, 0
+    # Start with zero velocity so the user can set the first direction
+    initial_dx, initial_dy = 0, 0
 
     # create snake entity with all required components
     snake = Snake(
