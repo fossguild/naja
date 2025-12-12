@@ -32,9 +32,9 @@ class GameSettings:
 
     # Default settings values
     DEFAULT_SETTINGS = {
-        "cells_per_side": 16,  # Will be calculated from screen size
-        "initial_speed": 4.0,
-        "max_speed": 20.0,
+        "cells_per_side": 24,  # Will be calculated from screen size
+        "initial_speed": 15.0,
+        "max_speed": 30.0,
         "obstacle_difficulty": "None",
         "number_of_apples": 1,
         "background_music": True,
