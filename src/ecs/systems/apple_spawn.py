@@ -32,7 +32,6 @@ from ecs.systems.base_system import BaseSystem
 from ecs.world import World
 from ecs.entities.entity import EntityType
 from ecs.prefabs.apple import create_apple
-from game.game_modes_registry import GAME_MODE_TELEPORT
 
 
 class AppleSpawnSystem(BaseSystem):
@@ -87,27 +86,18 @@ class AppleSpawnSystem(BaseSystem):
                     create_apple(world, x=x, y=y, grid_size=grid_size, color=None)
 
     def _get_desired_apple_count(self, world: World) -> int:
-        """Get the desired number of apples from AppleConfig component.
+        """Get the desired number of apples from the AppleConfig component.
 
-        In TELEPORT mode, always spawn 2 apples instead of 1.
+        In TELEPORT mode, this method may be overridden to return a fixed value
+        (e.g., always 2). For other modes, it returns the configured desired count.
 
         Args:
-            world: ECS world
+            world: ECS world used to query components.
 
         Returns:
-            Desired apple count: 2 for TELEPORT mode, config value for others (default 1)
+            int: Desired apple count from AppleConfig, or 1 if no config is found.
         """
-        # Check if we're in TELEPORT mode - if so, always maintain 2 apples
-        game_states = world.registry.query_by_component("game_state")
-        if game_states:
-            game_state_entity = list(game_states.values())[0]
-            if (
-                hasattr(game_state_entity, "game_state")
-                and game_state_entity.game_state.game_mode == GAME_MODE_TELEPORT
-            ):
-                return 2
 
-        # Query for entities with AppleConfig component
         config_entities = world.registry.query_by_component("apple_config")
 
         if config_entities:
@@ -115,7 +105,7 @@ class AppleSpawnSystem(BaseSystem):
             if hasattr(config_entity, "apple_config"):
                 return config_entity.apple_config.desired_count
 
-        return 1  # Default to 1 apple
+        return 1  # Default fallback
 
     def _find_valid_position(self, world: World) -> Optional[tuple[int, int]]:
         """Find a valid position to spawn an apple.
