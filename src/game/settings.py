@@ -162,7 +162,7 @@ class GameSettings:
             "label": "Board size",
             "type": "int",
             "min": 5,
-            "max": 60,
+            "max": 90,
             "step": 1,
             "requires_reset": True,
             "category": "Display",
