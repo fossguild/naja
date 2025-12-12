@@ -550,9 +550,7 @@ class OverlayRenderSystem(BaseSystem):
                     # Calculate current grid size for display
                     current_grid_size = 20
                     if self._config:
-                        desired_cells = max(
-                            10, int(self._settings.get("cells_per_side"))
-                        )
+                        desired_cells = int(self._settings.get("cells_per_side"))
                         current_grid_size = self._config.get_optimal_grid_size(
                             desired_cells
                         )

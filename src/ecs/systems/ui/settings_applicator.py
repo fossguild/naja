@@ -133,7 +133,7 @@ class SettingsApplicator:
         old_grid = self._state.grid_size
 
         # Calculate new grid size from desired cells per side
-        desired_cells = max(10, int(settings.get("cells_per_side")))
+        desired_cells = int(settings.get("cells_per_side"))
         new_grid_size = self._config.get_optimal_grid_size(desired_cells)
 
         # Calculate obstacles from difficulty
