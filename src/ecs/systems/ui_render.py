@@ -30,6 +30,7 @@ from ecs.entities.entity import EntityType
 from core.rendering.pygame_surface_renderer import RenderEnqueue
 from core.types.color import Color
 from game import constants
+from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
 
 
 class UIRenderSystem(BaseSystem):
@@ -372,7 +373,7 @@ class UIRenderSystem(BaseSystem):
         # colors
         bar_color = Color.from_hex(constants.HUNGER_COLOR).to_tuple()
         border_color = Color.from_hex(constants.GRID_COLOR).to_tuple()
-        text_color = Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+        text_color = Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
 
         # position: draw below speed bar (a bit lower)
         bar_x = padding_x
@@ -518,3 +519,93 @@ class UIRenderSystem(BaseSystem):
         if self._settings:
             music_on = self._settings.get("background_music")
             self.draw_music_indicator(surface_width, surface_height, music_on)
+
+        # draw lives and scores for PvP mode
+        self.draw_pvp_ui(world, surface_width, surface_height)
+
+    def draw_pvp_ui(
+        self, world: World, surface_width: int, surface_height: int
+    ) -> None:
+        """Draw lives and scores for both players in PvP mode.
+
+        Args:
+            world: Game world to query snakes
+            surface_width: Width of the surface
+            surface_height: Height of the surface
+        """
+        # only draw in PvP mode
+        game_states = world.registry.query_by_component("game_state")
+        if not game_states:
+            return
+
+        game_state = list(game_states.values())[0].game_state
+        if game_state.game_mode != PLAYER_VS_PLAYER_MODE_NAME:
+            return
+
+        # query all snakes with player_id
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        players = []
+
+        for snake_id, snake in snakes.items():
+            if hasattr(snake, "player_id") and hasattr(snake, "lives"):
+                players.append(snake)
+
+        if not players:
+            return
+
+        # sort by player number
+        players.sort(key=lambda s: s.player_id.player_number)
+
+        # font for player info
+        font_size = int(surface_width / 35)
+        try:
+            player_font = pygame.font.Font(
+                "assets/font/GetVoIP-Grotesque.ttf", font_size
+            )
+        except Exception:
+            player_font = pygame.font.Font(None, font_size)
+
+        # position in bottom corners
+        padding = int(surface_width * 0.02)
+        bottom_y = surface_height - padding - font_size * 2
+
+        for player in players:
+            player_num = player.player_id.player_number
+            lives_remaining = player.lives.remaining
+            score = player.player_id.score
+
+            # determine position and color
+            if player_num == 1:
+                # Player 1 - bottom left, green
+                x_pos = padding
+                align = "left"
+                color = (100, 255, 100)
+            else:
+                # Player 2 - bottom right, blue
+                x_pos = surface_width - padding
+                align = "right"
+                color = (100, 150, 255)
+
+            # check if player is respawning
+            is_respawning = (
+                hasattr(player, "respawn_timer") and player.respawn_timer.is_respawning
+            )
+
+            if is_respawning:
+                # show respawn timer
+                time_left = player.respawn_timer.time_remaining_ms / 1000.0
+                label = f"P{player_num}: {lives_remaining}♥ | Respawning in {time_left:.1f}s"
+            else:
+                # show normal info
+                label = f"P{player_num}: {lives_remaining}♥ | {score} pts"
+
+            player_text = player_font.render(label, True, color)
+
+            if align == "right":
+                player_rect = player_text.get_rect()
+                player_rect.bottomright = (x_pos, bottom_y + font_size * 2)
+            else:
+                player_rect = player_text.get_rect()
+                player_rect.bottomleft = (x_pos, bottom_y + font_size * 2)
+
+            self._renderer.blit(player_text, player_rect)

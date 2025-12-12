@@ -211,14 +211,26 @@ class BoardRenderSystem(BaseSystem):
             world: Game world to render
         """
         # Check if game is over - render only background if dead
+        # BUT: Don't stop rendering in PvP mode where snakes can respawn
         from ecs.entities.entity import EntityType
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
 
-        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        # Check if we're in PvP mode
+        game_state_entities = world.registry.query_by_component("game_state")
+        is_pvp_mode = False
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                is_pvp_mode = entity.game_state.game_mode == PLAYER_VS_PLAYER_MODE_NAME
+
+        # Only check for game over in non-PvP modes
         game_over = False
-        for _, snake in snakes.items():
-            if hasattr(snake, "body") and not snake.body.alive:
-                game_over = True
-                break
+        if not is_pvp_mode:
+            snakes = world.registry.query_by_type(EntityType.SNAKE)
+            for _, snake in snakes.items():
+                if hasattr(snake, "body") and not snake.body.alive:
+                    game_over = True
+                    break
 
         # If game is over, render only arena background
         if game_over:

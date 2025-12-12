@@ -36,6 +36,15 @@ from core.types.color import Color
 from game import constants
 from game.constants import get_rainbow_color
 
+# Direction to rotation angle mapping (degrees)
+# Base sprite orientation assumed to be facing RIGHT (0 degrees)
+DIRECTION_TO_ROTATION = {
+    (1, 0): 0,  # RIGHT - no rotation (default)
+    (0, 1): 90,  # DOWN - 90° clockwise
+    (-1, 0): 180,  # LEFT - 180°
+    (0, -1): 270,  # UP - 270° clockwise (or 90° counter-clockwise)
+}
+
 
 class SnakeRenderSystem(BaseSystem):
     """System responsible for rendering snake entities with smooth interpolation.
@@ -50,15 +59,18 @@ class SnakeRenderSystem(BaseSystem):
     rather than by entity type, following ECS data-driven principles.
     """
 
-    def __init__(self, renderer: RenderEnqueue, settings=None):
+    def __init__(self, renderer: RenderEnqueue, settings=None, assets_system=None):
         """Initialize the SnakeRenderSystem.
 
         Args:
             renderer: RenderEnqueue view to queue draw commands
             settings: Optional game settings object for toggling features
+            assets_system: Optional AssetsSystem for sprite access
         """
         self._renderer = renderer
         self._settings = settings
+        self._assets = assets_system
+        self._use_sprites = assets_system is not None
 
     def get_board_offset(self) -> tuple[int, int]:
         """Get the offset for the game board from screen edge.
@@ -140,7 +152,7 @@ class SnakeRenderSystem(BaseSystem):
             head_color = Color.from_hex(constants.HEAD_COLOR).to_tuple()
             tail_color = Color.from_hex(constants.TAIL_COLOR).to_tuple()
 
-        # Draw tail segments with interpolation
+        # Draw tail segments
         self._draw_snake_tail(
             body,
             interpolation,
@@ -151,14 +163,49 @@ class SnakeRenderSystem(BaseSystem):
             tail_color,
             world,
             is_rainbow,
+            snake_velocity=(
+                getattr(position, "prev_x", position.x) - position.x,
+                getattr(position, "prev_y", position.y) - position.y,
+            ),
         )
 
-        # Draw head with interpolation (rainbow head uses first rainbow color)
+        # Draw head (get direction from velocity or position change)
+        head_direction = self._get_head_direction(position)
         if is_rainbow:
-            head_color = Color.from_hex(get_rainbow_color(0)).to_tuple()
+            # In rainbow mode, head uses first rainbow color
+            sprite_head_color = Color.from_hex(get_rainbow_color(0)).to_tuple()
+        elif self._use_sprites:
+            # Use tail_color for head when sprites enabled (same brightness as body)
+            sprite_head_color = tail_color
+        else:
+            sprite_head_color = head_color
         self._draw_snake_head(
-            position, interpolation, cell_size, grid_width, grid_height, head_color
+            position,
+            interpolation,
+            cell_size,
+            grid_width,
+            grid_height,
+            sprite_head_color,
+            head_direction,
         )
+
+    def _get_head_direction(self, position: Position) -> tuple[int, int]:
+        """Determine head direction from position change."""
+        dx = position.x - position.prev_x
+        dy = position.y - position.prev_y
+        # Normalize to unit direction (handle wraparound)
+        if dx > 1:
+            dx = -1
+        elif dx < -1:
+            dx = 1
+        if dy > 1:
+            dy = -1
+        elif dy < -1:
+            dy = 1
+        # Default to DOWN if no movement
+        if dx == 0 and dy == 0:
+            return (0, 1)
+        return (dx, dy)
 
     def _draw_snake_head(
         self,
@@ -168,6 +215,7 @@ class SnakeRenderSystem(BaseSystem):
         grid_width: int,
         grid_height: int,
         color: tuple,
+        direction: tuple[int, int] = (0, 1),
     ) -> None:
         """Draw the snake head with smooth interpolation and board offset.
 
@@ -178,6 +226,7 @@ class SnakeRenderSystem(BaseSystem):
             grid_width: Total grid width in pixels
             grid_height: Total grid height in pixels
             color: Head color as (r, g, b) tuple
+            direction: Movement direction for sprite rotation
         """
         # Get board offset
         offset_x, offset_y = self.get_board_offset()
@@ -199,14 +248,23 @@ class SnakeRenderSystem(BaseSystem):
         draw_x += offset_x
         draw_y += offset_y
 
-        # Draw head rectangle at interpolated position
-        rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
-        self._renderer.draw_rect(color, rect, 0)
-
-        # Draw dark border for visual clarity at high speeds (if enabled)
-        if self._settings and self._settings.get("segment_borders"):
-            border_color = tuple(max(0, c - 60) for c in color)
-            self._renderer.draw_rect(border_color, rect, 2)
+        # Try sprite rendering first
+        if self._use_sprites and self._assets:
+            sprite = self._assets.get_tinted_snake_sprite("head", color, cell_size)
+            if sprite:
+                # Rotate sprite based on direction
+                rotation = DIRECTION_TO_ROTATION.get(direction, 0)
+                if rotation != 0:
+                    sprite = pygame.transform.rotate(sprite, -rotation)
+                self._renderer.blit(sprite, (int(draw_x), int(draw_y)))
+            else:
+                # Fallback to rectangle
+                rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
+                self._renderer.draw_rect(color, rect, 0)
+        else:
+            # Rectangle rendering (fallback)
+            rect = pygame.Rect(int(draw_x), int(draw_y), cell_size, cell_size)
+            self._renderer.draw_rect(color, rect, 0)
 
         # Draw wraparound duplicate for smooth portal effect
         if interpolation.wrapped_axis != "none":
@@ -231,6 +289,7 @@ class SnakeRenderSystem(BaseSystem):
         color: tuple,
         world: World = None,
         is_rainbow: bool = False,
+        snake_velocity: tuple[int, int] = (0, 0),
     ) -> None:
         """Draw the snake tail with smooth interpolation for each segment and board offset.
 
@@ -244,6 +303,7 @@ class SnakeRenderSystem(BaseSystem):
             color: Tail color as (r, g, b) tuple
             world: Optional world for checking game mode
             is_rainbow: Whether to use rainbow coloring for each segment
+            snake_velocity: Snake movement velocity for direction calculation
         """
         if not body.segments:
             return
@@ -251,44 +311,73 @@ class SnakeRenderSystem(BaseSystem):
         # Get board offset
         offset_x, offset_y = self.get_board_offset()
 
-        # Draw each tail segment with interpolation
+        # Check if Cheese Mode is enabled (segments should be stationary)
+        cheese_mode = False
+        if world:
+            for entity in world.registry.get_all().values():
+                if hasattr(entity, "game_state") and entity.game_state:
+                    cheese_mode = entity.game_state.cheese_mode_enabled
+                    break
+
+        # Draw each tail segment
         for i, segment in enumerate(body.segments):
-            draw_x, draw_y = self._calculate_interpolated_position(
-                segment.x * cell_size,
-                segment.y * cell_size,
-                segment.prev_x * cell_size,
-                segment.prev_y * cell_size,
-                interpolation.alpha,
-                interpolation.wrapped_axis,
-                cell_size,
-                grid_width,
-                grid_height,
-            )
+            if cheese_mode:
+                # Cheese Mode: segments stay at fixed grid positions (no interpolation)
+                draw_x = segment.x * cell_size + offset_x
+                draw_y = segment.y * cell_size + offset_y
+            else:
+                # Classic Mode: smooth interpolation between positions
+                draw_x, draw_y = self._calculate_interpolated_position(
+                    segment.x * cell_size,
+                    segment.y * cell_size,
+                    segment.prev_x * cell_size,
+                    segment.prev_y * cell_size,
+                    interpolation.alpha,
+                    interpolation.wrapped_axis,
+                    cell_size,
+                    grid_width,
+                    grid_height,
+                )
+                # Apply board offset
+                draw_x += offset_x
+                draw_y += offset_y
 
-            # Apply board offset
-            draw_x += offset_x
-            draw_y += offset_y
-
-            segment_rect = pygame.Rect(
-                int(draw_x),
-                int(draw_y),
-                cell_size,
-                cell_size,
-            )
-
-            # Determine segment color (rainbow cycles through colors, +1 because head is index 0)
+            # Determine segment color (rainbow cycles through colors)
             if is_rainbow:
                 segment_color = Color.from_hex(get_rainbow_color(i + 1)).to_tuple()
             else:
                 segment_color = color
 
-            # All segments in the array are solid (holes are just empty cells)
-            self._renderer.draw_rect(segment_color, segment_rect, 0)
+            # Try sprite rendering
+            if self._use_sprites and self._assets:
+                # Determine segment type and rotation
+                segment_type, rotation, flip_x, flip_y = self._get_segment_info(
+                    body.segments, i, head_position, cheese_mode, body
+                )
 
-            # Draw dark border for visual clarity at high speeds (if enabled)
-            if self._settings and self._settings.get("segment_borders"):
-                border_color = tuple(max(0, c - 60) for c in segment_color)
-                self._renderer.draw_rect(border_color, segment_rect, 2)
+                sprite = self._assets.get_tinted_snake_sprite(
+                    segment_type, segment_color, cell_size
+                )
+
+                if sprite:
+                    # Apply flip first, then rotation
+                    if flip_x or flip_y:
+                        sprite = pygame.transform.flip(sprite, flip_x, flip_y)
+                    if rotation != 0:
+                        sprite = pygame.transform.rotate(sprite, -rotation)
+                    self._renderer.blit(sprite, (int(draw_x), int(draw_y)))
+                else:
+                    # Fallback to rectangle
+                    segment_rect = pygame.Rect(
+                        int(draw_x), int(draw_y), cell_size, cell_size
+                    )
+                    self._renderer.draw_rect(segment_color, segment_rect, 0)
+            else:
+                # Rectangle rendering (fallback)
+                segment_rect = pygame.Rect(
+                    int(draw_x), int(draw_y), cell_size, cell_size
+                )
+                self._renderer.draw_rect(segment_color, segment_rect, 0)
 
             # Draw wraparound duplicate
             if interpolation.wrapped_axis != "none":
@@ -301,6 +390,166 @@ class SnakeRenderSystem(BaseSystem):
                     interpolation.wrapped_axis,
                     segment_color,
                 )
+
+    def _get_segment_info(
+        self,
+        segments: list,
+        index: int,
+        head_position: Position,
+        cheese_mode: bool = False,
+        body=None,
+    ) -> tuple[str, int, bool, bool]:
+        """Determine segment type and rotation angle.
+
+        Args:
+            segments: List of body segments
+            index: Current segment index
+            head_position: Position of the snake head
+            cheese_mode: Whether Cheese Mode is enabled (uses history for directions)
+            body: SnakeBody component (needed for cheese mode history)
+
+        Returns:
+            Tuple of (segment_type, rotation_angle, flip_x, flip_y)
+            segment_type: "body", "turn", or "tail"
+            rotation_angle: Degrees to rotate (0, 90, 180, 270)
+            flip_x, flip_y: Whether to flip horizontally/vertically
+        """
+        curr = segments[index]
+
+        # For Cheese Mode with history, use previous_head_positions to find directions
+        if cheese_mode and body and hasattr(body, "previous_head_positions"):
+            history = body.previous_head_positions
+            # Find this segment's position in history to get neighbors
+            segment_pos = (curr.x, curr.y)
+
+            # Find index in history matching this segment
+            history_idx = None
+            for h_idx, h_pos in enumerate(history):
+                if (h_pos.x, h_pos.y) == segment_pos:
+                    history_idx = h_idx
+                    break
+
+            if history_idx is not None:
+                # Get previous and next positions in history
+                prev_pos = (
+                    history[history_idx - 1] if history_idx > 0 else head_position
+                )
+                next_pos = (
+                    history[history_idx + 1] if history_idx < len(history) - 1 else None
+                )
+
+                # TAIL (last segment or no next in history)
+                if index == len(segments) - 1 or next_pos is None:
+                    direction = self._normalize_direction(
+                        curr.x - prev_pos.x, curr.y - prev_pos.y
+                    )
+                    rotation = (DIRECTION_TO_ROTATION.get(direction, 0) + 180) % 360
+                    return ("tail", rotation, False, False)
+
+                # Calculate directions from history
+                dir_in = self._normalize_direction(
+                    curr.x - prev_pos.x, curr.y - prev_pos.y
+                )
+                dir_out = self._normalize_direction(
+                    next_pos.x - curr.x, next_pos.y - curr.y
+                )
+
+                if dir_in == dir_out:
+                    if dir_in[0] != 0:
+                        rotation = 0
+                    else:
+                        rotation = 90
+                    return ("body", rotation, False, False)
+
+                rotation, flip_x, flip_y = self._calculate_turn_rotation(
+                    dir_in, dir_out
+                )
+                return ("turn", rotation, flip_x, flip_y)
+
+        # Classic mode: use adjacent segments for direction
+        # TAIL (last segment)
+        if index == len(segments) - 1:
+            if index == 0:
+                # Only segment - use direction from head
+                prev = head_position
+            else:
+                prev = segments[index - 1]
+            direction = self._normalize_direction(curr.x - prev.x, curr.y - prev.y)
+            # Tail points AWAY from body, so add 180° to flip it
+            rotation = (DIRECTION_TO_ROTATION.get(direction, 0) + 180) % 360
+            return ("tail", rotation, False, False)
+
+        # Get adjacent positions for direction calculation
+        if index == 0:
+            prev = head_position
+        else:
+            prev = segments[index - 1]
+        next_seg = segments[index + 1]
+
+        # Calculate incoming and outgoing directions
+        dir_in = self._normalize_direction(curr.x - prev.x, curr.y - prev.y)
+        dir_out = self._normalize_direction(next_seg.x - curr.x, next_seg.y - curr.y)
+
+        # STRAIGHT BODY (same direction in and out)
+        if dir_in == dir_out:
+            # Body sprite is horizontal by default (facing RIGHT)
+            if dir_in[0] != 0:  # Horizontal movement (LEFT/RIGHT)
+                rotation = 0  # No rotation needed
+            else:  # Vertical movement (UP/DOWN)
+                rotation = 90  # Rotate 90° for vertical
+            return ("body", rotation, False, False)
+
+        # TURN segment (direction changes)
+        rotation, flip_x, flip_y = self._calculate_turn_rotation(dir_in, dir_out)
+        return ("turn", rotation, flip_x, flip_y)
+
+    def _normalize_direction(self, dx: int, dy: int) -> tuple[int, int]:
+        """Normalize direction to unit vector, handling wraparound."""
+        if dx > 1:
+            dx = -1
+        elif dx < -1:
+            dx = 1
+        if dy > 1:
+            dy = -1
+        elif dy < -1:
+            dy = 1
+        # Clamp to -1, 0, 1
+        if dx != 0:
+            dx = 1 if dx > 0 else -1
+        if dy != 0:
+            dy = 1 if dy > 0 else -1
+        return (dx, dy)
+
+    def _calculate_turn_rotation(
+        self, dir_in: tuple[int, int], dir_out: tuple[int, int]
+    ) -> tuple[int, bool, bool]:
+        """Calculate rotation for a turn segment.
+
+        Default sprite (0°) connects LEFT-UP corner shape.
+        Rotation-only approach:
+        - 0°: LEFT→UP, DOWN→RIGHT
+        - 90° CW: LEFT→DOWN, UP→RIGHT
+        - 180°: RIGHT→DOWN, UP→LEFT
+        - 270° (90° CCW): RIGHT→UP, DOWN→LEFT
+
+        Returns:
+            Tuple of (rotation_degrees, flip_x, flip_y) - flip always False
+        """
+        turn_map = {
+            # 0° - default corner shape (LEFT-UP / DOWN-RIGHT)
+            ((-1, 0), (0, -1)): (0, False, False),  # LEFT → UP
+            ((0, 1), (1, 0)): (0, False, False),  # DOWN → RIGHT
+            # 90° CW - rotated corner (LEFT-DOWN / UP-RIGHT)
+            ((-1, 0), (0, 1)): (90, False, False),  # LEFT → DOWN
+            ((0, -1), (1, 0)): (90, False, False),  # UP → RIGHT
+            # 180° - opposite corner (RIGHT-DOWN / UP-LEFT)
+            ((1, 0), (0, 1)): (180, False, False),  # RIGHT → DOWN
+            ((0, -1), (-1, 0)): (180, False, False),  # UP → LEFT
+            # 270° (90° CCW) - other corner (RIGHT-UP / DOWN-LEFT)
+            ((1, 0), (0, -1)): (270, False, False),  # RIGHT → UP
+            ((0, 1), (-1, 0)): (270, False, False),  # DOWN → LEFT
+        }
+        return turn_map.get((dir_in, dir_out), (0, False, False))
 
     def _calculate_interpolated_position(
         self,

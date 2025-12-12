@@ -46,7 +46,7 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR, WINDOW_TITLE
+from game.constants import ARENA_PRIMARY_COLOR, WINDOW_TITLE, MESSAGE_COLOR_LIGHT
 
 
 class MenuScene(BaseScene):
@@ -75,7 +75,15 @@ class MenuScene(BaseScene):
         self._assets = assets
         self._settings = settings
         self._selected_index = 0
-        self._menu_items = ["Start Game", "Game Modes", "Settings", "Quit"]
+        self._menu_items = [
+            [self._assets.button_start, self._assets.button_start_hover],
+            [self._assets.button_gamemode, self._assets.button_gamemode_hover],
+            [self._assets.button_settings, self._assets.button_settings_hover],
+            [self._assets.button_quit, self._assets.button_quit_hover],
+        ]
+        self.footer_text = "Created by: 2025.2 Open Source class"
+        self.icmc_text = "ICMC"
+        self._menu_item_rects = []
 
     def update(self, dt_ms: float) -> Optional[str]:
         """Update menu logic.
@@ -91,7 +99,23 @@ class MenuScene(BaseScene):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_pos = pygame.mouse.get_pos()
+                for i, rect in enumerate(self._menu_item_rects):
+                    if rect.collidepoint(mouse_pos):
+                        self._selected_index = i
+                        break
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left mouse button
+                    if self._selected_index == 0:  # Start Game
+                        return "gameplay"
+                    elif self._selected_index == 1:  # Game Modes
+                        return "game_modes"
+                    elif self._selected_index == 2:  # Settings
+                        return "settings"
+                    elif self._selected_index == 3:  # Quit
+                        pygame.quit()
+                        exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_UP, pygame.K_w):
                     self._selected_index = (self._selected_index - 1) % len(
@@ -102,13 +126,25 @@ class MenuScene(BaseScene):
                         self._menu_items
                     )
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    if self._menu_items[self._selected_index] == "Start Game":
+                    if (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_start_hover
+                    ):
                         return "gameplay"
-                    elif self._menu_items[self._selected_index] == "Game Modes":
+                    elif (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_gamemode_hover
+                    ):
                         return "game_modes"
-                    elif self._menu_items[self._selected_index] == "Settings":
+                    elif (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_settings_hover
+                    ):
                         return "settings"
-                    elif self._menu_items[self._selected_index] == "Quit":
+                    elif (
+                        self._menu_items[self._selected_index][1]
+                        == self._assets.button_quit_hover
+                    ):
                         pygame.quit()
                         exit()
                 elif event.key == pygame.K_ESCAPE:
@@ -124,7 +160,7 @@ class MenuScene(BaseScene):
 
         # Draw title (bigger and more prominent)
         title = self._assets.render_custom(
-            WINDOW_TITLE, MESSAGE_COLOR, int(self._width / 8)
+            WINDOW_TITLE, MESSAGE_COLOR_LIGHT, int(self._width / 7)
         )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 5))
         self._renderer.blit(title, title_rect)
@@ -132,7 +168,7 @@ class MenuScene(BaseScene):
         # Draw selected game mode below title
         mode_text = self._get_selected_mode_text()
         mode_surface = self._assets.render_custom(
-            mode_text, (150, 150, 150), int(self._width / 32)
+            mode_text, MESSAGE_COLOR_LIGHT, int(self._width / 40)
         )
         mode_rect = mode_surface.get_rect(
             center=(self._width / 2, self._height / 5 + self._height * 0.10)
@@ -140,13 +176,37 @@ class MenuScene(BaseScene):
         self._renderer.blit(mode_surface, mode_rect)
 
         # Draw menu items
+        self._menu_item_rects.clear()
         for i, item in enumerate(self._menu_items):
-            color = SCORE_COLOR if i == self._selected_index else MESSAGE_COLOR
-            text = self._assets.render_small(item, color)
-            rect = text.get_rect(
-                center=(self._width / 2, self._height / 2 + i * (self._height * 0.12))
+            img = (
+                self._menu_items[i][1]
+                if i == self._selected_index
+                else self._menu_items[i][0]
             )
-            self._renderer.blit(text, rect)
+            rect = img.get_rect(
+                center=(self._width / 2, self._height / 2 + i * (self._height * 0.096))
+            )
+            self._renderer.blit(img, rect)
+            self._menu_item_rects.append(rect)
+
+        # Draw creators text
+        footer_surface = self._assets.render_custom(
+            self.footer_text, MESSAGE_COLOR_LIGHT, int(self._width / 40)
+        )
+        footer_rect = footer_surface.get_rect(
+            center=(self._width / 2, self._height / 1.1)
+        )
+        self._renderer.blit(footer_surface, footer_rect)
+
+        # Draw ICMC text
+        icmc_surface = self._assets.render_custom(
+            self.icmc_text, MESSAGE_COLOR_LIGHT, int(self._width / 40)
+        )
+        icmc_rect = icmc_surface.get_rect(
+            center=(self._width / 2, self._height / 1.1 + (self._height * 0.03))
+        )
+        self._renderer.blit(icmc_surface, icmc_rect)
+        self._menu_item_rects.append(rect)
 
     def on_enter(self) -> None:
         """Called when entering menu."""

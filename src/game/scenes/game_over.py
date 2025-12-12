@@ -90,10 +90,57 @@ class GameOverScene(BaseScene):
         self._is_new_high_score = False
         self._new_score_timestamp = None
 
+    def _is_pvp_mode(self) -> bool:
+        """Check if the game was in PvP mode."""
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+
+        if self._world:
+            game_states = self._world.registry.query_by_component("game_state")
+            if game_states:
+                game_state = list(game_states.values())[0].game_state
+                return game_state.game_mode == PLAYER_VS_PLAYER_MODE_NAME
+        return False
+
+    def _get_pvp_player_scores(self) -> list[tuple[int, int, int]]:
+        """Get player scores and deaths from PvP mode.
+
+        Returns:
+            List of (player_number, score, deaths) tuples
+        """
+        if not self._world:
+            return []
+
+        from ecs.entities.entity import EntityType
+
+        snakes = self._world.registry.query_by_type(EntityType.SNAKE)
+        player_data = []
+
+        for snake_id, snake in snakes.items():
+            if hasattr(snake, "player_id") and hasattr(snake, "lives"):
+                player_num = snake.player_id.player_number
+                score = snake.player_id.score
+                # Calculate deaths from initial lives (3) minus remaining lives
+                deaths = 3 - snake.lives.remaining
+                player_data.append((player_num, score, deaths))
+
+        # Sort by player number
+        player_data.sort(key=lambda x: x[0])
+        return player_data
+
+    @property
+    def _is_draw(self) -> bool:
+        """Check if this is a draw/tie."""
+        return (
+            "draw" in self._death_reason.lower() or "tied" in self._death_reason.lower()
+        )
+
     @property
     def _is_victory(self) -> bool:
         """Check if this is a victory (win) instead of a death (loss)."""
-        return self._death_reason.startswith("Win:")
+        return (
+            self._death_reason.startswith("Win:")
+            or "wins" in self._death_reason.lower()
+        )
 
     @property
     def _victory_message(self) -> str:
@@ -103,8 +150,12 @@ class GameOverScene(BaseScene):
         This allows new game modes to automatically use their custom message
         by setting death_reason to 'Win: <their message>'.
         """
-        if self._is_victory and len(self._death_reason) > 5:
-            return self._death_reason[5:].strip()  # Remove 'Win: ' prefix
+        if self._is_victory:
+            if self._death_reason.startswith("Win: "):
+                return self._death_reason[5:].strip()  # Remove 'Win: ' prefix
+            else:
+                # Return the whole message for PvP mode (e.g., "Player 2 wins!")
+                return self._death_reason
         return "You completed the game!"  # Default fallback for others
 
     def update(self, dt_ms: float) -> Optional[str]:
@@ -121,6 +172,12 @@ class GameOverScene(BaseScene):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left Click -> Play Again
+                    return "gameplay"
+                elif event.button == 3:  # Right Click -> Menu
+                    return "menu"
 
             elif event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
@@ -159,14 +216,25 @@ class GameOverScene(BaseScene):
                 small_font = pygame.font.Font(None, small_font_size)
                 tiny_font = pygame.font.Font(None, tiny_font_size)
 
-            # Use victory or game over colors based on win/loss
-            if self._is_victory:
+            # Check if this is PvP mode
+            is_pvp = self._is_pvp_mode()
+
+            # Use victory or game over colors based on win/loss/draw
+            if self._is_draw:
+                # Draw/tie - use neutral/highlight colors
+                title_color = VICTORY_HIGHLIGHT_COLOR
+                message_color = GAME_OVER_MESSAGE_COLOR
+                highlight_color = GAME_OVER_HIGHLIGHT_COLOR
+                high_score_color = GAME_OVER_HIGH_SCORE_COLOR
+                new_score_color = GAME_OVER_NEW_SCORE_COLOR
+                title_text = "DRAW!!" if is_pvp else "Game Over"
+            elif self._is_victory:
                 title_color = VICTORY_TITLE_COLOR
                 message_color = VICTORY_MESSAGE_COLOR
                 highlight_color = VICTORY_HIGHLIGHT_COLOR
                 high_score_color = VICTORY_HIGH_SCORE_COLOR
                 new_score_color = VICTORY_HIGHLIGHT_COLOR
-                title_text = "You Win!"
+                title_text = "You Win!" if not is_pvp else self._victory_message
             else:
                 title_color = GAME_OVER_MESSAGE_COLOR
                 message_color = GAME_OVER_MESSAGE_COLOR
@@ -175,8 +243,18 @@ class GameOverScene(BaseScene):
                 new_score_color = GAME_OVER_NEW_SCORE_COLOR
                 title_text = "Game Over"
 
-            # Title text (either "You Win!" or "Game Over") centered
-            title_surface = big_font.render(title_text, True, title_color)
+            # Title text (either "You Win!", "DRAW!!" or "Game Over") centered
+            # Use medium font for longer PvP victory messages to ensure they fit
+            if is_pvp and (self._is_victory or self._is_draw) and len(title_text) > 10:
+                title_surface = medium_font.render(title_text, True, title_color)
+            else:
+                title_surface = big_font.render(title_text, True, title_color)
+
+            # Check if text is too wide and scale down if needed
+            if title_surface.get_width() > self._width * 0.9:
+                # Text too wide, use medium font
+                title_surface = medium_font.render(title_text, True, title_color)
+
             title_rect = title_surface.get_rect(
                 center=(self._width // 2, self._height / 5)
             )
@@ -184,36 +262,71 @@ class GameOverScene(BaseScene):
 
             # Display victory message or "NEW HIGH SCORE!" below title
             y_offset = self._height / 3.5
-            if self._is_victory:
-                # Show victory message (e.g., "Fully Shrunk!", "Board Complete!")
-                victory_text = medium_font.render(
-                    self._victory_message, True, message_color
-                )
-                victory_rect = victory_text.get_rect(
-                    center=(self._width // 2, y_offset)
-                )
-                self._renderer.blit(victory_text, victory_rect)
-                y_offset += 50
 
-            if self._is_new_high_score:
-                high_score_text = medium_font.render(
-                    "* NEW HIGH SCORE! *", True, high_score_color
-                )
-                high_score_rect = high_score_text.get_rect(
-                    center=(self._width // 2, y_offset)
-                )
-                self._renderer.blit(high_score_text, high_score_rect)
-                y_offset += 50
+            # In PvP mode, show player scores and deaths
+            if is_pvp:
+                player_data = self._get_pvp_player_scores()
+                if player_data:
+                    for player_num, score, deaths in player_data:
+                        player_color = (
+                            (100, 255, 100) if player_num == 1 else (100, 150, 255)
+                        )
+                        # Calculate final score (points - deaths)
+                        final_score = score - deaths
 
-            # Display current score
-            score_text = medium_font.render(
-                f"Your Score: {self._current_score}", True, highlight_color
-            )
-            score_rect = score_text.get_rect(center=(self._width // 2, y_offset))
-            self._renderer.blit(score_text, score_rect)
+                        # Display player info on two lines for better fit
+                        # Line 1: Player name and points
+                        player_text = small_font.render(
+                            f"Player {player_num}: {score} points", True, player_color
+                        )
+                        player_rect = player_text.get_rect(
+                            center=(self._width // 2, y_offset)
+                        )
+                        self._renderer.blit(player_text, player_rect)
+                        y_offset += 35
 
-            # Display top scores for current settings
-            if self._scoreboard and self._settings:
+                        # Line 2: Deaths and final score
+                        stats_text = small_font.render(
+                            f"Deaths: {deaths} | Final Score: {final_score}",
+                            True,
+                            player_color,
+                        )
+                        stats_rect = stats_text.get_rect(
+                            center=(self._width // 2, y_offset)
+                        )
+                        self._renderer.blit(stats_text, stats_rect)
+                        y_offset += 45
+            else:
+                if self._is_victory:
+                    # Show victory message (e.g., "Fully Shrunk!", "Board Complete!")
+                    victory_text = medium_font.render(
+                        self._victory_message, True, message_color
+                    )
+                    victory_rect = victory_text.get_rect(
+                        center=(self._width // 2, y_offset)
+                    )
+                    self._renderer.blit(victory_text, victory_rect)
+                    y_offset += 50
+
+                if self._is_new_high_score:
+                    high_score_text = medium_font.render(
+                        "* NEW HIGH SCORE! *", True, high_score_color
+                    )
+                    high_score_rect = high_score_text.get_rect(
+                        center=(self._width // 2, y_offset)
+                    )
+                    self._renderer.blit(high_score_text, high_score_rect)
+                    y_offset += 50
+
+                # Display current score
+                score_text = medium_font.render(
+                    f"Your Score: {self._current_score}", True, highlight_color
+                )
+                score_rect = score_text.get_rect(center=(self._width // 2, y_offset))
+                self._renderer.blit(score_text, score_rect)
+
+            # Display top scores for current settings (not in PvP mode)
+            if self._scoreboard and self._settings and not is_pvp:
                 y_offset += 100  # Increased spacing before high scores section
 
                 # Use shorter text if width is too small
@@ -306,7 +419,7 @@ class GameOverScene(BaseScene):
 
             # "Press Enter/Space to restart • Q to menu" text at bottom
             restart_text = small_font.render(
-                "Press Enter/Space to play again  •  Q to menu", True, message_color
+                "Left Click/Enter: Play  •  Right Click/Q: Menu", True, message_color
             )
             restart_rect = restart_text.get_rect(
                 center=(self._width // 2, self._height - 50)
@@ -315,7 +428,7 @@ class GameOverScene(BaseScene):
             # If text doesn't fit, make it shorter
             if restart_rect.width > self._width * 0.95:
                 restart_text = small_font.render(
-                    "Enter/Space: play  •  Q: menu", True, message_color
+                    "L-Click: Play  •  R-Click: Menu", True, message_color
                 )
                 restart_rect = restart_text.get_rect(
                     center=(self._width // 2, self._height - 50)

@@ -47,13 +47,16 @@ from ecs.systems.obstacle_generation import ObstacleGenerationSystem
 from ecs.systems.settings_apply import SettingsApplySystem
 from ecs.systems.trail_generation import TrailGenerationSystem
 from ecs.systems.trail_decay import TrailDecaySystem
+from ecs.systems.lights_out import LightsOutSystem
 from game.scenes.game_modes import get_resolved_game_mode
 from game.game_modes_registry import (
     CLASSIC_MODE_NAME,
     BOX_MODE_NAME,
     PORTAL_BARRIER_MODE_NAME,
+    PLAYER_VS_PLAYER_MODE_NAME,
 )
 from ecs.systems.hunger import HungerSystem
+from ecs.systems.respawn import RespawnSystem
 from game.settings import GameSettings
 from game.services.game_over_service import GameOverService
 
@@ -172,6 +175,13 @@ class GameplayScene(BaseScene):
                 ]
             )
 
+        # create respawn system for PvP mode
+        respawn_system = (
+            RespawnSystem()
+            if self._current_game_mode == PLAYER_VS_PLAYER_MODE_NAME
+            else None
+        )
+
         game_logic_systems.extend(
             [
                 CollisionSystem(
@@ -179,7 +189,8 @@ class GameplayScene(BaseScene):
                     self._audio_service,
                     scoring_system,
                     game_over_service,
-                ),  # 4: detect collisions (wall, self-bite, obstacles, apples, boxes)
+                    respawn_system,
+                ),  # 4: detect collisions (wall, self-bite, obstacles, apples, boxes, player-vs-player)
             ]
         )
 
@@ -220,34 +231,40 @@ class GameplayScene(BaseScene):
                     if self._settings and bool(self._settings.get("enable_hunger"))
                     else []
                 ),
+                LightsOutSystem(
+                    self._settings
+                ),  # 8: enforce always-on Lights Out vision radius
+                scoring_system,  # 9: track score and high score
+                # 7.5: add respawn system for PvP mode
+                *([respawn_system] if respawn_system is not None else []),
                 scoring_system,  # 8: track score and high score
                 ObstacleGenerationSystem(
                     100, 8, 2, None
-                ),  # 9: generate obstacles with connectivity guarantees
-                settings_apply_system,  # 10: apply runtime settings changes
+                ),  # 10: generate obstacles with connectivity guarantees
+                settings_apply_system,  # 11: apply runtime settings changes
             ]
         )
 
         self._systems.extend(game_logic_systems)
 
-        # rendering and audio systems (indices 10+, always run even when paused)
+        # rendering and audio systems (indices 12+, always run even when paused)
         self._systems.extend(
             [
                 InterpolationSystem(
                     self._get_electric_walls(), self._get_electric_walls
-                ),  # 10: calculate smooth positions for rendering
+                ),  # 12: calculate smooth positions for rendering
                 AudioSystem(
                     self._sfx_queue_service, None, None, 0.2
-                ),  # 11: play sounds and music
+                ),  # 13: play sounds and music
             ]
         )
 
-        # render systems (11-14: draw board, entities, snake, UI)
+        # render systems (14-18: draw board, entities, snake, UI, overlays)
         if self._renderer:
             self._board_render_system = BoardRenderSystem(self._renderer)
             self._entity_render_system = EntityRenderSystem(self._renderer)
             self._snake_render_system = SnakeRenderSystem(
-                self._renderer, self._settings
+                self._renderer, self._settings, self._assets
             )
             self._ui_render_system = UIRenderSystem(self._renderer, self._settings)
             # overlay_render_system already created earlier (before InputSystem)
@@ -259,12 +276,15 @@ class GameplayScene(BaseScene):
                 self._renderer
             )
 
+            # Draw order: board, entities, snake, overlay, UI
+            # Overlay must be blitted before UI so HUD elements remain visible above it.
             self._systems.extend(
                 [
                     self._board_render_system,
                     self._entity_render_system,
                     self._portal_barrier_render_system,  # render portal barrier exit blocks
                     self._snake_render_system,
+                    self._overlay_render_system,
                     self._ui_render_system,
                 ]
             )
@@ -295,9 +315,9 @@ class GameplayScene(BaseScene):
         game_state = self._get_game_state()
         is_paused = game_state.paused if game_state else False
 
-        # pause game logic systems (1-9) but keep input (0) and rendering (10+) running
+        # pause game logic systems (1-11) but keep input (0) and rendering (12+) running
         GAME_LOGIC_START = 1
-        GAME_LOGIC_END = 9
+        GAME_LOGIC_END = 11
 
         for i, system in enumerate(self._systems):
             # skip game logic when paused (movement, collision, spawning, etc.)
@@ -338,6 +358,7 @@ class GameplayScene(BaseScene):
 
     def on_exit(self) -> None:
         """Called when exiting gameplay scene."""
+        self._audio_service.play_music("assets/sound/menu.mp3")
         self.on_detach()
 
     def render(self) -> None:

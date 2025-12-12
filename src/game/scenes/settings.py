@@ -27,7 +27,12 @@ from typing import Optional
 from game.scenes.base_scene import BaseScene
 from game.services.assets import GameAssets
 from game.settings import GameSettings
-from game.constants import ARENA_PRIMARY_COLOR, MESSAGE_COLOR, SCORE_COLOR, GRID_COLOR
+from game.constants import (
+    ARENA_PRIMARY_COLOR,
+    MESSAGE_COLOR_LIGHT,
+    MESSAGE_COLOR_DARK,
+    SCORE_COLOR,
+)
 
 
 class SettingsScene(BaseScene):
@@ -70,6 +75,10 @@ class SettingsScene(BaseScene):
         # hover state for warning tooltips
         self._hovered_warning_key = None
         self._warning_icon_rects = {}  # key -> rect for hover detection
+        self._item_rects = []  # rects for mouse interaction
+        self._slider_fields = {"initial_speed", "max_speed"}
+        self._slider_hit_rects: dict[str, dict] = {}
+        self._active_slider_key: Optional[str] = None
         # key repeat tracking for smooth scrolling
         self._key_down_pressed = False
         self._key_up_pressed = False
@@ -83,17 +92,38 @@ class SettingsScene(BaseScene):
         Returns:
             List of visible fields
         """
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+        from game.scenes.game_modes import get_resolved_game_mode
+
+        # Check if we're in PvP mode
+        current_mode = get_resolved_game_mode()
+        is_pvp = current_mode == PLAYER_VS_PLAYER_MODE_NAME
+
         visible = []
         for field in self._settings.MENU_FIELDS:
+            # skip PvP-only fields if not in PvP mode
+            if field.get("pvp_only", False) and not is_pvp:
+                continue
+
+            # create a copy of the field to avoid modifying the original
+            field_copy = field.copy()
+
+            # adjust label for snake color based on mode
+            if field_copy["key"] == "snake_color_palette":
+                if is_pvp:
+                    field_copy["label"] = "Snake (WASD)"
+                else:
+                    field_copy["label"] = "Snake color"
+
             # section headers are always visible
-            if field["type"] == "section":
-                visible.append(field)
+            if field_copy["type"] == "section":
+                visible.append(field_copy)
             # regular fields are visible if they don't have a parent section,
             # or if their parent section is not collapsed
             else:
-                parent = field.get("parent_section")
+                parent = field_copy.get("parent_section")
                 if not parent or parent not in self._collapsed_sections:
-                    visible.append(field)
+                    visible.append(field_copy)
         return visible
 
     def _toggle_section(self, section_key: str) -> None:
@@ -120,8 +150,8 @@ class SettingsScene(BaseScene):
         visible_fields = self._get_visible_fields()
 
         # Clamp selected index to visible range
-        if self._selected_index >= len(visible_fields):
-            self._selected_index = len(visible_fields) - 1
+        if self._selected_index > len(visible_fields):
+            self._selected_index = len(visible_fields)
         if self._selected_index < 0:
             self._selected_index = 0
 
@@ -162,6 +192,80 @@ class SettingsScene(BaseScene):
                 pygame.quit()
                 exit()
 
+            # Mouse Interaction Logic
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                total_items = len(visible_fields) + 1
+                mouse_pos = pygame.mouse.get_pos()
+
+                if event.button == 1:
+                    slider_hit = self._get_slider_hit(mouse_pos)
+                    if slider_hit:
+                        key, slider_info = slider_hit
+                        if not self._settings.is_setting_restricted(key):
+                            self._selected_index = slider_info["index"]
+                            self._active_slider_key = key
+                            self._settings.stop_key_hold()
+                            self._set_slider_value_from_mouse(
+                                slider_info["field"], mouse_pos[0]
+                            )
+                        continue
+
+                # Scroll Wheel: Maps directly to selection index for consistency
+                if event.button == 4:  # Scroll Up
+                    self._selected_index = (self._selected_index - 1) % total_items
+                elif event.button == 5:  # Scroll Down
+                    self._selected_index = (self._selected_index + 1) % total_items
+
+                # Clicks: Check against rects stored in render
+                elif event.button in (1, 3):  # Left(1) or Right(3) Click
+                    for rect, idx in self._item_rects:
+                        if rect.collidepoint(mouse_pos):
+                            # Move selection to clicked item
+                            self._selected_index = idx
+
+                            # Handle interaction
+                            if idx == len(visible_fields):  # Reset Button
+                                if event.button == 1:
+                                    self._settings.reset_to_defaults()
+                                    self._settings.save_settings()
+                            else:  # Regular Field or Section
+                                field = visible_fields[idx]
+
+                                if field["type"] == "section" and event.button == 1:
+                                    self._toggle_section(field["key"])
+                                elif field["type"] != "section":
+                                    if not self._settings.is_setting_restricted(
+                                        field["key"]
+                                    ):
+                                        # Left click increases, Right click decreases
+                                        change = 1 if event.button == 1 else -1
+                                        self._settings.start_key_hold(field, change)
+                                        self._settings.stop_key_hold()  # Immediate single click
+                                        self._apply_audio_setting_if_changed(
+                                            field["key"]
+                                        )
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self._active_slider_key = None
+
+            elif event.type == pygame.MOUSEMOTION:
+                if self._active_slider_key:
+                    buttons = pygame.mouse.get_pressed()
+                    if buttons[0]:
+                        slider_info = self._slider_hit_rects.get(
+                            self._active_slider_key
+                        )
+                        if slider_info and not self._settings.is_setting_restricted(
+                            self._active_slider_key
+                        ):
+                            self._set_slider_value_from_mouse(
+                                slider_info["field"], event.pos[0]
+                            )
+                        else:
+                            self._active_slider_key = None
+                    else:
+                        self._active_slider_key = None
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     # Stop any ongoing key hold when leaving
@@ -176,6 +280,9 @@ class SettingsScene(BaseScene):
                     if self._selected_index == len(visible_fields):
                         self._settings.reset_to_defaults()
                         self._settings.save_settings()
+                        # if background music was off, return music
+                        if not pygame.mixer.music.get_busy():
+                            pygame.mixer.music.unpause()
                         # Stay in settings to show the reset took effect
                     elif self._selected_index < len(visible_fields):
                         # toggle section if selected field is a section
@@ -294,9 +401,13 @@ class SettingsScene(BaseScene):
         # Clear warning icon rects for fresh hover detection
         self._warning_icon_rects.clear()
 
+        # Clear interactive rects
+        self._item_rects = []
+        self._slider_hit_rects.clear()
+
         # Draw title
         title = self._assets.render_custom(
-            "Settings", MESSAGE_COLOR, int(self._width / 12)
+            "Settings", MESSAGE_COLOR_LIGHT, int(self._width / 12)
         )
         title_rect = title.get_rect(center=(self._width / 2, self._height / 10))
         self._renderer.blit(title, title_rect)
@@ -322,6 +433,9 @@ class SettingsScene(BaseScene):
         # Get visible fields (respecting section collapse state)
         visible_fields = self._get_visible_fields()
 
+        # Get mouse pos for hover effect
+        mouse_pos = pygame.mouse.get_pos()
+
         # Draw settings grouped by category
         for field_i, f in enumerate(visible_fields):
             # skip category headers for section headers and their children
@@ -344,7 +458,7 @@ class SettingsScene(BaseScene):
                 if content_start_y - category_h <= current_y <= content_end_y:
                     category_text = self._assets.render_custom(
                         f"─── {current_category} ───",
-                        (180, 180, 180),
+                        MESSAGE_COLOR_LIGHT,
                         int(self._width / 32),
                     )
                     category_rect = category_text.get_rect()
@@ -356,6 +470,14 @@ class SettingsScene(BaseScene):
 
             # Draw setting field only if visible
             if content_start_y - row_h <= current_y <= content_end_y:
+                # Rect for hit detection (width extends to cover the row)
+                hit_rect = pygame.Rect(
+                    left_margin - category_indent, current_y, self._width * 0.7, row_h
+                )
+                self._item_rects.append((hit_rect, field_i))
+
+                is_mouse_hover = hit_rect.collidepoint(mouse_pos)
+
                 # handle section headers specially
                 if f["type"] == "section":
                     # section headers get a collapse indicator
@@ -365,9 +487,9 @@ class SettingsScene(BaseScene):
 
                     # make section headers slightly larger
                     color = (
-                        SCORE_COLOR
-                        if field_i == self._selected_index
-                        else MESSAGE_COLOR
+                        MESSAGE_COLOR_DARK
+                        if (field_i == self._selected_index or is_mouse_hover)
+                        else MESSAGE_COLOR_LIGHT
                     )
                     text = self._assets.render_custom(
                         label_text,
@@ -407,14 +529,14 @@ class SettingsScene(BaseScene):
                         # Restricted settings shown in orange/amber
                         color = (
                             (255, 180, 60)
-                            if field_i == self._selected_index
+                            if (field_i == self._selected_index or is_mouse_hover)
                             else (180, 130, 60)
                         )
                     else:
                         color = (
-                            SCORE_COLOR
-                            if field_i == self._selected_index
-                            else MESSAGE_COLOR
+                            MESSAGE_COLOR_LIGHT
+                            if (field_i == self._selected_index or is_mouse_hover)
+                            else MESSAGE_COLOR_DARK
                         )
                     text = self._assets.render_custom(
                         f"{f['label']}: {formatted_val}",
@@ -425,6 +547,23 @@ class SettingsScene(BaseScene):
                     rect.left = left_margin
                     rect.top = current_y
                     self._renderer.blit(text, rect)
+
+                    if f["key"] in self._slider_fields:
+                        slider_rect = self._draw_slider(
+                            field=f,
+                            value=val,
+                            row_rect=hit_rect,
+                            label_rect=rect,
+                            is_selected=field_i == self._selected_index,
+                            is_hover=is_mouse_hover,
+                            is_restricted=is_restricted,
+                        )
+                        if slider_rect:
+                            self._slider_hit_rects[f["key"]] = {
+                                "rect": slider_rect,
+                                "field": f,
+                                "index": field_i,
+                            }
 
                     # Draw warning indicator if restricted
                     if is_restricted:
@@ -460,9 +599,23 @@ class SettingsScene(BaseScene):
 
         # Only draw if visible
         if content_start_y - row_h <= current_y <= content_end_y:
+            reset_rect_hit = pygame.Rect(
+                left_margin - category_indent, current_y, self._width * 0.7, row_h
+            )
+            self._item_rects.append((reset_rect_hit, reset_index))
+            is_reset_hover = reset_rect_hit.collidepoint(mouse_pos)
+
+            reset_color = (200, 100, 100)
+            if self._selected_index == reset_index or is_reset_hover:
+                reset_color = SCORE_COLOR
+
             reset_text = self._assets.render_custom(
                 "──  Reset to Default  ──",
-                SCORE_COLOR if self._selected_index == reset_index else (200, 100, 100),
+                (
+                    MESSAGE_COLOR_LIGHT
+                    if self._selected_index == reset_index
+                    else reset_color
+                ),
                 int(self._width / 32),
             )
             reset_rect = reset_text.get_rect()
@@ -471,8 +624,10 @@ class SettingsScene(BaseScene):
             self._renderer.blit(reset_text, reset_rect)
 
         # Hint footer
-        hint_text = "[A/D] change   [W/S] select   [Enter] toggle/exit   [Esc] back   [C] random"
-        hint = self._assets.render_custom(hint_text, GRID_COLOR, int(self._width / 50))
+        hint_text = "[A/D/Click] change   [W/S/Scroll] select   [Enter] toggle/exit   [Esc] back"
+        hint = self._assets.render_custom(
+            hint_text, MESSAGE_COLOR_LIGHT, int(self._width / 50)
+        )
         self._renderer.blit(
             hint, hint.get_rect(center=(self._width / 2, self._height * 0.95))
         )
@@ -536,6 +691,98 @@ class SettingsScene(BaseScene):
 
                 # Draw tooltip text
                 self._renderer.blit(tooltip_surface, tooltip_rect)
+
+    def _get_slider_hit(self, mouse_pos: tuple[int, int]) -> Optional[tuple[str, dict]]:
+        """Return slider info if the pointer is over a slider."""
+        for key, info in self._slider_hit_rects.items():
+            rect = info.get("rect")
+            if rect and rect.collidepoint(mouse_pos):
+                return key, info
+        return None
+
+    def _set_slider_value_from_mouse(self, field: dict, mouse_x: int) -> None:
+        """Update a slider value based on mouse position."""
+        slider_info = self._slider_hit_rects.get(field["key"])
+        if not slider_info:
+            return
+        rect: pygame.Rect = slider_info["rect"]
+        if rect.width <= 0:
+            return
+
+        ratio = (mouse_x - rect.left) / rect.width
+        ratio = max(0.0, min(1.0, ratio))
+
+        min_val = field.get("min", 0.0)
+        max_val = field.get("max", min_val)
+        if max_val <= min_val:
+            return
+
+        raw_value = min_val + ratio * (max_val - min_val)
+        self._settings.set_field_value(field, raw_value)
+
+    def _draw_slider(
+        self,
+        field: dict,
+        value: float,
+        row_rect: pygame.Rect,
+        label_rect: pygame.Rect,
+        is_selected: bool,
+        is_hover: bool,
+        is_restricted: bool,
+    ) -> Optional[pygame.Rect]:
+        """Draw a horizontal slider for speed settings."""
+        row_right = row_rect.left + row_rect.width
+        gap = int(self._width * 0.01)
+        slider_left = max(
+            label_rect.right + gap, row_rect.left + int(row_rect.width * 0.45)
+        )
+        slider_right = row_right - gap
+        slider_width = max(60, slider_right - slider_left)
+        slider_height = max(6, int(row_rect.height * 0.25))
+        slider_center_y = label_rect.centery
+        slider_top = slider_center_y - slider_height // 2
+
+        slider_rect = pygame.Rect(slider_left, slider_top, slider_width, slider_height)
+
+        track_color = pygame.Color("#2c2c2c")
+        border_color = pygame.Color(MESSAGE_COLOR_DARK)
+        fill_color = pygame.Color(MESSAGE_COLOR_LIGHT)
+        handle_color = pygame.Color(SCORE_COLOR)
+
+        if is_restricted:
+            fill_color = pygame.Color((90, 90, 90))
+            handle_color = pygame.Color((180, 130, 60))
+        elif not (is_selected or is_hover):
+            # Dim when not focused
+            fill_color = pygame.Color(MESSAGE_COLOR_DARK)
+
+        self._renderer.draw_rect(track_color, slider_rect)
+
+        min_val = field.get("min", 0.0)
+        max_val = field.get("max", min_val + 1)
+        span = max(0.0001, max_val - min_val)
+        ratio = (value - min_val) / span
+        ratio = max(0.0, min(1.0, ratio))
+        fill_width = int(slider_width * ratio)
+        if fill_width > 0:
+            fill_rect = pygame.Rect(slider_left, slider_top, fill_width, slider_height)
+            self._renderer.draw_rect(fill_color, fill_rect)
+
+        border_rect = slider_rect.inflate(2, 2)
+        self._renderer.draw_rect(border_color, border_rect, 2)
+
+        handle_width = max(8, slider_height + 6)
+        handle_height = slider_height + 8
+        handle_rect = pygame.Rect(0, 0, handle_width, handle_height)
+        handle_center_x = slider_left + int(slider_width * ratio)
+        handle_center_x = max(
+            slider_left, min(handle_center_x, slider_left + slider_width)
+        )
+        handle_rect.centerx = handle_center_x
+        handle_rect.centery = slider_rect.centery
+        self._renderer.draw_rect(handle_color, handle_rect)
+
+        return slider_rect
 
     def on_enter(self) -> None:
         """Called when entering settings."""

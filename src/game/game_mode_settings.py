@@ -32,6 +32,7 @@ GAME_MODES = [
     # "Cheese Mode",
     # "Tail Mode",
     # "Shrinking Snake Mode",
+    # "Lights Out",
 ]
 
 

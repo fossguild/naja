@@ -26,6 +26,7 @@ overlay rendering (pause screen, settings menu) on top of the game.
 import pygame
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
+from ecs.entities.entity import EntityType
 from core.rendering.pygame_surface_renderer import RenderEnqueue
 from core.types.color import Color
 from game import constants
@@ -37,6 +38,7 @@ class OverlayRenderSystem(BaseSystem):
     Responsibilities:
     - Render pause overlay (when paused)
     - Render settings overlay (when settings menu is open)
+    - Render Lights Out mode darkness overlay with vision circles
 
     NOT responsible for:
     - Basic HUD rendering (use UIRenderSystem)
@@ -92,6 +94,253 @@ class OverlayRenderSystem(BaseSystem):
         else:
             self._collapsed_sections.add(section_key)
 
+    def _get_lights_out_state(self, world: World):
+        entities = world.registry.query_by_component("lights_out_state")
+        if not entities:
+            return None
+        entity = next(iter(entities.values()))
+        return getattr(entity, "lights_out_state", None)
+
+    def _get_game_state(self, world: World):
+        entities = world.registry.query_by_component("game_state")
+        if not entities:
+            return None
+        entity = next(iter(entities.values()))
+        return getattr(entity, "game_state", None)
+
+    def _get_board_offset(self) -> tuple[int, int]:
+        """Match the board offset used by render systems."""
+        surface = pygame.display.get_surface()
+        if not surface:
+            return (0, 0)
+        return (0, 45)
+
+    def draw_lights_out_overlay(self, world: World) -> None:
+        """Render blackout mask for Lights Out mode (always-on).
+
+        The mode is always-on in this build; no countdown/timers are displayed.
+        """
+        try:
+            game_state = self._get_game_state(world)
+            lights_out_state = self._get_lights_out_state(world)
+
+            if (
+                not game_state
+                or not lights_out_state
+                or not game_state.lights_out_enabled
+            ):
+                return
+
+            surface = pygame.display.get_surface()
+            if not surface:
+                return
+
+            surface_width, surface_height = surface.get_size()
+            cell_size = getattr(world.board, "cell_size", 16)
+            board_px_w = getattr(world.board, "width", 0) * cell_size
+            board_px_h = getattr(world.board, "height", 0) * cell_size
+            offset_x, offset_y = self._get_board_offset()
+
+            # If board has zero size, fall back to full-surface overlay
+            if board_px_w <= 0 or board_px_h <= 0:
+                overlay = pygame.Surface(
+                    (surface_width, surface_height), pygame.SRCALPHA
+                )
+                overlay.fill((0, 0, 0, 255))
+                self._renderer.blit(overlay, (0, 0))
+                return
+            # Create overlay for board area only
+            overlay = pygame.Surface((board_px_w, board_px_h), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 255))
+
+            # Get snake head position directly from world
+            snakes = world.registry.query_by_type_and_components(
+                EntityType.SNAKE, "position", "interpolation"
+            )
+            if not snakes:
+                snakes = world.registry.query_by_type_and_components(
+                    EntityType.SNAKE, "position"
+                )
+            if not snakes:
+                self._renderer.blit(overlay, (offset_x, offset_y))
+                return
+
+            snake = next(iter(snakes.values()))
+            position = getattr(snake, "position", None)
+            interpolation = getattr(snake, "interpolation", None)
+            if not position:
+                self._renderer.blit(overlay, (offset_x, offset_y))
+                return
+
+            # Calculate vision center in overlay coordinates
+            cx = position.x * cell_size + cell_size / 2
+            cy = position.y * cell_size + cell_size / 2
+
+            # Apply smooth interpolation if available
+            if interpolation:
+                prev_cx = position.prev_x * cell_size + cell_size / 2
+                prev_cy = position.prev_y * cell_size + cell_size / 2
+                # Handle wrapping interpolation
+                if interpolation.wrapped_axis in ("x", "both"):
+                    # Wrapping on X - interpolate in the direction of movement
+                    if abs(cx - prev_cx) > board_px_w / 2:
+                        if cx < prev_cx:
+                            cx += board_px_w
+                        else:
+                            prev_cx += board_px_w
+                if interpolation.wrapped_axis in ("y", "both"):
+                    # Wrapping on Y - interpolate in the direction of movement
+                    if abs(cy - prev_cy) > board_px_h / 2:
+                        if cy < prev_cy:
+                            cy += board_px_h
+                        else:
+                            prev_cy += board_px_h
+                # Linear interpolation
+                cx = prev_cx + (cx - prev_cx) * interpolation.alpha
+                cy = prev_cy + (cy - prev_cy) * interpolation.alpha
+                # Wrap back to board bounds
+                cx = cx % board_px_w
+                cy = cy % board_px_h
+            radius_px = max(8, int(lights_out_state.radius * cell_size))
+
+            # Check if electric walls are enabled
+            electric_walls = (
+                self._settings.get("electric_walls") if self._settings else True
+            )
+
+            # Draw vision circles
+            self._draw_vision_circle(
+                overlay, cx, cy, radius_px, board_px_w, board_px_h, electric_walls
+            )
+
+            # Reveal apples
+            self._draw_apple_glows(
+                world,
+                overlay,
+                cx,
+                cy,
+                radius_px,
+                cell_size,
+                board_px_w,
+                board_px_h,
+                electric_walls,
+            )
+
+            # Blit overlay at board offset
+            self._renderer.blit(overlay, (offset_x, offset_y))
+
+        except Exception:
+            pass
+
+    def _draw_vision_circle(
+        self, overlay, cx, cy, radius_px, board_w, board_h, electric_walls
+    ):
+        """Draw vision circle(s) at the given center, handling wrapping if needed."""
+        # Always draw at primary position
+        pygame.draw.circle(overlay, (0, 0, 0, 0), (int(cx), int(cy)), radius_px)
+        # If walls wrap, draw at wrapped positions when near edges
+        if not electric_walls:
+            # Draw wrapped circles for seamless edge wrapping
+            if cx - radius_px < 0:  # Near left
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx + board_w), int(cy)), radius_px
+                )
+            if cx + radius_px > board_w:  # Near right
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx - board_w), int(cy)), radius_px
+                )
+            if cy - radius_px < 0:  # Near top
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx), int(cy + board_h)), radius_px
+                )
+            if cy + radius_px > board_h:  # Near bottom
+                pygame.draw.circle(
+                    overlay, (0, 0, 0, 0), (int(cx), int(cy - board_h)), radius_px
+                )
+
+            # Corner cases
+            if cx - radius_px < 0 and cy - radius_px < 0:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx + board_w), int(cy + board_h)),
+                    radius_px,
+                )
+            if cx + radius_px > board_w and cy - radius_px < 0:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx - board_w), int(cy + board_h)),
+                    radius_px,
+                )
+            if cx - radius_px < 0 and cy + radius_px > board_h:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx + board_w), int(cy - board_h)),
+                    radius_px,
+                )
+            if cx + radius_px > board_w and cy + radius_px > board_h:
+                pygame.draw.circle(
+                    overlay,
+                    (0, 0, 0, 0),
+                    (int(cx - board_w), int(cy - board_h)),
+                    radius_px,
+                )
+
+    def _draw_apple_glows(
+        self,
+        world,
+        overlay,
+        cx,
+        cy,
+        radius_px,
+        cell_size,
+        board_w,
+        board_h,
+        electric_walls,
+    ):
+        """Draw apple glows when they're visible in the vision radius."""
+        try:
+            apple_radius_px = max(4, int(1.5 * cell_size))
+            apples = world.registry.query_by_type(EntityType.APPLE)
+            for _, apple in apples.items():
+                pos = getattr(apple, "position", None)
+                if not pos:
+                    continue
+                ax = pos.x * cell_size + cell_size / 2
+                ay = pos.y * cell_size + cell_size / 2
+                # Check if apple is visible from any vision position
+                vision_positions = [(cx, cy)]
+                if not electric_walls:
+                    if cx - radius_px < 0:
+                        vision_positions.append((cx + board_w, cy))
+                    if cx + radius_px > board_w:
+                        vision_positions.append((cx - board_w, cy))
+                    if cy - radius_px < 0:
+                        vision_positions.append((cx, cy + board_h))
+                    if cy + radius_px > board_h:
+                        vision_positions.append((cx, cy - board_h))
+                    if cx - radius_px < 0 and cy - radius_px < 0:
+                        vision_positions.append((cx + board_w, cy + board_h))
+                    if cx + radius_px > board_w and cy - radius_px < 0:
+                        vision_positions.append((cx - board_w, cy + board_h))
+                    if cx - radius_px < 0 and cy + radius_px > board_h:
+                        vision_positions.append((cx + board_w, cy - board_h))
+                    if cx + radius_px > board_w and cy + radius_px > board_h:
+                        vision_positions.append((cx - board_w, cy - board_h))
+
+                for vx, vy in vision_positions:
+                    dx = ax - vx
+                    dy = ay - vy
+                    if dx * dx + dy * dy <= (radius_px + apple_radius_px) ** 2:
+                        pygame.draw.circle(
+                            overlay, (0, 0, 0, 0), (int(ax), int(ay)), apple_radius_px
+                        )
+                        break
+        except Exception:
+            pass
+
     def draw_pause_overlay(self, surface_width: int, surface_height: int) -> None:
         """Draw pause overlay with semi-transparent background and text.
 
@@ -134,7 +383,7 @@ class OverlayRenderSystem(BaseSystem):
             hint_text = hint_font.render(
                 "Press P to resume or ESC/M for settings",
                 True,
-                Color.from_hex(constants.MESSAGE_COLOR).to_tuple(),
+                Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple(),
             )
             hint_rect = hint_text.get_rect()
             hint_rect.midtop = (surface_width // 2, pause_rect.bottom + 20)
@@ -192,7 +441,7 @@ class OverlayRenderSystem(BaseSystem):
             title_font = pygame.font.Font(None, title_font_size)
 
         title_text = title_font.render(
-            "Settings", True, Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+            "Settings", True, Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
         )
         title_rect = title_text.get_rect(
             center=(surface_width / 2, surface_height / 10)
@@ -287,7 +536,7 @@ class OverlayRenderSystem(BaseSystem):
                     text_color = (
                         Color.from_hex(constants.SCORE_COLOR).to_tuple()
                         if field_i == selected_index
-                        else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                        else Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
                     )
                     text = section_font.render(label_text, True, text_color)
                     rect = text.get_rect()
@@ -319,7 +568,7 @@ class OverlayRenderSystem(BaseSystem):
                     text_color = (
                         Color.from_hex(constants.SCORE_COLOR).to_tuple()
                         if field_i == selected_index
-                        else Color.from_hex(constants.MESSAGE_COLOR).to_tuple()
+                        else Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
                     )
                     text = item_font.render(
                         f"{f['label']}: {formatted_val}", True, text_color
@@ -386,7 +635,7 @@ class OverlayRenderSystem(BaseSystem):
             hint_font = pygame.font.Font(None, hint_font_size)
 
         hint_surf = hint_font.render(
-            hint_text, True, Color.from_hex(constants.GRID_COLOR).to_tuple()
+            hint_text, True, Color.from_hex(constants.MESSAGE_COLOR_LIGHT).to_tuple()
         )
         hint_rect = hint_surf.get_rect(
             center=(surface_width / 2, surface_height * 0.95)
@@ -396,11 +645,10 @@ class OverlayRenderSystem(BaseSystem):
     def update(self, world: World) -> None:
         """Update method required by BaseSystem.
 
-        Renders overlays based on game state.
-        Note: This system is called manually from GameplayScene,
-        not in the regular system update loop.
+        Renders the Lights Out overlay based on game state. Pause/settings
+        overlays are still drawn explicitly by GameplayScene.
 
         Args:
             world: Game world
         """
-        pass  # overlays are drawn manually by GameplayScene
+        self.draw_lights_out_overlay(world)

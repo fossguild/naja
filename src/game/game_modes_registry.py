@@ -31,6 +31,8 @@ GAME_MODE_TELEPORT = "Teleport"
 BOX_MODE_NAME = "Box Mode"
 TRAIL_MODE_NAME = "Trail Mode"
 PORTAL_BARRIER_MODE_NAME = "Portal Barrier Mode"
+LIGHTS_OUT_MODE_NAME = "Lights Out"
+PLAYER_VS_PLAYER_MODE_NAME = "Player vs Player"
 
 ACTUAL_GAME_MODES = [
     {
@@ -83,6 +85,16 @@ ACTUAL_GAME_MODES = [
         "description": "Special two-block barriers teleport the snake through portals.",
         "detailed_info": "Discover the power of portals! Special two-block barriers are placed on the grid. When your snake's head enters the entry block of a barrier, it instantly teleports to the opposite exit block and continues moving in the same direction. Use portals strategically to navigate the board and escape dangerous situations!",
     },
+    {
+        "name": LIGHTS_OUT_MODE_NAME,
+        "description": "Map completely black. Limited vision around the snake head.",
+        "detailed_info": "The arena is completely dark. Each snake has a constant 4-tile vision radius around its head. Apples emit a 2-tile glow and are visible only when that glow intersects your vision. Choose your next move carefully!",
+    },
+    {
+        "name": PLAYER_VS_PLAYER_MODE_NAME,
+        "description": "Two players compete locally on the same board!",
+        "detailed_info": "Grab a friend and compete head-to-head! Player 1 uses WASD, Player 2 uses Arrow keys. Each player has 3 lives and respawns after 3 seconds. Colliding with your opponent costs a life. Last player standing wins!",
+    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -96,6 +108,8 @@ __all__ = [
     "GAME_MODE_TELEPORT",
     "BOX_MODE_NAME",
     "TRAIL_MODE_NAME",
+    "LIGHTS_OUT_MODE_NAME",
+    "PLAYER_VS_PLAYER_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",

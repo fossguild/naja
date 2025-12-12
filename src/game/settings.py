@@ -42,10 +42,10 @@ class GameSettings:
         "dynamic_spawn_obstacles": False,
         "electric_walls": True,
         "snake_color_palette": "Classic Green",  # Snake color customization
+        "player2_color_palette": "Ocean",  # Player 2 color (PvP mode only)
         "board_color_palette": "Classic Dark",  # Board color customization
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
-        "segment_borders": False,  # Dark borders around snake segments
         "game_mode": "Classic",  # current game mode
     }
 
@@ -176,11 +176,13 @@ class GameSettings:
             "category": "Display",
         },
         {
-            "key": "segment_borders",
-            "label": "Segment borders",
-            "type": "bool",
+            "key": "player2_color_palette",
+            "label": "Snake (Arrows)",
+            "type": "select",
+            "options": [palette["name"] for palette in SNAKE_COLOR_PALETTES],
             "requires_reset": False,
             "category": "Display",
+            "pvp_only": True,  # Only show in PvP mode
         },
         {
             "key": "board_color_palette",
@@ -505,7 +507,15 @@ class GameSettings:
 
         elif kind == "select":
             options = field["options"]
-            current_index = options.index(self.settings[key])
+            current_value = self.settings[key]
+
+            # Handle invalid saved value (e.g., "Classic Blue" which doesn't exist)
+            if current_value not in options:
+                # Reset to first valid option
+                self.settings[key] = options[0]
+                current_value = options[0]
+
+            current_index = options.index(current_value)
             new_index = (current_index + direction) % len(options)
             self.settings[key] = options[new_index]
             return
@@ -538,6 +548,53 @@ class GameSettings:
             self.settings[key] = int(self.clamp(new_val, lo, hi))
         else:  # float
             self.settings[key] = float(self.clamp(new_val, lo, hi))
+
+    @save_on_exit
+    def set_field_value(self, field: dict | None, raw_value: float) -> None:
+        """Set a numeric field directly (used by sliders).
+
+        Args:
+            field: Menu field definition
+            raw_value: Desired value from slider input
+        """
+        if not field:
+            return
+
+        key = field["key"]
+        kind = field["type"]
+
+        # Only numeric fields are supported for slider adjustments
+        if kind not in ("int", "float"):
+            return
+
+        step = field.get("step", 1 if kind == "int" else 1.0)
+        if step <= 0:
+            step = 1 if kind == "int" else 0.1
+
+        lo = field.get("min", raw_value)
+        hi = field.get("max", raw_value)
+
+        # Maintain the same relationship rules as step_setting
+        if key == "initial_speed":
+            max_speed = self.settings.get("max_speed", hi)
+            hi = min(hi, max_speed - 0.5)
+        elif key == "max_speed":
+            initial_speed = self.settings.get("initial_speed", lo)
+            lo = max(lo, initial_speed + 0.5)
+
+        if hi < lo:
+            # Nothing to do if bounds collapsed
+            return
+
+        # Snap to the closest step
+        steps_from_min = round((raw_value - lo) / step)
+        snapped_value = lo + (steps_from_min * step)
+        snapped_value = self.clamp(snapped_value, lo, hi)
+
+        if kind == "int":
+            self.settings[key] = int(snapped_value)
+        else:
+            self.settings[key] = float(snapped_value)
 
     def validate_apples_count(self, width: int, grid_size: int, height: int) -> int:
         """Calculate and validate the maximum number of apples allowed.
@@ -581,6 +638,17 @@ class GameSettings:
         palette_name = self.settings.get("snake_color_palette", "Classic Green")
         return get_snake_colors_by_name(palette_name)
 
+    def get_player2_colors(self):
+        """Get Player 2 snake colors based on selected palette.
+
+        Returns:
+            dict: Dictionary with 'head', 'tail', and 'name' keys
+        """
+        from .constants import get_snake_colors_by_name
+
+        palette_name = self.settings.get("player2_color_palette", "Classic Blue")
+        return get_snake_colors_by_name(palette_name)
+
     def get_board_colors(self):
         """Get current board colors based on selected palette.
 
@@ -606,14 +674,22 @@ class GameSettings:
         """Get menu fields that can be changed during gameplay.
 
         Returns only settings that don't require a game reset.
+        Filters out PvP-only settings if not in PvP mode.
 
         Returns:
             List of field definitions that can be adjusted mid-game
         """
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+        from game.scenes.game_modes import get_resolved_game_mode
+
+        current_mode = get_resolved_game_mode()
+        is_pvp = current_mode == PLAYER_VS_PLAYER_MODE_NAME
+
         return [
             field
             for field in self.MENU_FIELDS
             if not field.get("requires_reset", False)
+            and (not field.get("pvp_only", False) or is_pvp)
         ]
 
     def scoreboard_settings(self) -> dict[str, Any]:
