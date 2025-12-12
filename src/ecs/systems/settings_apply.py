@@ -156,7 +156,7 @@ class SettingsApplySystem(BaseSystem):
             desired_cells: Desired number of cells per side
         """
         # ensure minimum size
-        desired_cells = max(10, int(desired_cells))
+        desired_cells = max(5, int(desired_cells))
 
         # For autoplay mode, enforce even grid size (maze algorithm requires it)
         from game.game_modes_registry import AUTOPLAY_MODE_NAME
