@@ -118,12 +118,12 @@ class CollisionSystem(BaseSystem):
             if self._check_wall_collision(world):
                 self._handle_death(world, "Wall collision")
                 return
-              
+
             # Check self-bite collision
             if self._check_self_bite(world):
                 self._handle_death(world, "Self-bite collision")
                 return
-              
+
             # Check portal barrier collision (teleport without death)
             self._check_portal_barrier_collision(world)
 
@@ -636,14 +636,18 @@ class CollisionSystem(BaseSystem):
         Checks if snake's CURRENT position (after movement) collides with a portal barrier.
 
         Args:
-            world: ECS world to query portal barriers   
+            world: ECS world to query portal barriers
 
         Returns:
             None
         """
         snake = self._get_snake_entity(world)
         # Getting position and velocity to know where to "push" the snake
-        if not snake or not hasattr(snake, "position") or not hasattr(snake, "velocity"):
+        if (
+            not snake
+            or not hasattr(snake, "position")
+            or not hasattr(snake, "velocity")
+        ):
             return
 
         current_x = snake.position.x
@@ -652,6 +656,7 @@ class CollisionSystem(BaseSystem):
         dy = snake.velocity.dy
 
         from ecs.entities.entity import EntityType
+
         portal_barriers = world.registry.query_by_type(EntityType.PORTAL_BARRIER)
 
         for _, portal_barrier in portal_barriers.items():
@@ -659,7 +664,7 @@ class CollisionSystem(BaseSystem):
                 continue
 
             barrier = portal_barrier.portal_barrier
-            
+
             exit_x = None
             exit_y = None
 
@@ -668,7 +673,7 @@ class CollisionSystem(BaseSystem):
                 # Entered on 1, exit on 2
                 exit_x = barrier.block2_x
                 exit_y = barrier.block2_y
-                
+
             elif current_x == barrier.block2_x and current_y == barrier.block2_y:
                 # Entered on 2, exit on 1
                 exit_x = barrier.block1_x
@@ -676,11 +681,10 @@ class CollisionSystem(BaseSystem):
 
             # If there was a collision, calculate the teleport output position
             if exit_x is not None and exit_y is not None:
-                
                 # The new current position will be one step AFTER the exit
                 snake.position.x = exit_x + dx
                 snake.position.y = exit_y + dy
-                
+
                 # The "trail" (prev) should be placed exactly at the portal EXIT.
                 # It tells the body that the head "passed" through the exit block,
                 # maintaining visual continuity without stretching the snake.

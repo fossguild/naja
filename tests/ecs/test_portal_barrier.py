@@ -19,14 +19,12 @@
 
 """Tests for Portal Barrier Mode."""
 
-import pytest
 from ecs.board import Board
 from ecs.world import World
 from ecs.entities.entity import EntityType
 from ecs.prefabs.portal_barrier import create_portal_barrier
 from ecs.systems.collision import CollisionSystem
 from ecs.prefabs.snake import create_snake
-from ecs.components.position import Position
 
 
 class TestPortalBarrier:
@@ -51,9 +49,7 @@ class TestPortalBarrier:
         assert barrier_id is not None
 
         # Verify the barrier was created
-        portal_barriers = self.world.registry.query_by_type(
-            EntityType.PORTAL_BARRIER
-        )
+        portal_barriers = self.world.registry.query_by_type(EntityType.PORTAL_BARRIER)
         assert len(portal_barriers) == 1
 
         # Verify barrier properties
@@ -74,9 +70,7 @@ class TestPortalBarrier:
             grid_size=20,
         )
 
-        portal_barriers = self.world.registry.query_by_type(
-            EntityType.PORTAL_BARRIER
-        )
+        portal_barriers = self.world.registry.query_by_type(EntityType.PORTAL_BARRIER)
         _, barrier = next(iter(portal_barriers.items()))
 
         # Check for position component
@@ -182,9 +176,7 @@ class TestPortalBarrier:
             grid_size=20,
         )
 
-        portal_barriers = self.world.registry.query_by_type(
-            EntityType.PORTAL_BARRIER
-        )
+        portal_barriers = self.world.registry.query_by_type(EntityType.PORTAL_BARRIER)
         assert len(portal_barriers) == 2
 
     def test_portal_barrier_with_custom_color(self):
@@ -199,9 +191,7 @@ class TestPortalBarrier:
             color=(255, 0, 255),  # magenta
         )
 
-        portal_barriers = self.world.registry.query_by_type(
-            EntityType.PORTAL_BARRIER
-        )
+        portal_barriers = self.world.registry.query_by_type(EntityType.PORTAL_BARRIER)
         _, barrier = next(iter(portal_barriers.items()))
 
         # Verify color (Note: Color objects need get_color_tuple method)
