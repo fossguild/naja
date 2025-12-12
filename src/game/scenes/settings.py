@@ -92,17 +92,38 @@ class SettingsScene(BaseScene):
         Returns:
             List of visible fields
         """
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+        from game.scenes.game_modes import get_resolved_game_mode
+
+        # Check if we're in PvP mode
+        current_mode = get_resolved_game_mode()
+        is_pvp = current_mode == PLAYER_VS_PLAYER_MODE_NAME
+
         visible = []
         for field in self._settings.MENU_FIELDS:
+            # skip PvP-only fields if not in PvP mode
+            if field.get("pvp_only", False) and not is_pvp:
+                continue
+
+            # create a copy of the field to avoid modifying the original
+            field_copy = field.copy()
+
+            # adjust label for snake color based on mode
+            if field_copy["key"] == "snake_color_palette":
+                if is_pvp:
+                    field_copy["label"] = "Snake (WASD)"
+                else:
+                    field_copy["label"] = "Snake color"
+
             # section headers are always visible
-            if field["type"] == "section":
-                visible.append(field)
+            if field_copy["type"] == "section":
+                visible.append(field_copy)
             # regular fields are visible if they don't have a parent section,
             # or if their parent section is not collapsed
             else:
-                parent = field.get("parent_section")
+                parent = field_copy.get("parent_section")
                 if not parent or parent not in self._collapsed_sections:
-                    visible.append(field)
+                    visible.append(field_copy)
         return visible
 
     def _toggle_section(self, section_key: str) -> None:

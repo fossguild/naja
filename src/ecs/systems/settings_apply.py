@@ -65,6 +65,7 @@ class SettingsApplySystem(BaseSystem):
         # track previous settings to detect changes
         self._previous_cells_per_side = None
         self._previous_palette = None
+        self._previous_player2_palette = None
         self._previous_board_palette = None
         self._previous_initial_speed = None
         self._previous_max_speed = None
@@ -210,12 +211,30 @@ class SettingsApplySystem(BaseSystem):
             world: ECS world instance
         """
         current_palette = self._get_current_palette_key()
-        if current_palette == self._previous_palette:
+        current_p2_palette = self._get_current_player2_palette_key()
+
+        # Check if either player's palette changed
+        palette_changed = (
+            current_palette != self._previous_palette
+            or current_p2_palette != self._previous_player2_palette
+        )
+
+        if not palette_changed:
             return
 
         # palette changed, apply it
         self._apply_palette_change(world)
         self._previous_palette = current_palette
+        self._previous_player2_palette = current_p2_palette
+
+    def _get_current_player2_palette_key(self) -> str:
+        """Get a unique key representing current player 2 palette.
+
+        Returns:
+            String key combining head and tail colors
+        """
+        p2_colors = self._settings.get_player2_colors()
+        return f"{p2_colors['head']}_{p2_colors['tail']}"
 
     def _apply_palette_change(self, world: World) -> None:
         """Apply palette change to snake entity.
@@ -223,31 +242,87 @@ class SettingsApplySystem(BaseSystem):
         Args:
             world: ECS world instance
         """
-        # get the colors from the current palette
-        snake_colors = self._settings.get_snake_colors()
-        head_color_hex = snake_colors.get("head")
-        tail_color_hex = snake_colors.get("tail")
+        # Check if we're in PvP mode
+        from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
 
-        # convert hex colors to Color objects
+        game_states = world.registry.query_by_component("game_state")
+        is_pvp = False
+        if game_states:
+            game_state = list(game_states.values())[0].game_state
+            is_pvp = game_state.game_mode == PLAYER_VS_PLAYER_MODE_NAME
+
+        if is_pvp:
+            # Apply colors to both players
+            self._apply_player_colors(world)
+        else:
+            # Single player mode - apply to the one snake
+            snake_colors = self._settings.get_snake_colors()
+            head_color_hex = snake_colors.get("head")
+            tail_color_hex = snake_colors.get("tail")
+
+            # convert hex colors to Color objects
+            from core.types.color import Color
+
+            head_color = Color.from_hex(head_color_hex)
+            # Check for rainbow mode (special marker in tail color)
+            if tail_color_hex == "#rainbow":
+                # Rainbow mode: use black (0,0,0) as marker for render system
+                tail_color = Color(0, 0, 0)
+            else:
+                tail_color = Color.from_hex(tail_color_hex)
+
+            # find the snake entity and update its renderable colors
+            snakes = world.registry.query_by_type(EntityType.SNAKE)
+            for _, snake in snakes.items():
+                if hasattr(snake, "renderable"):
+                    # update both head and tail colors in renderable
+                    snake.renderable.color = head_color
+                    snake.renderable.secondary_color = tail_color
+                    print(
+                        f"Applied palette: head={head_color_hex}, tail={tail_color_hex}"
+                    )
+                    break
+
+    def _apply_player_colors(self, world: World) -> None:
+        """Apply colors to both players in PvP mode.
+
+        Args:
+            world: ECS world instance
+        """
         from core.types.color import Color
 
-        head_color = Color.from_hex(head_color_hex)
-        # Check for rainbow mode (special marker in tail color)
-        if tail_color_hex == "#rainbow":
-            # Rainbow mode: use black (0,0,0) as marker for render system
-            tail_color = Color(0, 0, 0)
-        else:
-            tail_color = Color.from_hex(tail_color_hex)
+        # Get colors for both players
+        p1_colors = self._settings.get_snake_colors()
+        p2_colors = self._settings.get_player2_colors()
 
-        # find the snake entity and update its renderable colors
+        # Find and update each player's snake
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
-            if hasattr(snake, "renderable"):
-                # update both head and tail colors in renderable
-                snake.renderable.color = head_color
-                snake.renderable.secondary_color = tail_color
-                print(f"Applied palette: head={head_color_hex}, tail={tail_color_hex}")
-                break
+            if not hasattr(snake, "player_id") or not hasattr(snake, "renderable"):
+                continue
+
+            player_num = snake.player_id.player_number
+            if player_num == 1:
+                colors = p1_colors
+            elif player_num == 2:
+                colors = p2_colors
+            else:
+                continue
+
+            head_color_hex = colors.get("head")
+            tail_color_hex = colors.get("tail")
+
+            head_color = Color.from_hex(head_color_hex)
+            if tail_color_hex == "#rainbow":
+                tail_color = Color(0, 0, 0)
+            else:
+                tail_color = Color.from_hex(tail_color_hex)
+
+            snake.renderable.color = head_color
+            snake.renderable.secondary_color = tail_color
+            print(
+                f"Applied P{player_num} palette: head={head_color_hex}, tail={tail_color_hex}"
+            )
 
     def _get_current_board_palette_key(self) -> str:
         """Get a unique key representing current board palette colors.
