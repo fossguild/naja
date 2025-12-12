@@ -85,13 +85,14 @@ class TestPortalBarrier:
     def test_portal_barrier_bidirectional_teleportation_block1_to_block2(self):
         """Test snake teleportation from block1 to block2."""
         # Create snake at position (5, 5)
-        snake = create_snake(
+        snake_id = create_snake(
             self.world,
-            head_x=5,
-            head_y=5,
-            length=3,
+            initial_x=5,
+            initial_y=5,
             grid_size=20,
         )
+        # Obtain the actual entity object from the ID via the registry API
+        snake = self.world.registry.get(snake_id)
 
         # Create portal barrier with blocks at (6, 5) and (10, 5)
         create_portal_barrier(
@@ -115,20 +116,21 @@ class TestPortalBarrier:
         # Call portal barrier collision check
         collision_system._check_portal_barrier_collision(self.world)
 
-        # Verify snake was teleported to block2
-        assert snake.position.x == 10
+        # Verify snake was teleported to one step after block2 (exit + velocity dx)
+        assert snake.position.x == 11
         assert snake.position.y == 5
 
     def test_portal_barrier_bidirectional_teleportation_block2_to_block1(self):
         """Test snake teleportation from block2 to block1."""
         # Create snake at position (5, 5)
-        snake = create_snake(
+        snake_id = create_snake(
             self.world,
-            head_x=5,
-            head_y=5,
-            length=3,
+            initial_x=5,
+            initial_y=5,
             grid_size=20,
         )
+        # Obtain the actual entity object from the ID via the registry API
+        snake = self.world.registry.get(snake_id)
 
         # Create portal barrier with blocks at (6, 5) and (10, 5)
         create_portal_barrier(
@@ -152,8 +154,8 @@ class TestPortalBarrier:
         # Call portal barrier collision check
         collision_system._check_portal_barrier_collision(self.world)
 
-        # Verify snake was teleported to block1
-        assert snake.position.x == 6
+        # Verify snake was teleported to one step after block1 (exit + velocity dx)
+        assert snake.position.x == 7
         assert snake.position.y == 5
 
     def test_multiple_portal_barriers(self):
