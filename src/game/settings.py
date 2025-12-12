@@ -161,7 +161,7 @@ class GameSettings:
             "key": "cells_per_side",
             "label": "Board size",
             "type": "int",
-            "min": 10,
+            "min": 5,
             "max": 60,
             "step": 1,
             "requires_reset": True,
