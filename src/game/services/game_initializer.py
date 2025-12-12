@@ -36,6 +36,7 @@ from game.game_modes_registry import (
     AUTOPLAY_MODE_NAME,
     BOX_MODE_NAME,
     TRAIL_MODE_NAME,
+    LIGHTS_OUT_MODE_NAME,
     PLAYER_VS_PLAYER_MODE_NAME,
 )
 
@@ -181,6 +182,7 @@ class GameInitializer:
             world: ECS world instance
         """
         from ecs.components.game_state import GameState
+        from ecs.components.lights_out_state import LightsOutState
 
         current_mode = self._game_mode
         moving_apples_enabled = current_mode == MOVING_APPLE_MODE_NAME
@@ -192,6 +194,7 @@ class GameInitializer:
         cheese_mode_enabled = current_mode == CHEESE_MODE_NAME
         trail_mode_enabled = current_mode == TRAIL_MODE_NAME
         shrinking_mode_enabled = current_mode == SHRINKING_MODE_NAME
+        lights_out_enabled = current_mode == LIGHTS_OUT_MODE_NAME
 
         class GameStateEntity:
             def __init__(self):
@@ -206,6 +209,7 @@ class GameInitializer:
                     cheese_mode_enabled=cheese_mode_enabled,
                     trail_mode_enabled=trail_mode_enabled,
                     shrinking_mode_enabled=shrinking_mode_enabled,
+                    lights_out_enabled=lights_out_enabled,
                 )
 
             def get_type(self):
@@ -213,6 +217,19 @@ class GameInitializer:
 
         game_state_entity = GameStateEntity()
         world.registry.add(game_state_entity)
+
+        # Create Lights Out state entity if mode is active
+        if current_mode == LIGHTS_OUT_MODE_NAME:
+
+            class LightsOutEntity:
+                def __init__(self):
+                    self.lights_out_state = LightsOutState(radius=4)
+
+                def get_type(self):
+                    return None
+
+            lights_out_entity = LightsOutEntity()
+            world.registry.add(lights_out_entity)
 
         # NOTE: For autoplay mode, game_started is NOT set here.
         # AutoplaySystem sets it after computing the first safe direction.
