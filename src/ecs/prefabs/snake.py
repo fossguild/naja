@@ -43,6 +43,8 @@ def create_snake(
     cheese_mode: bool = False,
     shrinking_mode: bool = False,
     autoplay_mode: bool = False,
+    initial_x: Optional[int] = None,
+    initial_y: Optional[int] = None,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -56,6 +58,8 @@ def create_snake(
         cheese_mode: Whether Cheese Mode is enabled (affects initial size)
         shrinking_mode: Whether Shrinking Mode is enabled (starts large)
         autoplay_mode: Whether Autoplay Mode is enabled (starts with zero velocity)
+        initial_x: Initial X position in grid coordinates (default: center)
+        initial_y: Initial Y position in grid coordinates (default: center)
 
     Returns:
         int: Entity ID of created snake
@@ -73,9 +77,16 @@ def create_snake(
         tail_color = (0, 255, 0)  # light green
 
     # starting position in GRID COORDINATES (not pixels)
-    # board center
-    start_x = world.board.width // 2
-    start_y = world.board.height // 2
+    # use provided position or default to board center
+    if initial_x is None:
+        start_x = world.board.width // 2
+    else:
+        start_x = initial_x
+
+    if initial_y is None:
+        start_y = world.board.height // 2
+    else:
+        start_y = initial_y
 
     # Initialize body based on game mode
     if shrinking_mode:

@@ -29,6 +29,7 @@ import pygame
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
+from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
 
 
 class InputSystem(BaseSystem):
@@ -150,7 +151,9 @@ class InputSystem(BaseSystem):
         if game_state:
             game_state.next_scene = "menu"
 
-    def _buffer_direction(self, world: World, dx: int, dy: int) -> None:
+    def _buffer_direction(
+        self, world: World, dx: int, dy: int, player_id: Optional[int] = None
+    ) -> None:
         """Append a new direction to the snake's input buffer if valid.
 
         This method ensures that rapid direction changes are stored in order
@@ -161,8 +164,14 @@ class InputSystem(BaseSystem):
             world: ECS world containing the snake entity
             dx: Horizontal component of the direction (-1, 0, 1)
             dy: Vertical component of the direction (-1, 0, 1)
+            player_id: Player ID (1 or 2) for PvP mode, None for single player
         """
-        snake = self._get_snake_entity(world)
+        # Get the appropriate snake based on mode
+        if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME and player_id is not None:
+            snake = self._get_snake_by_player_id(world, player_id)
+        else:
+            snake = self._get_snake_entity(world)
+
         if not snake:
             return
 
@@ -216,14 +225,35 @@ class InputSystem(BaseSystem):
         from game.game_modes_registry import AUTOPLAY_MODE_NAME
 
         if self._game_mode != AUTOPLAY_MODE_NAME:
-            if key in (pygame.K_DOWN, pygame.K_s):
-                self._buffer_direction(world, 0, 1)
-            elif key in (pygame.K_UP, pygame.K_w):
-                self._buffer_direction(world, 0, -1)
-            elif key in (pygame.K_RIGHT, pygame.K_d):
-                self._buffer_direction(world, 1, 0)
-            elif key in (pygame.K_LEFT, pygame.K_a):
-                self._buffer_direction(world, -1, 0)
+            if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME:
+                # Player 1 controls (WASD)
+                if key == pygame.K_s:
+                    self._buffer_direction(world, 0, 1, player_id=1)
+                elif key == pygame.K_w:
+                    self._buffer_direction(world, 0, -1, player_id=1)
+                elif key == pygame.K_d:
+                    self._buffer_direction(world, 1, 0, player_id=1)
+                elif key == pygame.K_a:
+                    self._buffer_direction(world, -1, 0, player_id=1)
+                # Player 2 controls (Arrow keys)
+                elif key == pygame.K_DOWN:
+                    self._buffer_direction(world, 0, 1, player_id=2)
+                elif key == pygame.K_UP:
+                    self._buffer_direction(world, 0, -1, player_id=2)
+                elif key == pygame.K_RIGHT:
+                    self._buffer_direction(world, 1, 0, player_id=2)
+                elif key == pygame.K_LEFT:
+                    self._buffer_direction(world, -1, 0, player_id=2)
+            else:
+                # Single player mode (both WASD and arrows control the same snake)
+                if key in (pygame.K_DOWN, pygame.K_s):
+                    self._buffer_direction(world, 0, 1)
+                elif key in (pygame.K_UP, pygame.K_w):
+                    self._buffer_direction(world, 0, -1)
+                elif key in (pygame.K_RIGHT, pygame.K_d):
+                    self._buffer_direction(world, 1, 0)
+                elif key in (pygame.K_LEFT, pygame.K_a):
+                    self._buffer_direction(world, -1, 0)
 
         # control keys
         if key == pygame.K_q:
@@ -269,6 +299,27 @@ class InputSystem(BaseSystem):
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         for _, snake in snakes.items():
             return snake
+        return None
+
+    def _get_snake_by_player_id(self, world: World, player_id: int):
+        """Get a specific snake by player ID (for PvP mode).
+
+        Args:
+            world: ECS world
+            player_id: Player number (1 or 2)
+
+        Returns:
+            Snake entity or None if not found
+        """
+        from ecs.entities.entity import EntityType
+
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if (
+                hasattr(snake, "player_id")
+                and snake.player_id.player_number == player_id
+            ):
+                return snake
         return None
 
     def _get_game_state(self, world: World):
