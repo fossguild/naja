@@ -202,9 +202,9 @@ class SnakeRenderSystem(BaseSystem):
             dy = -1
         elif dy < -1:
             dy = 1
-        # Default to DOWN if no movement
+        # Default to RIGHT if no movement
         if dx == 0 and dy == 0:
-            return (0, 1)
+            return (1, 0)
         return (dx, dy)
 
     def _draw_snake_head(
