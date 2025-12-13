@@ -157,9 +157,12 @@ class SettingsApplySystem(BaseSystem):
         """
 
         # For autoplay mode, enforce even grid size (maze algorithm requires it)
-        from game.game_modes_registry import AUTOPLAY_MODE_NAME
+        from game.game_modes_registry import AUTOPLAY_MODE_NAME, MIRRORED_MODE_NAME
 
-        if self._game_mode == AUTOPLAY_MODE_NAME and desired_cells % 2 != 0:
+        if (
+            self._game_mode == AUTOPLAY_MODE_NAME
+            or self._game_mode == MIRRORED_MODE_NAME
+        ) and desired_cells % 2 != 0:
             desired_cells += 1  # Round up to nearest even number
 
         # calculate optimal grid/cell size

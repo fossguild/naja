@@ -728,8 +728,11 @@ class GameInitializer:
         desired_cells = self._settings.get("cells_per_side")
         actual_cells = world.board.width  # board is always square
 
+        # Define modes that require even boards
+        requires_even = self._game_mode in [AUTOPLAY_MODE_NAME, MIRRORED_MODE_NAME]
+
         # if board doesn't match settings, recreate it
-        if desired_cells != actual_cells:
+        if desired_cells != actual_cells or (requires_even and actual_cells % 2 != 0):
             # need config to calculate optimal sizes
             if not self._config:
                 from game.config import GameConfig
@@ -740,9 +743,6 @@ class GameInitializer:
 
             # ensure minimum size
             desired_cells = max(10, int(desired_cells))
-
-            # Define modes that require even boards
-            requires_even = self._game_mode in [AUTOPLAY_MODE_NAME, MIRRORED_MODE_NAME]
 
             # Trigger update if settings changed OR if mode needs even board but has odd
             if desired_cells != actual_cells or (
