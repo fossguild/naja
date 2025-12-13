@@ -98,8 +98,8 @@ class AppleSpawnSystem(BaseSystem):
             apple_a = world.registry.get(id_a)
             apple_b = world.registry.get(id_b)
 
-            apple_a.linked_apple = apple_b
-            apple_b.linked_apple = apple_a
+            apple_a.linked_apple_id = id_b
+            apple_b.linked_apple_id = id_a
 
             return
 

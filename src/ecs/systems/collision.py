@@ -1041,44 +1041,39 @@ class CollisionSystem(BaseSystem):
 
                     # # Special handling for TELEPORT mode
                     if game_state and game_state.game_mode == TELEPORT_MODE_NAME:
-                        print("tp")
-                    #     # Find another active apple on the board
-                    #     other_apple_id = None
-                    #     other_apple = None
-                    #     for other_id, other in apples.items():
-                    #         if other_id == entity_id:
-                    #             continue
-                    #         if hasattr(other, "position"):
-                    #             other_apple_id = other_id
-                    #             other_apple = other
-                    #             break
+                        # Find another active apple on the board
+                        other_apple_id = apple.linked_apple_id
+                        other_apple = None
 
-                    #     if other_apple is not None:
-                    #         # Teleport snake head to the other apple's position
-                    #         snake.position.prev_x = snake.position.x
-                    #         snake.position.prev_y = snake.position.y
-                    #         snake.position.x = other_apple.position.x
-                    #         snake.position.y = other_apple.position.y
+                        if other_apple_id is not None:
+                            other_apple = world.registry.get(other_apple_id)
 
-                    #         # Keep velocity unchanged (do nothing to snake.velocity)
+                        if other_apple is not None:
+                            # Teleport snake head to the other apple's position
+                            snake.position.prev_x = snake.position.x
+                            snake.position.prev_y = snake.position.y
+                            snake.position.x = other_apple.position.x
+                            snake.position.y = other_apple.position.y
 
-                    #         # Remove both apples so AppleSpawnSystem will respawn them
-                    #         try:
-                    #             world.registry.remove(entity_id)
-                    #         except Exception:
-                    #             # ignore removal errors
-                    #             pass
-                    #         try:
-                    #             if other_apple_id is not None:
-                    #                 world.registry.remove(other_apple_id)
-                    #         except Exception:
-                    #             pass
+                            # Keep velocity unchanged (do nothing to snake.velocity)
 
-                    #         break  # handled teleport, only one apple per frame
+                            # Remove both apples so AppleSpawnSystem will respawn them
+                            try:
+                                world.registry.remove(entity_id)
+                            except Exception:
+                                # ignore removal errors
+                                pass
+                            try:
+                                if other_apple_id is not None:
+                                    world.registry.remove(other_apple_id)
+                            except Exception:
+                                pass
 
-                    # else:
-                    # remove eaten apple
-                    world.registry.remove(entity_id)
+                            break  # handled teleport, only one apple per frame
+
+                    else:
+                        # remove eaten apple
+                        world.registry.remove(entity_id)
 
                     # Check for board-fill victory (Classic and other modes)
                     # Skip for shrinking mode (handled separately) and AutoPlay (has its own check)
