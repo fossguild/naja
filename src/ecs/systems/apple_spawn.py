@@ -63,15 +63,51 @@ class AppleSpawnSystem(BaseSystem):
         Args:
             world: ECS world containing entities and components
         """
+
+        # Check if Teleport mode is enabled
+        game_state_entities = world.registry.query_by_component("game_state")
+        teleport_mode = False
+        if game_state_entities:
+            entity = next(iter(game_state_entities.values()))
+            if hasattr(entity, "game_state"):
+                teleport_mode = entity.game_state.teleport_mode_enabled
+
+        # Count current apples
+        current_apples = world.registry.query_by_type(EntityType.APPLE)
+        current_count = len(current_apples)
+
+        if teleport_mode:
+            if len(current_apples) >= 2:
+                return
+
+            grid_size = world.board.cell_size
+
+            pos_a = self._find_valid_position(world)
+            pos_b = self._find_valid_position(world)
+
+            if not pos_a or not pos_b:
+                return
+
+            x_a, y_a = pos_a
+            x_b, y_b = pos_b
+            id_a = create_apple(world, x=x_a, y=y_a, grid_size=grid_size, color=None)
+            id_b = create_apple(
+                world, x=x_b, y=y_b, grid_size=grid_size, color=(128, 0, 128)
+            )
+
+            apple_a = world.registry.get(id_a)
+            apple_b = world.registry.get(id_b)
+
+            apple_a.linked_apple = apple_b
+            apple_b.linked_apple = apple_a
+
+            return
+
         # Get desired apple count from config
         desired_count = self._get_desired_apple_count(world)
 
         if desired_count <= 0:
             return
-
-        # Count current apples
-        current_apples = world.registry.query_by_type(EntityType.APPLE)
-        current_count = len(current_apples)
 
         # Spawn new apples if we're below desired count
         apples_to_spawn = desired_count - current_count

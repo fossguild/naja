@@ -43,6 +43,7 @@ class Apple(Entity):
     edible: Edible
     renderable: Renderable
     moving_apple: Optional[MovingApple] = None
+    linked_apple: Optional["Apple"] = None  # teleport target
 
     def get_type(self) -> EntityType:
         """Get the type of this entity.

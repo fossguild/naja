@@ -38,6 +38,7 @@ from game.game_modes_registry import (
     TRAIL_MODE_NAME,
     LIGHTS_OUT_MODE_NAME,
     PLAYER_VS_PLAYER_MODE_NAME,
+    TELEPORT_MODE_NAME,
 )
 
 
@@ -158,6 +159,8 @@ class GameInitializer:
             # create initial apples (2 for PvP, normal count for others)
             if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME:
                 self._create_pvp_apples(world, grid_size)
+            elif self._game_mode == TELEPORT_MODE_NAME:
+                self._create_teleport_apples(world, grid_size)
             else:
                 self._create_initial_apples(world, grid_size)
 
@@ -195,6 +198,7 @@ class GameInitializer:
         trail_mode_enabled = current_mode == TRAIL_MODE_NAME
         shrinking_mode_enabled = current_mode == SHRINKING_MODE_NAME
         lights_out_enabled = current_mode == LIGHTS_OUT_MODE_NAME
+        teleport_mode_enabled = current_mode == TELEPORT_MODE_NAME
 
         class GameStateEntity:
             def __init__(self):
@@ -210,6 +214,7 @@ class GameInitializer:
                     trail_mode_enabled=trail_mode_enabled,
                     shrinking_mode_enabled=shrinking_mode_enabled,
                     lights_out_enabled=lights_out_enabled,
+                    teleport_mode_enabled=teleport_mode_enabled,
                 )
 
             def get_type(self):
@@ -415,6 +420,50 @@ class GameInitializer:
                     break
 
                 attempts += 1
+
+    def _create_teleport_apples(self, world: World, grid_size: int) -> None:
+        """Create 2 apples for Player vs Player mode.
+
+        Args:
+            world: ECS world instance
+            grid_size: Size of grid cells in pixels
+        """
+        from ecs.prefabs.apple import create_apple
+        from ecs.entities.entity import EntityType
+
+        # Get occupied positions (both snakes)
+        occupied_positions = set()
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for _, snake in snakes.items():
+            if hasattr(snake, "position"):
+                occupied_positions.add((snake.position.x, snake.position.y))
+                if hasattr(snake, "body"):
+                    for segment in snake.body.segments:
+                        occupied_positions.add((segment.x, segment.y))
+
+        attempts = 0
+        max_attempts = 1000
+        while attempts < max_attempts:
+            x_a = random.randint(0, world.board.width - 1)
+            y_a = random.randint(0, world.board.height - 1)
+            x_b = random.randint(0, world.board.width - 1)
+            y_b = random.randint(0, world.board.height - 1)
+
+            if (x_a, y_a) not in occupied_positions and (x_a, y_a) != (x_b, y_b):
+                id_a = create_apple(
+                    world, x=x_a, y=y_a, grid_size=grid_size, color=None
+                )
+                id_b = create_apple(
+                    world, x=x_b, y=y_b, grid_size=grid_size, color=(128, 0, 128)
+                )
+
+                apple_a = world.registry.get(id_a)
+                apple_b = world.registry.get(id_b)
+
+                apple_a.linked_apple = apple_b
+                apple_b.linked_apple = apple_a
+                break
+            attempts += 1
 
     def _create_apple_config(self, world: World) -> None:
         """Create AppleConfig entity to track desired apple count.
