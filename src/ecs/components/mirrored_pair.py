@@ -25,8 +25,9 @@ from typing import Optional
 @dataclass
 class MirroredPair:
     """Component that links two snakes in a mirrored relationship.
-    
+
     Attributes:
         partner_id: Entity ID of the mirrored partner snake
     """
+
     partner_id: Optional[int] = None

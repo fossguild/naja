@@ -416,7 +416,10 @@ class GameSettings:
             from game.game_modes_registry import AUTOPLAY_MODE_NAME
             from game.game_modes_registry import MIRRORED_MODE_NAME
 
-            if self._current_game_mode == AUTOPLAY_MODE_NAME or self._current_game_mode == MIRRORED_MODE_NAME:
+            if (
+                self._current_game_mode == AUTOPLAY_MODE_NAME
+                or self._current_game_mode == MIRRORED_MODE_NAME
+            ):
                 grid_str += " (even only)"
             return grid_str
         elif field["key"] == "obstacle_difficulty":

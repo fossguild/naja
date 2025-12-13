@@ -39,7 +39,11 @@ from ecs.world import World
 from ecs.systems.scoring import ScoringSystem
 from game.settings import GameSettings
 from game.services.audio_service import AudioService
-from game.game_modes_registry import GAME_MODE_TELEPORT, PLAYER_VS_PLAYER_MODE_NAME, MIRRORED_MODE_NAME
+from game.game_modes_registry import (
+    GAME_MODE_TELEPORT,
+    PLAYER_VS_PLAYER_MODE_NAME,
+    MIRRORED_MODE_NAME,
+)
 from game.services.game_over_service import GameOverService
 
 
@@ -389,172 +393,203 @@ class CollisionSystem(BaseSystem):
 
         # check apple collisions for all snakes
         self._check_apple_collision_all_snakes(world)
-    
+
     def _check_mirrored_mode_collisions(self, world: World) -> None:
         """Check collisions for both mirrored snakes.
-        
+
         Args:
             world: ECS world
         """
         from ecs.entities.entity import EntityType
-        
+
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         snake_list = list(snakes.items())
-        
+
         if len(snake_list) < 2:
             return
-        
+
         snake1_id, snake1 = snake_list[0]
         snake2_id, snake2 = snake_list[1]
-        
+
         # Check wall collisions for both snakes
-        if self._check_wall_collision_for_snake(world, snake1) or self._check_wall_collision_for_snake(world, snake2):
+        if self._check_wall_collision_for_snake(
+            world, snake1
+        ) or self._check_wall_collision_for_snake(world, snake2):
             self._handle_death(world, "Wall collision")
             return
-        
+
         # Check self-bite for both snakes
-        if self._check_self_bite_for_snake(world, snake1) or self._check_self_bite_for_snake(world, snake2):
+        if self._check_self_bite_for_snake(
+            world, snake1
+        ) or self._check_self_bite_for_snake(world, snake2):
             self._handle_death(world, "Self-bite collision")
             return
-        
+
         # Check if snakes collide with each other
         if self._check_mirrored_snakes_collision(world, snake1, snake2):
             self._handle_death(world, "Snake collision")
             return
-        
+
         # Check obstacle collisions for both snakes
-        if self._check_obstacle_collision_for_snake(world, snake1) or self._check_obstacle_collision_for_snake(world, snake2):
+        if self._check_obstacle_collision_for_snake(
+            world, snake1
+        ) or self._check_obstacle_collision_for_snake(world, snake2):
             self._handle_death(world, "Obstacle collision")
             return
-        
+
         # Check apple collisions with synchronized growth
         self._check_mirrored_apple_collision(world)
-    
+
     def _check_mirrored_snakes_collision(self, world: World, snake1, snake2) -> bool:
         """Check if two mirrored snakes collide with each other.
-        
+
         Args:
             world: ECS world
             snake1: First snake entity
             snake2: Second snake entity
-            
+
         Returns:
             bool: True if collision detected
         """
         if not hasattr(snake1, "position") or not hasattr(snake2, "position"):
             return False
-        
+
         # Check head-to-head collision
-        if snake1.position.x == snake2.position.x and snake1.position.y == snake2.position.y:
+        if (
+            snake1.position.x == snake2.position.x
+            and snake1.position.y == snake2.position.y
+        ):
             return True
-        
+
         # Check if snake1 head hits snake2 body
         if hasattr(snake2, "body"):
             for segment in snake2.body.segments:
                 if snake1.position.x == segment.x and snake1.position.y == segment.y:
                     return True
-        
+
         # Check if snake2 head hits snake1 body
         if hasattr(snake1, "body"):
             for segment in snake1.body.segments:
                 if snake2.position.x == segment.x and snake2.position.y == segment.y:
                     return True
-        
+
         return False
-    
+
     def _check_mirrored_apple_collision(self, world: World) -> None:
         """Check apple collision for mirrored snakes with synchronized growth.
-        
+
         When either snake eats an apple, both snakes grow.
-        
+
         Args:
             world: ECS world
         """
         from ecs.entities.entity import EntityType
-        
+
         snakes = world.registry.query_by_type(EntityType.SNAKE)
         snake_list = list(snakes.values())
-        
+
         if len(snake_list) < 2:
             return
-        
+
         snake1 = snake_list[0]
         snake2 = snake_list[1]
-        
+
         # Check apple collision for both snakes
         apples = world.registry.query_by_type(EntityType.APPLE)
         for entity_id, apple in apples.items():
             if not hasattr(apple, "position"):
                 continue
-            
+
             # Check if either snake ate the apple
-            snake1_ate = (hasattr(snake1, "position") and 
-                         snake1.position.x == apple.position.x and 
-                         snake1.position.y == apple.position.y)
-            snake2_ate = (hasattr(snake2, "position") and 
-                         snake2.position.x == apple.position.x and 
-                         snake2.position.y == apple.position.y)
-            
+            snake1_ate = (
+                hasattr(snake1, "position")
+                and snake1.position.x == apple.position.x
+                and snake1.position.y == apple.position.y
+            )
+            snake2_ate = (
+                hasattr(snake2, "position")
+                and snake2.position.x == apple.position.x
+                and snake2.position.y == apple.position.y
+            )
+
             if snake1_ate or snake2_ate:
-                print(f"APPLE EATEN IN MIRRORED MODE: apple=({apple.position.x},{apple.position.y})")
-                
+                print(
+                    f"APPLE EATEN IN MIRRORED MODE: apple=({apple.position.x},{apple.position.y})"
+                )
+
                 # Play apple eating sound
                 if self._audio_service:
                     self._audio_service.play_sound("assets/sound/eat.flac")
-                
+
                 # Grow BOTH snakes
                 if hasattr(snake1, "body"):
                     snake1.body.size += 1
                 if hasattr(snake2, "body"):
                     snake2.body.size += 1
-                
+
                 # Increment score
                 if self._scoring_system:
                     points = 1
                     if hasattr(apple, "edible"):
                         points = apple.edible.points
                     self._scoring_system.on_apple_eaten(world, points)
-                
+
                 game_state = self._get_game_state(world)
                 if game_state:
                     game_state.apples_eaten_count += 1
-                
+
                 # Apply (constant) speed ensures variables stay consistent
-                max_speed = float(self._settings.get("max_speed")) if self._settings else 20.0
-                speed_increase_rate = self._settings.get("speed_increase_rate") if self._settings else "10%"
+                max_speed = (
+                    float(self._settings.get("max_speed")) if self._settings else 20.0
+                )
+                speed_increase_rate = (
+                    self._settings.get("speed_increase_rate")
+                    if self._settings
+                    else "10%"
+                )
                 multiplier = 1.05 if speed_increase_rate == "5%" else 1.10
                 if hasattr(snake1, "velocity"):
-                    snake1.velocity.speed = min(snake1.velocity.speed * multiplier, max_speed)
+                    snake1.velocity.speed = min(
+                        snake1.velocity.speed * multiplier, max_speed
+                    )
                 if hasattr(snake2, "velocity"):
-                    snake2.velocity.speed = min(snake2.velocity.speed * multiplier, max_speed)
-                
+                    snake2.velocity.speed = min(
+                        snake2.velocity.speed * multiplier, max_speed
+                    )
+
                 # Remove eaten apple
                 world.registry.remove(entity_id)
-                
+
                 # [FIX 2] Robust Apple Respawn Logic
                 from ecs.prefabs.apple import create_apple
                 import random
-                
+
                 occupied_positions = set()
-                
+
                 # Add snake positions (Force INT to match random grid coordinates)
                 if hasattr(snake1, "position"):
-                    occupied_positions.add((int(snake1.position.x), int(snake1.position.y)))
+                    occupied_positions.add(
+                        (int(snake1.position.x), int(snake1.position.y))
+                    )
                 if hasattr(snake1, "body"):
                     for segment in snake1.body.segments:
                         occupied_positions.add((int(segment.x), int(segment.y)))
-                        
+
                 if hasattr(snake2, "position"):
-                    occupied_positions.add((int(snake2.position.x), int(snake2.position.y)))
+                    occupied_positions.add(
+                        (int(snake2.position.x), int(snake2.position.y))
+                    )
                 if hasattr(snake2, "body"):
                     for segment in snake2.body.segments:
                         occupied_positions.add((int(segment.x), int(segment.y)))
-                
+
                 # Add obstacles (Force INT)
                 obstacles = world.registry.query_by_type(EntityType.OBSTACLE)
                 for _, obstacle in obstacles.items():
                     if hasattr(obstacle, "position"):
-                        occupied_positions.add((int(obstacle.position.x), int(obstacle.position.y)))
+                        occupied_positions.add(
+                            (int(obstacle.position.x), int(obstacle.position.y))
+                        )
 
                 # Find valid position for new apple
                 attempts = 0
@@ -562,14 +597,16 @@ class CollisionSystem(BaseSystem):
                 while attempts < max_attempts:
                     x = random.randint(0, world.board.width - 1)
                     y = random.randint(0, world.board.height - 1)
-                    
+
                     if (x, y) not in occupied_positions:
-                        create_apple(world, x=x, y=y, grid_size=world.board.cell_size, color=None)
+                        create_apple(
+                            world, x=x, y=y, grid_size=world.board.cell_size, color=None
+                        )
                         print(f"NEW MIRRORED APPLE: ({x}, {y})")
                         break
-                    
+
                     attempts += 1
-                
+
                 return  # Only process one apple per frame # Only process one apple per frame
 
     def _check_wall_collision_for_snake(self, world: World, snake) -> bool:
