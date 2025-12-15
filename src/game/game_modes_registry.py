@@ -27,7 +27,7 @@ HEAD_TAIL_SWITCH_NAME = "Head-Tail Swap"
 CHEESE_MODE_NAME = "Cheese Mode"
 AUTOPLAY_MODE_NAME = "AutoPlay"
 SHRINKING_MODE_NAME = "Shrinking Mode"
-GAME_MODE_TELEPORT = "Teleport"
+TELEPORT_MODE_NAME = "Teleport"
 BOX_MODE_NAME = "Box Mode"
 TRAIL_MODE_NAME = "Trail Mode"
 LIGHTS_OUT_MODE_NAME = "Lights Out"
@@ -66,7 +66,7 @@ ACTUAL_GAME_MODES = [
         "detailed_info": "Sit back and watch! The snake uses AI to play itself automatically. No controls needed - just observe as the AI tries to survive and score points. Great for relaxing or studying AI pathfinding behavior. You can still access settings to customize the visual experience!",
     },
     {
-        "name": GAME_MODE_TELEPORT,
+        "name": TELEPORT_MODE_NAME,
         "description": "Collect an apple to warp to the other one, maintaining your direction.",
         "detailed_info": "Quantum snake mechanics! Two apples appear on the board. When you eat one, you instantly teleport to where the other apple was, maintaining your current direction. The eaten apple respawns at a new location. This creates unique strategic opportunities and escape routes!",
     },
@@ -105,7 +105,7 @@ __all__ = [
     "MOVING_APPLE_MODE_NAME",
     "CHEESE_MODE_NAME",
     "AUTOPLAY_MODE_NAME",
-    "GAME_MODE_TELEPORT",
+    "TELEPORT_MODE_NAME",
     "BOX_MODE_NAME",
     "TRAIL_MODE_NAME",
     "LIGHTS_OUT_MODE_NAME",

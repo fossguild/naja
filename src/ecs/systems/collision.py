@@ -39,11 +39,13 @@ from ecs.world import World
 from ecs.systems.scoring import ScoringSystem
 from game.settings import GameSettings
 from game.services.audio_service import AudioService
+
 from game.game_modes_registry import (
-    GAME_MODE_TELEPORT,
+    TELEPORT_MODE_NAME,
     PLAYER_VS_PLAYER_MODE_NAME,
     MIRRORED_MODE_NAME,
 )
+
 from game.services.game_over_service import GameOverService
 
 
@@ -1262,18 +1264,14 @@ class CollisionSystem(BaseSystem):
                                 # reset current time to (possibly updated) max
                                 he.hunger.current_time = he.hunger.max_time
 
-                    # Special handling for TELEPORT mode
-                    if game_state and game_state.game_mode == GAME_MODE_TELEPORT:
+                    # # Special handling for TELEPORT mode
+                    if game_state and game_state.game_mode == TELEPORT_MODE_NAME:
                         # Find another active apple on the board
-                        other_apple_id = None
+                        other_apple_id = apple.linked_apple_id
                         other_apple = None
-                        for other_id, other in apples.items():
-                            if other_id == entity_id:
-                                continue
-                            if hasattr(other, "position"):
-                                other_apple_id = other_id
-                                other_apple = other
-                                break
+
+                        if other_apple_id is not None:
+                            other_apple = world.registry.get(other_apple_id)
 
                         if other_apple is not None:
                             # Teleport snake head to the other apple's position
