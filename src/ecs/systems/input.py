@@ -29,7 +29,7 @@ import pygame
 
 from ecs.systems.base_system import BaseSystem
 from ecs.world import World
-from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME
+from game.game_modes_registry import PLAYER_VS_PLAYER_MODE_NAME, MIRRORED_MODE_NAME
 
 
 class InputSystem(BaseSystem):
@@ -175,6 +175,11 @@ class InputSystem(BaseSystem):
         if not snake:
             return
 
+        # Handle mirrored mode: apply input to both snakes with opposite directions
+        if self._game_mode == MIRRORED_MODE_NAME:
+            self._buffer_mirrored_direction(world, snake, dx, dy)
+            return
+
         # Mark game as started on first input
         game_state = self._get_game_state(world)
         if game_state and not game_state.game_started:
@@ -204,6 +209,60 @@ class InputSystem(BaseSystem):
 
         # Enqueue the new direction
         buf.moves.append((dx, dy))
+
+    def _buffer_mirrored_direction(self, world: World, snake, dx: int, dy: int) -> None:
+        """Buffer direction for both mirrored snakes with opposite directions.
+
+        Args:
+            world: ECS world
+            snake: The primary snake entity
+            dx: Horizontal direction for primary snake
+            dy: Vertical direction for primary snake
+        """
+        from ecs.entities.entity import EntityType
+
+        # Mark game as started on first input
+        game_state = self._get_game_state(world)
+        if game_state and not game_state.game_started:
+            game_state.game_started = True
+
+        # Get both snakes
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        snake_list = list(snakes.values())
+
+        if len(snake_list) < 2:
+            return
+
+        snake1 = snake_list[0]
+        snake2 = snake_list[1]
+
+        # Buffer direction for snake 1
+        if hasattr(snake1, "input_buffer"):
+            buf1 = snake1.input_buffer
+            last_dx1, last_dy1 = (snake1.velocity.dx, snake1.velocity.dy)
+            if buf1.moves:
+                last_dx1, last_dy1 = buf1.moves[-1]
+
+            if not ((dx != 0 and last_dx1 == -dx) or (dy != 0 and last_dy1 == -dy)):
+                if len(buf1.moves) < buf1.max_len:
+                    buf1.moves.append((dx, dy))
+
+        # Buffer OPPOSITE direction for snake 2 (mirrored)
+        mirrored_dx = -dx
+        mirrored_dy = -dy
+
+        if hasattr(snake2, "input_buffer"):
+            buf2 = snake2.input_buffer
+            last_dx2, last_dy2 = (snake2.velocity.dx, snake2.velocity.dy)
+            if buf2.moves:
+                last_dx2, last_dy2 = buf2.moves[-1]
+
+            if not (
+                (mirrored_dx != 0 and last_dx2 == -mirrored_dx)
+                or (mirrored_dy != 0 and last_dy2 == -mirrored_dy)
+            ):
+                if len(buf2.moves) < buf2.max_len:
+                    buf2.moves.append((mirrored_dx, mirrored_dy))
 
     def _handle_keydown(self, world: World, key: int) -> None:
         """Handle key down events.

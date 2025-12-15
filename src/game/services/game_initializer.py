@@ -39,6 +39,7 @@ from game.game_modes_registry import (
     LIGHTS_OUT_MODE_NAME,
     PLAYER_VS_PLAYER_MODE_NAME,
     TELEPORT_MODE_NAME,
+    MIRRORED_MODE_NAME,
 )
 
 
@@ -148,6 +149,9 @@ class GameInitializer:
         if self._game_mode == PLAYER_VS_PLAYER_MODE_NAME:
             # create 2 snakes for PvP mode
             self._create_pvp_snakes(world, grid_size)
+        elif self._game_mode == MIRRORED_MODE_NAME:
+            # create 2 mirrored snakes
+            self._create_mirrored_snakes(world, grid_size)
         else:
             # create single snake for other modes
             self._create_snake(world, grid_size)
@@ -384,6 +388,78 @@ class GameInitializer:
                 snake.lives = Lives(remaining=3, max_lives=3)
                 snake.respawn_timer = RespawnTimer()
                 snake.player_id = PlayerID(player_number=2, score=0)
+                break
+
+    def _create_mirrored_snakes(self, world: World, grid_size: int) -> None:
+        """Create two mirrored snakes for Mirrored mode."""
+        from ecs.prefabs.snake import create_snake
+        from ecs.entities.entity import EntityType
+        from core.types.color_utils import hex_to_rgb
+
+        # [FIX] Use proportional spacing (1/4 width) so it works on ANY board size
+        snake1_x = world.board.width // 4
+        snake1_y = world.board.height // 2
+
+        # Snake 2 is mirrored: (Width - 1 - X)
+        snake2_x = world.board.width - 1 - snake1_x
+        snake2_y = world.board.height - 1 - snake1_y
+
+        # Get snake colors
+        snake_colors = self._settings.get_snake_colors()
+        head_color = hex_to_rgb(snake_colors["head"])
+        tail_color = hex_to_rgb(snake_colors["tail"])
+
+        p2_colors = self._settings.get_player2_colors()
+        p2_head_color = hex_to_rgb(p2_colors["head"])
+        p2_tail_color = hex_to_rgb(p2_colors["tail"])
+
+        # Create snake 1
+        snake1_id = create_snake(
+            world=world,
+            grid_size=grid_size,
+            initial_speed=4.0,  # [FIX] Hardcode slower start speed for Mirrored Mode
+            head_color=head_color,
+            tail_color=tail_color,
+            enable_hunger=False,
+            cheese_mode=False,
+            shrinking_mode=False,
+            autoplay_mode=False,
+            initial_x=snake1_x,
+            initial_y=snake1_y,
+            mirrored_snake_id=None,
+        )
+
+        # Create snake 2
+        snake2_id = create_snake(
+            world=world,
+            grid_size=grid_size,
+            initial_speed=4.0,  # [FIX] Hardcode slower start speed for Mirrored Mode
+            head_color=p2_head_color,
+            tail_color=p2_tail_color,
+            enable_hunger=False,
+            cheese_mode=False,
+            shrinking_mode=False,
+            autoplay_mode=False,
+            initial_x=snake2_x,
+            initial_y=snake2_y,
+            mirrored_snake_id=snake1_id,
+        )
+
+        # [FIX] Invert Snake 2's velocity to face LEFT (-1, 0)
+        # Default is RIGHT (1, 0). If we don't fix this, the first "Left" input
+        # is rejected as a 180-degree turn, causing Snake 2 to follow Snake 1.
+        snake2 = world.registry.get(snake2_id)
+        if snake2 and hasattr(snake2, "velocity"):
+            snake2.velocity.dx = -1
+            snake2.velocity.dy = 0
+
+        # Update snake1's mirrored_pair
+        snakes = world.registry.query_by_type(EntityType.SNAKE)
+        for snake_id, snake in snakes.items():
+            if snake_id == snake1_id:
+                from ecs.components.mirrored_pair import MirroredPair
+
+                snake.mirrored_pair = MirroredPair(partner_id=snake2_id)
                 break
 
     def _create_pvp_apples(self, world: World, grid_size: int) -> None:
@@ -701,8 +777,11 @@ class GameInitializer:
         desired_cells = self._settings.get("cells_per_side")
         actual_cells = world.board.width  # board is always square
 
+        # Define modes that require even boards
+        requires_even = self._game_mode in [AUTOPLAY_MODE_NAME, MIRRORED_MODE_NAME]
+
         # if board doesn't match settings, recreate it
-        if desired_cells != actual_cells:
+        if desired_cells != actual_cells or (requires_even and actual_cells % 2 != 0):
             # need config to calculate optimal sizes
             if not self._config:
                 from game.config import GameConfig
@@ -714,8 +793,10 @@ class GameInitializer:
             # ensure minimum size
             desired_cells = max(10, int(desired_cells))
 
-            # For autoplay mode, enforce even grid size (maze algorithm requires it)
-            if self._game_mode == AUTOPLAY_MODE_NAME and desired_cells % 2 != 0:
+            # Trigger update if settings changed OR if mode needs even board but has odd
+            if desired_cells != actual_cells or (
+                requires_even and actual_cells % 2 != 0
+            ):
                 desired_cells += 1  # Round up to nearest even number
 
             # calculate optimal grid/cell size
@@ -725,10 +806,19 @@ class GameInitializer:
             new_width_pixels, new_height_pixels = config.calculate_window_size(
                 new_cell_size
             )
-
             # calculate board dimensions in cells
             new_width_cells = new_width_pixels // new_cell_size
             new_height_cells = new_height_pixels // new_cell_size
+
+            if requires_even:
+                if new_width_cells % 2 != 0:
+                    new_width_cells -= 1
+                if new_height_cells % 2 != 0:
+                    new_height_cells -= 1
+
+                # CRITICAL: Recalculate pixels so window matches the board exactly
+                new_width_pixels = new_width_cells * new_cell_size
+                new_height_pixels = new_height_cells * new_cell_size
 
             # create a new board with the new dimensions
             from ecs.board import Board

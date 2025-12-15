@@ -29,6 +29,7 @@ from ecs.components.interpolation import Interpolation
 from ecs.components.renderable import Renderable
 from ecs.components.input_buffer import InputBuffer
 from ecs.components.hunger import Hunger
+from ecs.components.mirrored_pair import MirroredPair
 from core.types.color import Color
 from game import constants
 
@@ -45,6 +46,7 @@ def create_snake(
     autoplay_mode: bool = False,
     initial_x: Optional[int] = None,
     initial_y: Optional[int] = None,
+    mirrored_snake_id: Optional[int] = None,
 ) -> int:
     """Create a snake entity with all required components.
 
@@ -60,6 +62,7 @@ def create_snake(
         autoplay_mode: Whether Autoplay Mode is enabled (starts with zero velocity)
         initial_x: Initial X position in grid coordinates (default: center)
         initial_y: Initial Y position in grid coordinates (default: center)
+        mirrored_snake_id: Entity ID of the mirrored snake (for Mirrored mode)
 
     Returns:
         int: Entity ID of created snake
@@ -144,6 +147,10 @@ def create_snake(
         ),
         input_buffer=InputBuffer(),
     )
+
+    # Add mirrored pair component if this is a mirrored snake
+    if mirrored_snake_id is not None:
+        snake.mirrored_pair = MirroredPair(partner_id=mirrored_snake_id)
 
     # register entity with world and return ID
     entity_id = world.registry.add(snake)

@@ -32,6 +32,7 @@ BOX_MODE_NAME = "Box Mode"
 TRAIL_MODE_NAME = "Trail Mode"
 LIGHTS_OUT_MODE_NAME = "Lights Out"
 PLAYER_VS_PLAYER_MODE_NAME = "Player vs Player"
+MIRRORED_MODE_NAME = "Mirrored"
 
 ACTUAL_GAME_MODES = [
     {
@@ -89,6 +90,11 @@ ACTUAL_GAME_MODES = [
         "description": "Two players compete locally on the same board!",
         "detailed_info": "Grab a friend and compete head-to-head! Player 1 uses WASD, Player 2 uses Arrow keys. Each player has 3 lives and respawns after 3 seconds. Colliding with your opponent costs a life. Last player standing wins!",
     },
+    {
+        "name": MIRRORED_MODE_NAME,
+        "description": "Two snakes move in opposite directions, mirrored across the board center.",
+        "detailed_info": "Control two snakes simultaneously! They move in opposite directions, perfectly mirrored across the board center. When one snake eats food, both grow. If they collide with each other, you lose. Requires careful spatial planning!",
+    },
 ]
 
 RANDOM_MODE_LABEL = "Random"
@@ -104,6 +110,7 @@ __all__ = [
     "TRAIL_MODE_NAME",
     "LIGHTS_OUT_MODE_NAME",
     "PLAYER_VS_PLAYER_MODE_NAME",
+    "MIRRORED_MODE_NAME",
     "ACTUAL_GAME_MODES",
     "RANDOM_MODE_LABEL",
     "RANDOM_MODE_INDEX",
