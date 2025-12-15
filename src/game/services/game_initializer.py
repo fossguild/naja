@@ -422,7 +422,7 @@ class GameInitializer:
                 attempts += 1
 
     def _create_teleport_apples(self, world: World, grid_size: int) -> None:
-        """Create 2 apples for Player vs Player mode.
+        """Create 2 apples for Teleport mode.
 
         Args:
             world: ECS world instance
