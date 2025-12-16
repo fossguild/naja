@@ -30,6 +30,7 @@ SHRINKING_MODE_NAME = "Shrinking Mode"
 TELEPORT_MODE_NAME = "Teleport"
 BOX_MODE_NAME = "Box Mode"
 TRAIL_MODE_NAME = "Trail Mode"
+PORTAL_BARRIER_MODE_NAME = "Portal Barrier Mode"
 LIGHTS_OUT_MODE_NAME = "Lights Out"
 PLAYER_VS_PLAYER_MODE_NAME = "Player vs Player"
 MIRRORED_MODE_NAME = "Mirrored"
@@ -79,6 +80,11 @@ ACTUAL_GAME_MODES = [
         "name": TRAIL_MODE_NAME,
         "description": "Every tile the snake moves through becomes a permanent obstacle.",
         "detailed_info": "Leave your mark - permanently! Every tile you move through becomes a solid obstacle that remains for the rest of the game. The board fills up as you play, creating an ever-shrinking maze. Requires careful path planning to avoid trapping yourself. How long can you survive?",
+    },
+    {
+        "name": PORTAL_BARRIER_MODE_NAME,
+        "description": "Special two-block barriers teleport the snake through portals.",
+        "detailed_info": "Discover the power of portals! Special two-block barriers are placed on the grid. When your snake's head enters the entry block of a barrier, it instantly teleports to the opposite exit block and continues moving in the same direction. Use portals strategically to navigate the board and escape dangerous situations!",
     },
     {
         "name": LIGHTS_OUT_MODE_NAME,

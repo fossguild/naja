@@ -34,6 +34,7 @@ class EntityType(Enum):
     OBSTACLE = auto()
     BOX = auto()
     HOLE = auto()
+    PORTAL_BARRIER = auto()
 
 
 class Entity(ABC):
