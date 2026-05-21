@@ -44,6 +44,7 @@ class GameSettings:
         "snake_color_palette": "Classic Green",  # Snake color customization
         "player2_color_palette": "Ocean",  # Player 2 color (PvP mode only)
         "board_color_palette": "Classic Dark",  # Board color customization
+        "colourblind_mode": False,  # High-contrast colours for accessibility
         "speed_increase_rate": "10%",  # Speed increase per apple: 5% or 10%
         "enable_hunger": False,
         "game_mode": "Classic",  # current game mode
@@ -189,6 +190,13 @@ class GameSettings:
             "label": "Board color",
             "type": "select",
             "options": [palette["name"] for palette in BOARD_COLOR_PALETTES],
+            "requires_reset": False,
+            "category": "Display",
+        },
+        {
+            "key": "colourblind_mode",
+            "label": "Colourblind mode",
+            "type": "bool",
             "requires_reset": False,
             "category": "Display",
         },
@@ -632,11 +640,18 @@ class GameSettings:
         return None
 
     def get_snake_colors(self):
-        """Get current snake colors based on selected palette.
+        """Get current snake colours based on selected palette.
 
         Returns:
             dict: Dictionary with 'head', 'tail', and 'name' keys
         """
+        if self.settings.get("colourblind_mode", False):
+            return {
+                "head": "#005AB5",
+                "tail": "#DC3220",
+                "name": "Colourblind",
+            }
+
         from .constants import get_snake_colors_by_name
 
         palette_name = self.settings.get("snake_color_palette", "Classic Green")
@@ -654,11 +669,19 @@ class GameSettings:
         return get_snake_colors_by_name(palette_name)
 
     def get_board_colors(self):
-        """Get current board colors based on selected palette.
+        """Get current board colours based on selected palette.
 
         Returns:
             dict: Dictionary with 'primary', 'secondary', 'grid', and 'name' keys
         """
+        if self.settings.get("colourblind_mode", False):
+            return {
+                "primary": "#F0F0F0",
+                "secondary": "#D9D9D9",
+                "grid": "#000000",
+                "name": "Colourblind",
+            }
+
         from .constants import get_board_colors_by_name
 
         palette_name = self.settings.get("board_color_palette", "Classic Dark")
